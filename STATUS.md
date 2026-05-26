@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-05-26（功能点 10 完成）
+> 更新: 2026-05-26（21 个功能点全部完成）
 
 ## 当前进度
 
@@ -16,14 +16,17 @@
 | 项目基础设施搭建 | specs/00-infrastructure-template.md | 已完成 | 2026-05-26 |
 | 统一模板 + BDD 规格 | specs/00-infrastructure-template.md | 已完成 | 2026-05-26 |
 | 01-架构 模板改造 | specs/01-architecture.md | 已完成 | 2026-05-26 |
-| 02-代码 模板改造 | specs/02-coding.md | 待开始 | - |
-| 03-Git 模板改造 | specs/03-git.md | 待开始 | - |
-| 04-API 模板改造 | specs/04-api.md | 待开始 | - |
-| 05-测试 模板改造 | specs/05-testing.md | 待开始 | - |
-| 06-文档 模板改造 | specs/06-documentation.md | 待开始 | - |
-| 示例代码库 | specs/09-examples.md | 待开始 | - |
-| 仪表盘自动生成 | specs/10-dashboard-gen.md | 待开始 | - |
+| 02-代码 模板改造 | specs/02-coding.md | 已完成 | 2026-05-26 |
+| 03-Git 模板改造 | specs/03-git.md | 已完成 | 2026-05-26 |
+| 04-API 模板改造 | specs/04-api.md | 已完成 | 2026-05-26 |
+| 05-测试 模板改造 | specs/05-testing.md | 已完成 | 2026-05-26 |
+| 06-文档 模板改造 | specs/06-documentation.md | 已完成 | 2026-05-26 |
+| 示例代码库 | specs/08-examples.md | 已完成 | 2026-05-26 |
+| 仪表盘自动生成 | specs/09-dashboard-gen.md | 已完成 | 2026-05-26 |
 | 基础设施修正（审查修复） | - | 已完成 | 2026-05-26 |
+| 二轮审查修复（全量复查） | - | 已完成 | 2026-05-26 |
+| 文件图谱 + 仪表盘优化 | specs/09-dashboard-gen.md | 已完成 | 2026-05-26 |
+| 统一模板规约 + 汇报模板 | specs/10-templates-reporting.md | 已完成 | 2026-05-26 |
 
 ## 阻塞项
 
@@ -40,6 +43,4 @@
 
 ## 技术债
 
-- 02-06 号规范尚未按统一模板改造（缺少"为什么"段落、反模式对照、检查清单）
-- src/ 为空 —— 需补充各规范的代码示例
 - 项目自身尚无 CI/CD pipeline

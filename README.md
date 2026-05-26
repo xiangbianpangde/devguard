@@ -62,7 +62,7 @@ cp -r 开发规范/docs/templates/ 开发规范/plan/ 开发规范/worklogs/ my-
 | 文件 | 说明 |
 |------|------|
 | `conventions/*.md` | 规范内容可根据项目调整（增删规则、修改红线） |
-| `dashboard.html` | 颜色/刷新间隔可改 `<meta http-equiv="refresh">` |
+| `dashboard.html` | 颜色改 `:root` CSS 变量；刷新间隔改脚本顶部 `REFRESH_MS` 常量 |
 | `docs/templates/*` | 模板内容保持通用，需要时修改 |
 
 ### 无需修改的文件
@@ -108,8 +108,8 @@ my-project/
 **Q: 规范太严格，能删减吗？**
 A: 可以。`conventions/` 中的每条规则都可以调整。建议先完整阅读一遍，标出不适用的规则，然后在团队内讨论确认。
 
-**Q: dashboard.html 打开是白的？**
-A: 需要通过 HTTP 服务打开（`python -m http.server` 或 VS Code Live Preview），不能直接用 `file://` 协议。
+**Q: 怎么打开 dashboard.html？打开是白的？**
+A: 最简单——双击根目录的 `打开仪表盘.bat`（自动起服务并打开浏览器）。或运行 `python start_server.py`。dashboard 需经 HTTP 服务打开（它要 `fetch('STATUS.md')`），直接用 `file://` 协议会是空白。
 
 **Q: 只有我一个人开发，也需要这些吗？**
 A: 是的。`CLAUDE.md` 和 `STATUS.md` 让你在不同会话、不同 AI 工具中保持一致性。明天的你不会记得今天为什么做这个决策。
