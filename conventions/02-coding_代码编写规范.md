@@ -33,21 +33,6 @@
 - 参数不超过 4 个，超过用对象/结构体传参
 - 优先纯函数（无副作用，相同输入相同输出）
 
-```python
-# 好：单一职责
-def calculate_tax(amount: float, rate: float) -> float:
-    return amount * rate
-
-def format_price(price: float) -> str:
-    return f"${price:.2f}"
-
-# 差：混合职责
-def process_price(amount, rate, currency):
-    tax = amount * rate
-    total = amount + tax
-    return f"{currency}{total:.2f}"
-```
-
 ### 2.2 类
 - 遵循单一职责原则
 - 成员变量不超过 7 个（超过考虑拆分）
@@ -67,7 +52,6 @@ def process_price(amount, rate, currency):
 - **不写**：显而易见的代码（`i++ // 自增`）、过时注释
 
 ### 3.2 注释格式
-
 ```python
 # 好：解释为什么
 # 使用 B 树索引而非哈希索引，因为需要范围查询
@@ -117,11 +101,6 @@ except Exception:
 # 好：上下文管理器
 with open("file.txt") as f:
     content = f.read()
-
-# 差：手动管理
-f = open("file.txt")
-content = f.read()
-f.close()  # 异常时可能不执行
 ```
 
 ---
@@ -142,7 +121,6 @@ f.close()  # 异常时可能不执行
 ```python
 # 好：参数化查询
 db.execute("SELECT * FROM users WHERE id = ?", [user_id])
-
 # 差：字符串拼接（SQL 注入风险）
 db.execute(f"SELECT * FROM users WHERE id = {user_id}")
 ```
@@ -163,17 +141,7 @@ db.execute(f"SELECT * FROM users WHERE id = {user_id}")
 | WARN | 可恢复的异常 | 开启 |
 | ERROR | 需要关注的错误 | 开启 |
 
-### 6.2 日志格式
-```
-[时间] [级别] [模块] 消息内容 {关键参数}
-```
-
-```python
-logger.info("UserService.create: user created successfully {user_id=123}")
-logger.error("PaymentService.process: payment failed {order_id=456, reason=insufficient_balance}")
-```
-
-### 6.3 禁止
+### 6.2 禁止
 - 使用 `print()` 替代日志
 - 在循环中打印大量日志
 - 日志中没有关键上下文
