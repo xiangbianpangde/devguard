@@ -17,7 +17,7 @@
 | [04-API设计规范](04-api_API设计规范.md) | RESTful、错误码、版本管理、安全 | 设计 API 前 |
 | [05-测试规范](05-testing_测试规范.md) | 测试金字塔、AAA、Mock、覆盖率 | 写测试前 |
 | [06-文档规范](06-documentation_文档规范.md) | README、CHANGELOG、注释、接口文档 | 写文档前 |
-| [07-AI协作开发流程](07-ai-workflow_AI协作开发流程/) | 计划驱动、BDD迭代、双模型协作 | 项目启动 / 新成员入职 |
+| [AI协作开发流程](ai-workflow_AI协作开发流程/) | 计划驱动、BDD迭代、双模型协作 | 项目启动 / 新成员入职 |
 
 ---
 

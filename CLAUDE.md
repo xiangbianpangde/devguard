@@ -18,7 +18,7 @@
 │   ├── 04-api_API设计规范.md
 │   ├── 05-testing_测试规范.md
 │   ├── 06-documentation_文档规范.md
-│   └── 07-ai-workflow_AI协作开发流程/
+│   └── ai-workflow_AI协作开发流程/
 │       ├── 01-角色分工与文件体系.md
 │       ├── 02-第零步_调研.md
 │       ├── 03-第一步_编写计划.md
@@ -41,7 +41,25 @@
 └── CLAUDE.md                 # 本文件
 ```
 
-> 模板权威来源：`.agenthub/templates/` 目录。新项目从此处复制模板文件。
+> 模板权威来源：`docs/templates/` 目录。新项目从此处复制模板文件。
+
+## 模块依赖图谱
+
+本项目为纯文档项目，无代码模块。各文件的引用关系如下：
+
+```
+conventions/规范文档 (01-07)     ← 规范正文，彼此独立
+        ↕ 互检
+docs/specs/BDD规格               ← 验收标准，逐个对应规范文档
+        ↓
+plan/开发清单.md                  ← 功能点列表，引用 specs/ 中的 BDD
+        ↓ 驱动
+STATUS.md / dashboard.html       ← 进度追踪，解析 STATUS.md 表格
+        ↓ 记录
+worklogs/                         ← 每次功能点产出变更日志
+```
+
+关键约束：修改规范文档时需同步更新对应的 `docs/specs/` BDD 规格。新增功能点须同时写入 `plan/开发清单.md` 和 `STATUS.md`。
 
 ## 当前开发状态
 
