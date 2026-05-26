@@ -2,166 +2,279 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="60">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>开发规范 — 项目仪表盘</title>
   <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --border: #30363d; --border-soft: #21262d;
+      --text: #c9d1d9; --muted: #8b949e; --faint: #484f58;
+      --blue: #58a6ff; --green: #3fb950; --green-dim: #238636;
+      --yellow: #d2991d; --red: #f85149;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d1117; color: #c9d1d9; padding: 2rem;
-      max-width: 900px; margin: 0 auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--text); padding: 2rem 1.25rem;
+      max-width: 960px; margin: 0 auto; line-height: 1.5;
     }
-    h1 { color: #58a6ff; margin-bottom: 0.25rem; }
-    .subtitle { color: #8b949e; margin-bottom: 2rem; }
-    .updated { color: #8b949e; font-size: 0.85rem; margin-bottom: 2rem; }
-    .card {
-      background: #161b22; border: 1px solid #30363d;
-      border-radius: 8px; padding: 1.25rem; margin-bottom: 0.75rem;
+    .top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+    h1 { color: var(--blue); font-size: 1.5rem; }
+    .subtitle { color: var(--muted); margin: 0.35rem 0 0; font-size: 0.9rem; }
+    .subtitle a { color: var(--blue); text-decoration: none; }
+    .subtitle a:hover { text-decoration: underline; }
+    .controls { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; color: var(--muted); }
+    .refresh-btn {
+      background: var(--panel); border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.8rem;
+      display: inline-flex; align-items: center; gap: 0.4rem; transition: border-color 0.2s;
     }
-    .card-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 0.5rem;
+    .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-top: 1.5rem; }
+    .progress-head { display: flex; justify-content: space-between; align-items: baseline; }
+    .progress-head .label { font-weight: 600; }
+    .progress-head .count { color: var(--muted); font-size: 0.9rem; }
+    .pct { font-size: 1.6rem; font-weight: 700; color: var(--green); }
+    .progress-bar { width: 100%; height: 10px; background: var(--border-soft); border-radius: 5px; overflow: hidden; margin: 0.75rem 0 0.25rem; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green-dim), var(--green)); border-radius: 5px; transition: width 0.5s ease; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .chip {
+      border: 1px solid var(--border); border-radius: 999px; padding: 0.3rem 0.7rem;
+      font-size: 0.8rem; cursor: pointer; color: var(--muted); background: transparent;
+      transition: all 0.15s; user-select: none;
     }
-    .card-title { font-weight: 600; font-size: 1.05rem; }
-    .badge {
-      padding: 0.15rem 0.55rem; border-radius: 12px;
-      font-size: 0.72rem; font-weight: 600;
-    }
-    .badge-done { background: #1b3a2d; color: #3fb950; }
-    .badge-active { background: #1a2e3f; color: #58a6ff; }
-    .badge-pending { background: #30363d; color: #8b949e; }
-    .badge-blocked { background: #3a1b1b; color: #f85149; }
-    .progress-bar {
-      width: 100%; height: 8px; background: #21262d;
-      border-radius: 4px; overflow: hidden; margin: 0.5rem 0;
-    }
-    .progress-fill {
-      height: 100%; background: linear-gradient(90deg, #238636, #3fb950);
-      border-radius: 4px; transition: width 0.4s;
-    }
-    .meta { color: #8b949e; font-size: 0.78rem; margin-top: 0.35rem; }
-    .blocked-section { margin-top: 2rem; }
-    .blocked-section h2 { color: #f85149; margin-bottom: 0.75rem; font-size: 1.1rem; }
-    .tech-debt { color: #d2991d; }
-    a { color: #58a6ff; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .footer { text-align: center; color: #484f58; font-size: 0.75rem; margin-top: 3rem; }
+    .chip:hover { border-color: var(--muted); }
+    .chip.active { background: #1f2937; border-color: var(--blue); color: var(--text); }
+    .chip .n { font-weight: 700; color: var(--text); margin-right: 0.25rem; }
+    .chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.4rem; vertical-align: middle; }
+    .dot-done { background: var(--green); } .dot-active { background: var(--blue); }
+    .dot-pending { background: var(--faint); } .dot-blocked { background: var(--red); }
+
+    .cards { margin-top: 1.5rem; display: grid; gap: 0.75rem; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.1rem; border-left: 3px solid var(--border); }
+    .card.s-done { border-left-color: var(--green); }
+    .card.s-active { border-left-color: var(--blue); }
+    .card.s-pending { border-left-color: var(--faint); }
+    .card.s-blocked { border-left-color: var(--red); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+    .card-title { font-weight: 600; font-size: 1.02rem; }
+    .badge { padding: 0.15rem 0.6rem; border-radius: 12px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .badge-done { background: #1b3a2d; color: var(--green); }
+    .badge-active { background: #1a2e3f; color: var(--blue); }
+    .badge-pending { background: var(--border); color: var(--muted); }
+    .badge-blocked { background: #3a1b1b; color: var(--red); }
+    .meta { color: var(--muted); font-size: 0.8rem; margin-top: 0.45rem; }
+    .meta a { color: var(--blue); text-decoration: none; }
+    .meta a:hover { text-decoration: underline; }
+
+    .section-title { margin: 2rem 0 0.75rem; font-size: 1.1rem; }
+    .section-title.blocked { color: var(--red); }
+    .section-title.debt { color: var(--yellow); }
+    .list-item { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1.1rem; margin-bottom: 0.6rem; font-size: 0.92rem; }
+    .empty { color: var(--muted); text-align: center; padding: 2rem; }
+    .footer { text-align: center; color: var(--faint); font-size: 0.75rem; margin-top: 3rem; }
+    code { background: var(--border-soft); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
   </style>
 </head>
 <body>
-  <h1>📊 开发规范 — 项目仪表盘</h1>
-  <p class="subtitle">
-    <a href="README.md">README</a> ·
-    <a href="plan/开发清单.md">开发清单</a> ·
-    <a href="CLAUDE.md">CLAUDE.md</a>
-  </p>
-  <p class="updated">最后更新: <span id="update-time">--</span></p>
-
-  <div class="card" style="margin-bottom: 2rem;">
-    <div class="card-header">
-      <span class="card-title">总体进度</span>
-      <span id="overall-percent">0%</span>
+  <div class="top">
+    <div>
+      <h1>📊 开发规范 — 项目仪表盘</h1>
+      <p class="subtitle">
+        <a href="README.md">README</a> ·
+        <a href="plan/开发清单.md">开发清单</a> ·
+        <a href="meta/FILE_GRAPH.md">文件图谱</a> ·
+        <a href="CLAUDE.md">CLAUDE.md</a>
+      </p>
     </div>
-    <div class="progress-bar">
-      <div class="progress-fill" id="overall-bar" style="width: 0%"></div>
+    <div class="controls">
+      <span id="refresh-info">—</span>
+      <button class="refresh-btn" id="refresh-btn" title="立即刷新">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+        刷新
+      </button>
     </div>
-    <p class="meta">基于 <code>STATUS.md</code> 自动解析 · 每 60 秒刷新</p>
   </div>
 
-  <div id="feature-cards"></div>
+  <div class="panel">
+    <div class="progress-head">
+      <div>
+        <span class="label">总体进度</span>
+        <span class="count" id="count">—</span>
+      </div>
+      <span class="pct" id="pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="bar" style="width:0%"></div></div>
+    <div class="chips" id="chips"></div>
+  </div>
 
-  <div class="blocked-section" id="blocked-section" style="display: none;">
-    <h2>🚫 阻塞项</h2>
+  <div class="cards" id="cards"></div>
+
+  <div id="blocked-section" style="display:none">
+    <h2 class="section-title blocked">🚫 阻塞项</h2>
     <div id="blocked-list"></div>
   </div>
 
-  <div class="blocked-section" id="debt-section" style="display: none;">
-    <h2 class="tech-debt">⚠️ 技术债</h2>
+  <div id="debt-section" style="display:none">
+    <h2 class="section-title debt">⚠️ 技术债</h2>
     <div id="debt-list"></div>
   </div>
 
-  <p class="footer">通用开发规范 · 由 AI 协作开发流程驱动</p>
+  <p class="footer">数据源 <code>STATUS.md</code> · 每 60 秒自动刷新 · 通用开发规范 · AI 协作开发流程驱动</p>
 
   <script>
-    async function loadStatus() {
-      try {
-        const res = await fetch('STATUS.md');
-        const text = await res.text();
-        render(text);
-        document.getElementById('update-time').textContent =
-          new Date().toLocaleString('zh-CN');
-      } catch (e) {
-        document.getElementById('feature-cards').innerHTML =
-          '<div class="card"><p>⚠️ 无法加载 STATUS.md（请通过 HTTP 服务打开本文件，而非 file:// 协议）</p></div>';
+    const REFRESH_MS = 60000;
+    let filter = 'all';
+    let lastFeatures = [];
+    let countdown = REFRESH_MS / 1000;
+
+    const STATUS_DEFS = {
+      done:    { test: s => /^✅/.test(s) || s === '已完成', label: '已完成', badge: 'badge-done', card: 's-done', dot: 'dot-done' },
+      active:  { test: s => /^🔄/.test(s) || s === '进行中', label: '进行中', badge: 'badge-active', card: 's-active', dot: 'dot-active' },
+      blocked: { test: s => /^🚫/.test(s) || s.includes('阻塞'), label: '阻塞', badge: 'badge-blocked', card: 's-blocked', dot: 'dot-blocked' },
+      pending: { test: s => true, label: '待开始', badge: 'badge-pending', card: 's-pending', dot: 'dot-pending' },
+    };
+    function classify(status) {
+      for (const key of ['done', 'active', 'blocked', 'pending']) {
+        if (STATUS_DEFS[key].test(status)) return key;
       }
+      return 'pending';
     }
 
-    function render(md) {
+    function parse(md) {
       const lines = md.split('\n');
-      const features = [];
-      const blocked = [];
-      const debt = [];
-      let inTable = false, inBlocked = false, inDebt = false;
-
-      for (const line of lines) {
-        if (line.startsWith('| 功能点')) { inTable = true; continue; }
-        if (inTable && line.startsWith('|') && !line.includes('---')) {
+      const features = [], blocked = [], debt = [];
+      let section = null, updated = '';
+      for (const raw of lines) {
+        const line = raw.trim();
+        const dateM = line.match(/^>\s*(?:最后)?更新[:：]\s*(.+)$/);
+        if (dateM) updated = dateM[1].trim();
+        if (line.startsWith('## ')) {
+          const h = line.slice(3).trim();
+          if (h.includes('进度')) section = 'features';
+          else if (h.includes('阻塞')) section = 'blocked';
+          else if (h.includes('技术债')) section = 'debt';
+          else section = 'other';
+          continue;
+        }
+        if (section === 'features' && line.startsWith('|') && !line.includes('---')) {
           const cols = line.split('|').map(s => s.trim()).filter(Boolean);
-          if (cols.length >= 4) {
-            features.push({
-              name: cols[0], bdd: cols[1], status: cols[2], date: cols[3]
-            });
+          if (cols.length >= 4 && cols[0] !== '功能点') {
+            features.push({ name: cols[0], bdd: cols[1], status: cols[2], date: cols[3] });
           }
         }
-        if (line.startsWith('## 阻塞项')) { inTable = false; inBlocked = true; continue; }
-        if (line.startsWith('## 技术债')) { inBlocked = false; inDebt = true; continue; }
-        if (inBlocked && line.startsWith('- ')) blocked.push(line.slice(2));
-        if (inDebt && line.startsWith('- ')) debt.push(line.slice(2));
-        if (line.startsWith('##') && inBlocked) inBlocked = false;
-        if (line.startsWith('##') && inDebt) inDebt = false;
+        if (section === 'blocked' && line.startsWith('- ')) blocked.push(line.slice(2));
+        if (section === 'debt' && line.startsWith('- ')) debt.push(line.slice(2));
+      }
+      return {
+        features,
+        blocked: blocked.filter(b => b.trim() && b !== '（无）'),
+        debt: debt.filter(d => d.trim() && d !== '（无）'),
+        updated,
+      };
+    }
+
+    function bddLink(bdd) {
+      if (!bdd || bdd === '-') return '—';
+      // STATUS.md 写 specs/xx.md，实际位于 docs/specs/
+      let href = bdd;
+      if (bdd.startsWith('specs/')) href = 'docs/' + bdd;
+      else if (bdd.startsWith('docs/')) href = bdd;
+      else return bdd;
+      return `<a href="${href}">${bdd}</a>`;
+    }
+
+    function render(data) {
+      lastFeatures = data.features;
+      const counts = { done: 0, active: 0, pending: 0, blocked: 0 };
+      data.features.forEach(f => counts[classify(f.status)]++);
+      const total = data.features.length;
+      const done = counts.done;
+      const pct = total ? Math.round(done / total * 100) : 0;
+
+      document.getElementById('pct').textContent = pct + '%';
+      document.getElementById('bar').style.width = pct + '%';
+      document.getElementById('count').textContent = `${done} / ${total} 完成`;
+      document.getElementById('refresh-info').innerHTML =
+        (data.updated ? `更新: ${data.updated} · ` : '') + `<span id="cd">${countdown}s 后刷新</span>`;
+
+      const chipDefs = [
+        { key: 'all', label: '全部', n: total, dot: '' },
+        { key: 'done', label: '已完成', n: counts.done, dot: 'dot-done' },
+        { key: 'active', label: '进行中', n: counts.active, dot: 'dot-active' },
+        { key: 'pending', label: '待开始', n: counts.pending, dot: 'dot-pending' },
+        { key: 'blocked', label: '阻塞', n: counts.blocked, dot: 'dot-blocked' },
+      ];
+      document.getElementById('chips').innerHTML = chipDefs.map(c =>
+        `<button class="chip ${filter === c.key ? 'active' : ''}" data-filter="${c.key}">
+          ${c.dot ? `<span class="dot ${c.dot}"></span>` : ''}<span class="n">${c.n}</span>${c.label}
+        </button>`).join('');
+      document.querySelectorAll('.chip').forEach(ch =>
+        ch.onclick = () => { filter = ch.dataset.filter; render(data); });
+
+      const shown = data.features.filter(f => filter === 'all' || classify(f.status) === filter);
+      const cardsEl = document.getElementById('cards');
+      if (!shown.length) {
+        cardsEl.innerHTML = `<div class="empty">该分类下暂无功能点</div>`;
+      } else {
+        cardsEl.innerHTML = shown.map(f => {
+          const k = classify(f.status);
+          const def = STATUS_DEFS[k];
+          const statusText = f.status.replace(/^[✅🔄⏳🚫]\s*/, '');
+          const dateText = (f.date && f.date !== '-') ? ` · 完成 ${f.date}` : '';
+          return `<div class="card ${def.card}">
+            <div class="card-header">
+              <span class="card-title">${f.name}</span>
+              <span class="badge ${def.badge}">${statusText}</span>
+            </div>
+            <p class="meta">BDD: ${bddLink(f.bdd)}${dateText}</p>
+          </div>`;
+        }).join('');
       }
 
-      const done = features.filter(f => f.status.startsWith('✅') || f.status === '已完成').length;
-      const total = features.length;
-      const pct = total > 0 ? Math.round(done / total * 100) : 0;
-      document.getElementById('overall-percent').textContent = pct + '%';
-      document.getElementById('overall-bar').style.width = pct + '%';
+      toggleSection('blocked', data.blocked);
+      toggleSection('debt', data.debt);
+    }
 
-      const container = document.getElementById('feature-cards');
-      container.innerHTML = features.map(f => {
-        const isDone = f.status.startsWith('✅') || f.status === '已完成';
-        const isActive = f.status.startsWith('🔄') || f.status === '进行中';
-        const isBlocked = f.status.startsWith('🚫') || f.status === '阻塞';
-        const badgeClass = isDone ? 'badge-done'
-          : isActive ? 'badge-active'
-          : isBlocked ? 'badge-blocked'
-          : 'badge-pending';
-        const statusText = f.status.replace(/^[✅🔄⏳🚫]\s*/, '');
-        return `<div class="card">
-          <div class="card-header">
-            <span class="card-title">${f.name}</span>
-            <span class="badge ${badgeClass}">${statusText}</span>
-          </div>
-          <p class="meta">BDD: ${f.bdd}${f.date !== '-' ? ' · 完成: ' + f.date : ''}</p>
-        </div>`;
-      }).join('');
-
-      if (blocked.some(b => b !== '（无）' && b.trim() !== '')) {
-        document.getElementById('blocked-section').style.display = 'block';
-        document.getElementById('blocked-list').innerHTML =
-          blocked.filter(b => b.trim() && b !== '（无）').map(b =>
-            `<div class="card"><p>${b}</p></div>`).join('');
-      }
-
-      if (debt.some(d => d !== '（无）' && d.trim() !== '')) {
-        document.getElementById('debt-section').style.display = 'block';
-        document.getElementById('debt-list').innerHTML =
-          debt.filter(d => d.trim() && d !== '（无）').map(d =>
-            `<div class="card"><p>${d}</p></div>`).join('');
+    function toggleSection(name, items) {
+      const sec = document.getElementById(name + '-section');
+      if (items.length) {
+        sec.style.display = 'block';
+        document.getElementById(name + '-list').innerHTML =
+          items.map(x => `<div class="list-item">${x}</div>`).join('');
+      } else {
+        sec.style.display = 'none';
       }
     }
 
+    async function loadStatus() {
+      const btn = document.getElementById('refresh-btn');
+      btn.classList.add('spinning');
+      try {
+        const res = await fetch('STATUS.md', { cache: 'no-store' });
+        if (!res.ok) throw new Error(res.status);
+        render(parse(await res.text()));
+      } catch (e) {
+        document.getElementById('cards').innerHTML =
+          `<div class="empty">⚠️ 无法加载 STATUS.md<br><br>请通过 HTTP 服务打开本页（双击 <code>打开仪表盘.bat</code> 或运行 <code>python start_server.py</code>），而非 file:// 协议。</div>`;
+      } finally {
+        countdown = REFRESH_MS / 1000;
+        btn.classList.remove('spinning');
+      }
+    }
+
+    // 倒计时（不整页刷新，原地更新数据，保留滚动位置与筛选）
+    setInterval(() => {
+      countdown--;
+      const cd = document.getElementById('cd');
+      if (cd) cd.textContent = countdown + 's 后刷新';
+      if (countdown <= 0) loadStatus();
+    }, 1000);
+
+    document.getElementById('refresh-btn').onclick = loadStatus;
     loadStatus();
   </script>
 </body>
