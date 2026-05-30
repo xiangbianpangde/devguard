@@ -63,22 +63,19 @@ def log_user_action(user_id: str, phone: str, action: str):
 
 if __name__ == "__main__":
     # 1. 密钥
-    print("API_KEY:", API_KEY[:10] + "..." if len(API_KEY) > 10 else API_KEY)
-    print("提示: 设置环境变量 export API_KEY=your-real-key")
+    logger.info("API_KEY: %s", API_KEY[:10] + "..." if len(API_KEY) > 10 else API_KEY)
+    logger.info("提示: 设置环境变量 export API_KEY=your-real-key")
 
     # 2. SQL 注入对比
-    print()
-    print("安全查询:", query_user_by_id_safe("user_001"))
-    print("危险查询:", query_user_by_id_unsafe("1; DROP TABLE users; --"))
+    logger.info("安全查询: %s", query_user_by_id_safe("user_001"))
+    logger.info("危险查询: %s", query_user_by_id_unsafe("1; DROP TABLE users; --"))
 
     # 3. 白名单校验
-    print()
     try:
-        print("合法状态:", filter_orders("pending"))
+        logger.info("合法状态: %s", filter_orders("pending"))
         filter_orders("hacked_status")
     except ValueError as e:
-        print(f"拦截: {e}")
+        logger.info("拦截: %s", e)
 
     # 4. 日志脱敏
-    print()
     log_user_action("user_001", "13812345678", "登录")

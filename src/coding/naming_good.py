@@ -47,6 +47,9 @@ class UserProfile:  # ✅ PascalCase 类名
 
 
 if __name__ == "__main__":
-    print(f"总价: {calculate_total_price([10.0, 20.0, 30.0])}")
-    print(f"成年: {is_legal_adult(20)}")
-    print(f"未成年: {is_legal_adult(15)}")
+    import logging
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    log = logging.getLogger(__name__)
+    log.info("总价: %s", calculate_total_price([10.0, 20.0, 30.0]))
+    log.info("成年: %s", is_legal_adult(20))
+    log.info("未成年: %s", is_legal_adult(15))

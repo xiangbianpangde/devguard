@@ -5,6 +5,8 @@
 - 换数据库/框架时这段代码不用改
 """
 
+import math
+
 
 def calculate_discount(total: float, is_vip: bool = False, quantity: int = 1) -> float:
     """计算折扣后的最终价格。
@@ -56,7 +58,6 @@ def split_bill(total: float, num_people: int) -> float:
     if num_people <= 0:
         raise ValueError(f"人数必须大于 0，当前: {num_people}")
 
-    import math
     # 向上取整到分（0.01）
     per_person = total / num_people
     return math.ceil(per_person * 100) / 100

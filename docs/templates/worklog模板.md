@@ -2,7 +2,7 @@
 
 ## 使用方式
 复制为 `worklogs/YYYY-MM-DD_{简短描述}.md`，放到 `worklogs/` 目录下。
-下方"可选"段按需增删——保留必填段即合规（见 `docs/templates/README.md` 一致性约定）。
+下方"可选"段按需增删——保留必填段即合规（见 `docs/templates/README-模板索引.md` 一致性约定）。
 
 ---
 

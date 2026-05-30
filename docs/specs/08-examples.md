@@ -19,6 +19,7 @@
   - `src/api/` — RESTful API 完整示例（含统一响应格式、错误码）
   - `src/testing/` — 单元测试 + Mock 示例
   - `src/documentation/` — 文档模板示例（README/CHANGELOG/docstring）
+  - `src/code-understanding/` — 代码知识图谱构建示例（调用图抽取 + 图 schema + Cypher 查询模板 + CI 门禁）
 
 ### 场景 2：代码可运行可验证
 
@@ -27,7 +28,7 @@
   1. 进入任一示例子目录
   2. 按 README 安装依赖并运行
 - 预期结果：
-  - 每个示例目录有独立的 `README.md`（说明依赖、运行方式、对应规范章节）
+  - 每个示例目录有独立的 `README-<维度>示例.md`（说明依赖、运行方式、对应规范章节）
   - 代码通过 lint 检查
   - 测试可运行通过
 
@@ -39,4 +40,4 @@
 - 预期结果：
   - 示例统一以 **Python** 为参考实现，降低维护成本（无需为每个示例维护多语言镜像）
   - 跨语言差异点（如命名 snake_case vs camelCase）在规范正文中说明，示例不重复实现
-  - 每个示例目录的 `README.md` 注明对应的规范章节
+  - 每个示例目录的 `README-<维度>示例.md` 注明对应的规范章节

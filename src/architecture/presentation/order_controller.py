@@ -44,7 +44,10 @@ class OrderController:
                 is_vip=request_body.get("is_vip", False),
             )
         except Exception as e:
-            return {"code": 50000, "message": f"创建订单失败: {e}", "data": None}
+            # 注：实际项目中应由全局异常处理器（如 FastAPI exception_handler）
+            # 捕获未处理异常，返回 HTTP 500 + 统一错误响应。
+            # 此处直接返回 dict 仅为演示闭环，不经过真实 HTTP 层。
+            return {"code": 50001, "message": f"内部错误: {e}", "data": None}
 
         # 3. 统一响应格式
         return {

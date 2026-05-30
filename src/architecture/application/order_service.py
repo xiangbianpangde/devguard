@@ -3,9 +3,13 @@
 规则：编排领域对象，不包含业务规则本身。
 业务规则在 domain/ 中，应用层只负责"先做什么、后做什么"。
 """
+import logging
+
 from ..domain.order import Order
 from ..domain.order_repository import OrderRepository
 from ..domain.discount_calculator import DiscountCalculator
+
+logger = logging.getLogger(__name__)
 
 
 class OrderService:
@@ -50,7 +54,7 @@ class OrderService:
             quantity=quantity,
             is_vip=is_vip,
         )
-        print(f"[应用层] 折扣: {discount_result.reason}, 最终价: {discount_result.final}")
+        logger.info("折扣计算完成 | reason=%s | final=%.2f", discount_result.reason, discount_result.final)
 
         # 2. 领域层：创建订单实体（把折扣写入订单，否则折扣计算白做了）
         order = Order(

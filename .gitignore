@@ -28,3 +28,6 @@ venv/
 .env
 .env.*
 !.env.example
+
+# 分析工具本地状态
+.reasonix/

@@ -1,10 +1,19 @@
 # BDD 规格: Git 协作规范
 
-> 对应 `03-Git协作规范.md`
+> 对应 `03-git_Git协作规范.md`（v2.0：第二步 §2.6 Git 提交的细化）
 
 ---
 
 ## 功能：Git 协作规范文档
+
+### 场景 0：声明细化环节 + 红线配自动检测 + 落地配置
+- 前置条件：无
+- 操作步骤：
+  1. 打开 `03-git_Git协作规范.md`，读引言与 §一/§二
+- 预期结果：
+  - 声明细化「第二步 §2.6 Git 提交」，档位绑定分支模型（轻量 Trunk / 标准 GitHub Flow / 团队 Git Flow）
+  - §一红线（main 禁直推、Conventional Commits、一 commit 一事、禁 force push、≥1 Approve）每条标注 commitlint / 分支保护
+  - §二提供可复制物料：commitlint.config.js、.gitmessage、PR 模板、分支保护设置步骤
 
 ### 场景 1：分支策略适配团队规模
 - 前置条件：新项目启动，需要选择分支策略
