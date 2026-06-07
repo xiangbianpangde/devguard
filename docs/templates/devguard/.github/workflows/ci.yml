@@ -7,7 +7,8 @@
 # ============================================================
 name: CI
 
-on:
+# 注：YAML 1.1 里 "on" 是 boolean true 关键字，必须加引号
+"on":
   push:
     branches: [main, master]
   pull_request:
