@@ -5,6 +5,15 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [V1.3] - 2026-06-07
+
+### Added
+
+- **16-license 规范入 _meta.yaml**（V1.3.1）—— LICENSE 章节级 L1
+- **LICENSE 新建**（V1.3.1）—— MIT License + Copyright 2026 袁 (xiangbianpangde)
+- **devguard user-facing README 重写**（V1.3.2）—— 占位 → 当前状态/快速开始/16 规范清单/反馈
+- **GitHub 标准 5 件套齐**（V1.3）—— README + CHANGELOG + SECURITY + SUPPORT + LICENSE
+
 ## [V1.2] - 2026-06-07
 
 ### Added
