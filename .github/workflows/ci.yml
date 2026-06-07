@@ -8,18 +8,12 @@
 # ============================================================
 name: CI
 
-# 注：YAML 1.1 里 "on" 是 boolean true 关键字，必须加引号
-"on":
+on:
   push:
-    branches: [main, master]
+    branches: [master, main]
   pull_request:
-    branches: [main, master]
+    branches: [master, main]
   workflow_dispatch:
-
-# 取消冗余运行（同一 PR 多次 push）
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   # -------------------------------------------------------------
@@ -31,16 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          cache: pip
+          cache: 'pip'
 
       - name: Install ruff
         run: pip install ruff
 
       - name: ruff check
-        # 用项目内的 ruff 配置（src/coding/ruff.toml）
         run: ruff check . --config src/coding/ruff.toml
 
       - name: ruff format check
@@ -60,38 +53,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          cache: pip
+          cache: 'pip'
 
-      - name: Install pytest + pytest-cov
+      - name: Install pytest + pytest-cov + pyyaml
         run: pip install pytest pytest-cov pyyaml
 
-      - name: render_meta.py --check（_meta.yaml 渲染产物一致性）
+      - name: render_meta.py --check
         run: python scripts/render_meta.py --check
 
       - name: pytest collect
-        # v0.1：项目暂无业务测试，仅收集（不强制覆盖率门禁）
-        # 等 #3 L4 任务后加 tests/conventions/ 测试 → 启用 --cov-fail-under
         run: pytest -q --co || echo "no tests collected (OK for v0.1)"
 
   # -------------------------------------------------------------
-  # 阶段 3：l4-conventions（L4 规范测试，#3 任务后自动激活）
+  # 阶段 3：l4-conventions（L4 规范测试）
   # -------------------------------------------------------------
   l4-conventions:
     name: L4 convention tests
     runs-on: ubuntu-latest
-    # 条件 stage：tests/conventions/ 存在才跑（#3 任务后自动激活）
-    if: hashFiles('tests/conventions/**.py') != ''
-    needs: [test]
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          cache: pip
+          cache: 'pip'
 
       - name: Install deps
         run: pip install pytest pyyaml
@@ -103,18 +92,16 @@ jobs:
         run: pytest tests/conventions/ -v
 
   # -------------------------------------------------------------
-  # 阶段 4：compliance（合规扫描，#10 任务后自动激活）
+  # 阶段 4：compliance（合规扫描）
   # -------------------------------------------------------------
   compliance:
     name: Compliance scan
     runs-on: ubuntu-latest
-    # 条件 stage：scripts/check_compliance.py 存在才跑
-    if: hashFiles('scripts/check_compliance.py') != ''
-    needs: [test]
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
@@ -131,7 +118,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
