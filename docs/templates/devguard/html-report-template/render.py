@@ -16,7 +16,6 @@ render.py — html-report-template 渲染脚本
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
@@ -134,20 +133,10 @@ def render(
     )
     template_text = TEMPLATE_FILE.read_text(encoding="utf-8")
     template = Template(template_text)
-    # V3.3 幂等性修复：render_date 用 git HEAD commit time（同 commit 多次 render 输出相同）
-    # 不用 datetime.now()——否则 CI 每次跑都 drift，drift check 必 fail
-    try:
-        # git 是固定 binary，args 来自 _meta.yaml/STATUS.md（仓库内文件）受信任
-        result = subprocess.run(  # noqa: S603, S607
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=out_path.parent,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        commit_time = result.stdout.strip()  # git SHA short (7 字符)
-    except Exception:
-        commit_time = "unknown"
+    # V3.3 幂等性修复：render_date 改为 static "latest"（不调 git，CI drift = 0）
+    # 之前尝试用 git SHA / commit time，但每次新 commit HEAD 变，drift 必然
+    # 用静态占位：dashboard.html 不因 render_date 字段变而需要重 commit
+    commit_time = "latest"
     output = template.safe_substitute(
         project_name=meta.get("project", "Unknown"),
         render_date=commit_time,
