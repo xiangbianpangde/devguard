@@ -149,20 +149,15 @@ jobs:
 
       # V3.2: html-report-template 渲染（修 render.py 数据 bug 后启用 + dashboard.html 整体切换）
       # V4.2: 传 --l4-passed/--l4-total 注入到 dashboard.html 模板的 L4 卡片
-      # V6.3: L4 数字自动收集（不硬编码 53，用 pytest 输出 grep 提取）
-      - name: Render dashboard.html（V3.2 + V6.3 自动收集 L4）
+      # V6.3 修订: 用 Python 脚本收集 L4 数字（替代 V6.3 bash grep，跨平台稳）
+      - name: Render dashboard.html（V3.2 + V6.3 Python 收集 L4）
         run: |
           pip install pyyaml
-          # V6.3: 跑一次 pytest 收集 L4 数字（passed/total）
-          L4_OUT=$(pytest tests/conventions/ -q 2>&1 | tail -5)
-          L4_PASSED=$(echo "$L4_OUT" | grep -oE '[0-9]+ passed' | head -1 | grep -oE '[0-9]+')
-          L4_TOTAL=$(echo "$L4_OUT" | tail -1 | grep -oE '[0-9]+' | head -1)
-          if [ -z "$L4_PASSED" ] || [ -z "$L4_TOTAL" ]; then
-            echo "WARN: 无法提取 L4 数字，回退默认值 0/0"
-            L4_PASSED=0
-            L4_TOTAL=0
-          fi
-          echo "V6.3 L4 passed=$L4_PASSED total=$L4_TOTAL"
+          # V6.3: Python 脚本跑 pytest 收集 L4 数字（输出 'L4_STATS=64/64'）
+          L4_STATS=$(python scripts/collect_l4_stats.py)
+          L4_PASSED=$(echo "$L4_STATS" | sed 's/L4_STATS=\([0-9]*\)\/\([0-9]*\)/\1/')
+          L4_TOTAL=$(echo "$L4_STATS" | sed 's/L4_STATS=\([0-9]*\)\/\([0-9]*\)/\2/')
+          echo "V6.3 L4 stats: passed=$L4_PASSED total=$L4_TOTAL"
           python docs/templates/devguard/html-report-template/render.py \
             --meta conventions/_meta.yaml \
             --status STATUS.md \
