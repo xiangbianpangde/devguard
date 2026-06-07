@@ -3,20 +3,84 @@
 > **👤 本文件供人类阅读**。AI Agent 请阅读 `CLAUDE.md`。
 > 约 3 分钟读完。本文件夹是一套通用开发规范的**项目模板**，可直接复制到新项目中使用。
 
----
+## 当前状态
+
+- **版本**：V1.2（2026-06-07）—— devguard 已演进到 15 规范齐全 + 10 钩子 pre-commit + 5 阶段 CI
+- **L4 套件**：65 tests passed
+- **GitHub 标准 4 件套齐**：README + CHANGELOG + SECURITY + SUPPORT
+- **许可**：MIT License（Copyright 2026 袁）
 
 ## 这是什么
 
-一套适用于各类软件项目的通用开发规范 + AI 协作开发流程。覆盖 6 个核心维度（架构/代码/Git/API/测试/文档）+ 代码理解与图谱 + AI 协作流程。复制本文件夹到你的项目根目录，即可获得：
+一套适用于各类软件项目的通用开发规范 + AI 协作开发流程。覆盖 16 个维度（架构/代码/Git/API/测试/文档/AI 协作/代码理解/仪表盘/模板/README/CODEOWNERS/CHANGELOG/SECURITY/SUPPORT/LICENSE）。复制本文件夹到你的项目根目录，即可获得：
 
-- **开发规范**（`conventions/`）— 8 份规范文档，覆盖开发全生命周期
-- **文件模板库**（`docs/templates/`）— 14 个模板（worklog/CLAUDE/STATUS/BDD/审计/收束/...），新项目开箱即用
+- **开发规范**（`conventions/`）— 16 份规范元数据（_meta.yaml）+ 8 份规范文档 + 7 份 AI 协作流程文档
+- **文件模板库**（`docs/templates/devguard/`）— 14+ 个模板（worklog/CLAUDE/STATUS/BDD/审计/收束/...），新项目开箱即用
 - **项目骨架**（`docs/plan/`）— 背景文档 + 开发清单 + 设计文档模板
 - **进度仪表盘**（`STATUS.md` + `dashboard.html`）— 可视化追踪项目进度
 - **AI 上下文**（`CLAUDE.md`）— AI 助手自动加载的项目信息
+- **L1 检测脚本**（`scripts/`）— 5 个章节级 L1 钩子（check_ai_workflow/check_code_understanding/collect_l4_stats/lint_markdown/check_worklog_ref）
 - **可运行示例**（`src/`）— 每个规范维度都有对应的 Python 示例代码
+- **CI 5 阶段**（`.github/workflows/ci.yml`）— lint / test / l4-conventions / compliance / build
+- **10 钩子 pre-commit** — trim whitespace / end-of-file-fixer / yaml / json / large files / ruff / ruff-format / gitleaks / commit-msg-worklog-ref / commitlint
+
+## 快速开始（5 步）
+
+```bash
+# 1. 复制模板到新项目
+cp -r docs/templates/devguard/ /path/to/new-project/
+
+# 2. 替换真源（conventions/_meta.yaml + STATUS.md）
+# 3. 跑渲染生成 .pre-commit-config.yaml
+python scripts/render_meta.py --render all
+
+# 4. 装 hook
+pre-commit install --hook-type commit-msg
+
+# 5. 跑 CI
+# 把 .github/workflows/ci.yml 复制到新项目
+```
+
+## 详细使用
+
+- [CHANGELOG.md](CHANGELOG.md) — V0.1 → V1.2 完整升级日志
+- [conventions/_meta.yaml](conventions/_meta.yaml) — 16 规范元数据（l1_check + l1_check_path + l1_check_doc）
+- [docs/templates/devguard/README-模板索引.md](docs/templates/devguard/README-模板索引.md) — 模板使用流程
+- [docs/reports/INDEX.md](docs/reports/INDEX.md) — 全部 V0.x 收束报告索引
+- [SECURITY.md](SECURITY.md) — 安全策略
+- [SUPPORT.md](SUPPORT.md) — 支持说明
+
+## 规范清单（16 篇）
+
+| ID | 规范 | L1 检测 |
+|----|------|---------|
+| 01 | 架构设计 | importlinter |
+| 02 | 代码编写 | ruff + gitleaks + markdownlint-cli |
+| 03 | Git 协作 | pre-commit + commitlint |
+| 04 | API 设计 | spectral |
+| 05 | 测试 | pytest --cov-fail-under |
+| 06 | 文档 | markdownlint-cli |
+| 07 | AI 协作开发流程 | check_ai_workflow.py |
+| 08 | 代码理解与图谱 | check_code_understanding.py |
+| 09 | 仪表盘自动生成 | render_meta.py + render.py |
+| 10 | 模板与汇报 | 模板 + reports/ 目录 |
+| 11 | README | README.md |
+| 12 | CODEOWNERS | .github/CODEOWNERS |
+| 13 | CHANGELOG | CHANGELOG.md |
+| 14 | SECURITY | SECURITY.md |
+| 15 | SUPPORT | SUPPORT.md |
+| 16 | LICENSE | LICENSE |
+
+## 反馈
+
+- Bug 反馈 / 规范问题：GitHub Issues
+- 安全问题：GitHub 私信 @xiangbianpangde
+- 一般讨论：见 [SUPPORT.md](SUPPORT.md)
 
 ---
+
+**维护者**：袁 (xiangbianpangde)  **版本**：V1.2  **许可**：MIT License
+
 
 ## 快速开始（新项目）
 

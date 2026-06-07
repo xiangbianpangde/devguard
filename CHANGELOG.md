@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **13-changelog 规范入 _meta.yaml**（V1.1.1）—— CHANGELOG.md 章节级 L1
+- **CHANGELOG.md 升级**（V1.1.1）—— 原 1 段 → V0.x 11 段 + V1.0 段 + V1.1 段
+- **14-security 规范入 _meta.yaml**（V1.1.2）—— SECURITY.md 章节级 L1
+- **SECURITY.md 新建**（V1.1.2）—— 含披露流程、修复承诺、致谢、适用版本 4 大段
+
+
+### Added
+
 - **14-security 规范入 _meta.yaml**（V1.1.2）—— SECURITY.md 章节级 L1
 - **13-changelog 规范入 _meta.yaml**（V1.1.1）—— CHANGELOG.md 章节级 L1
 - **SECURITY.md 新建**（V1.1.2）—— 含支持版本、漏洞报告 SLA、安全实践、Out of Scope
