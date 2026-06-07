@@ -160,6 +160,7 @@ conventions:
       recommend: 0
       l1_check_path:
         - docs/templates/devguard/
+        - docs/templates/devguard/README-模板索引.md
         - docs/reports/
     l1_check: 模板 + reports/ 目录（V7.1 章节级 L1）
     l1_check_doc: https://keepachangelog.com/
