@@ -132,3 +132,8 @@ jobs:
 
       - name: Python compile check
         run: python -m compileall src/ -q
+
+      # V2.2 partial: html-report-template 渲染脚本就位（docs/templates/devguard/html-report-template/render.py）
+      # 但 render.py 解析 STATUS.md 数据有 bug（数出 32/33 = 96% 不准，STATUS.md 实际 35/35）
+      # V0.3 任务: 修 render.py 数据 bug + dashboard.html 整体切换 + 启用 build render 步
+      # 当前 build 阶段只做 compileall，避免 CI 漂移阻塞

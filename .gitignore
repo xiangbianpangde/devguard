@@ -31,3 +31,6 @@ venv/
 
 # 分析工具本地状态
 .reasonix/
+
+# Node（V0.2 commitlint 启用：@commitlint/cli + config-conventional）
+node_modules/

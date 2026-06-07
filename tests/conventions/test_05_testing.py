@@ -81,6 +81,7 @@ class TestTestingContracts:
                 "test_06_documentation",
                 "test_07_ai_workflow",
                 "test_08_code_understanding",
+                "test_perf_baseline",  # V2.5: 性能基线
             ]
         )
         assert existing == expected, (
