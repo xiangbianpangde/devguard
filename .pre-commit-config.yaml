@@ -42,6 +42,10 @@ repos:
 
   - repo: local
     hooks:
+      - id: markdownlint
+        name: markdownlint
+        entry: python scripts/lint_markdown.py
+        language: system
       - id: commit-msg-worklog-ref
         name: commit-msg must reference worklog file
         stages: [commit-msg]

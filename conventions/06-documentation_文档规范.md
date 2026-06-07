@@ -13,7 +13,7 @@
 | 警告 | 0 |
 | 推荐 | 0 |
 
-**L1 检测**：无（v0.1：待
+**L1 检测**：markdownlint-cli2 + .markdownlint.json
 **L3 路由**：任务类型=写文档 → 必读本篇
 
 ---
