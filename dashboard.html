@@ -1,352 +1,149 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>开发规范 · 项目仪表盘</title>
-<style>
-  :root {
-    /* Claude 官网风：暖米底 + 黏土强调色 */
-    --bg: #f5f4ee; --surface: #ffffff; --surface-2: #faf9f4;
-    --border: #e7e4da; --border-strong: #ddd9cc;
-    --ink: #1f1d1a; --ink-soft: #4a4640; --muted: #8a857b; --faint: #b3ada1;
-    --clay: #cc785c; --clay-deep: #b35f44; --clay-tint: #f6e9e2;
-    --green: #5b8a5a; --green-tint: #e7efe3;
-    --blue: #5a7da3; --blue-tint: #e6edf4;
-    --amber: #b8862f; --amber-tint: #f5ecd6;
-    --red: #c0573f; --red-tint: #f6e2dc;
-    --serif: 'Tiempos Text', 'Iowan Old Style', Georgia, 'Songti SC', 'STSong', serif;
-    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', ui-sans-serif, sans-serif;
-    --shadow: 0 1px 2px rgba(40,33,26,.04), 0 4px 16px rgba(40,33,26,.05);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: var(--sans); background: var(--bg); color: var(--ink);
-    line-height: 1.6; padding: 3rem 1.5rem 5rem; max-width: 980px; margin: 0 auto;
-    -webkit-font-smoothing: antialiased;
-  }
-  a { color: var(--clay-deep); text-decoration: none; }
-  a:hover { text-decoration: underline; text-underline-offset: 2px; }
-  code { background: var(--surface-2); border: 1px solid var(--border); padding: .1rem .4rem;
-         border-radius: 5px; font-size: .85em; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
-
-  /* ---- header ---- */
-  header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;
-           padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
-  h1 { font-family: var(--serif); font-weight: 500; font-size: 1.85rem; letter-spacing: -.01em; color: var(--ink); }
-  h1 .dot { color: var(--clay); }
-  .nav { margin-top: .5rem; font-size: .86rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .2rem .7rem; }
-  .controls { display: flex; align-items: center; gap: 1rem; }
-  .stamp { font-size: .76rem; color: var(--faint); text-align: right; line-height: 1.45; }
-  .stamp b { color: var(--muted); font-weight: 600; }
-  .stamp .stale { color: var(--amber); font-weight: 600; }
-  .btn {
-    background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink-soft);
-    border-radius: 8px; padding: .5rem .9rem; cursor: pointer; font-size: .82rem; font-family: var(--sans);
-    display: inline-flex; align-items: center; gap: .45rem; transition: border-color .15s, color .15s, background .15s;
-  }
-  .btn:hover { border-color: var(--clay); color: var(--clay-deep); background: var(--clay-tint); }
-  .btn.spin svg { animation: spin .7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ---- summary ---- */
-  .summary { margin-top: 2rem; background: var(--surface); border: 1px solid var(--border);
-             border-radius: 16px; padding: 1.75rem 1.9rem; box-shadow: var(--shadow); }
-  .summary-top { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
-  .summary-top h2 { font-family: var(--serif); font-weight: 500; font-size: 1.15rem; color: var(--ink-soft); }
-  .pct { font-family: var(--serif); font-size: 3rem; font-weight: 500; line-height: 1; color: var(--clay); letter-spacing: -.02em; }
-  .pct small { font-size: 1rem; color: var(--muted); font-family: var(--sans); margin-left: .5rem; }
-  .track { height: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin: 1.25rem 0 .25rem; }
-  .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--clay), var(--clay-deep)); border-radius: 999px; transition: width .7s cubic-bezier(.4,0,.2,1); }
-  .sub { color: var(--muted); font-size: .88rem; }
-  .chips { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.4rem; }
-  .chip { border: 1px solid var(--border-strong); border-radius: 999px; padding: .38rem .85rem; font-size: .82rem;
-          cursor: pointer; color: var(--ink-soft); background: var(--surface); user-select: none;
-          transition: all .15s; display: inline-flex; align-items: center; }
-  .chip:hover { border-color: var(--muted); }
-  .chip.active { background: var(--ink); border-color: var(--ink); color: #fff; }
-  .chip.active .n { color: #fff; }
-  .chip .dot { width: 7px; height: 7px; border-radius: 50%; margin-right: .5rem; }
-  .chip .n { font-weight: 700; color: var(--ink); margin-right: .32rem; }
-  .d-done { background: var(--green); } .d-active { background: var(--blue); }
-  .d-pending { background: var(--faint); } .d-blocked { background: var(--red); }
-
-  /* ---- cards ---- */
-  .cards { margin-top: 1.5rem; display: grid; gap: .8rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-          padding: 1rem 1.15rem; border-left: 3px solid var(--border-strong);
-          transition: transform .14s ease, box-shadow .14s ease, border-color .14s; }
-  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-  .card.s-done { border-left-color: var(--green); }
-  .card.s-active { border-left-color: var(--blue); }
-  .card.s-pending { border-left-color: var(--faint); }
-  .card.s-blocked { border-left-color: var(--red); }
-  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem; }
-  .card-title { font-weight: 600; font-size: .98rem; color: var(--ink); }
-  .badge { padding: .18rem .6rem; border-radius: 999px; font-size: .7rem; font-weight: 600; white-space: nowrap; flex: 0 0 auto; }
-  .badge-done { background: var(--green-tint); color: var(--green); }
-  .badge-active { background: var(--blue-tint); color: var(--blue); }
-  .badge-pending { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
-  .badge-blocked { background: var(--red-tint); color: var(--red); }
-  .card-meta { color: var(--muted); font-size: .79rem; margin-top: .55rem; display: flex; gap: .7rem; flex-wrap: wrap; }
-
-  /* ---- sections ---- */
-  .section { margin-top: 2.5rem; }
-  .section h2 { font-family: var(--serif); font-weight: 500; font-size: 1.25rem; margin-bottom: .9rem;
-                display: flex; align-items: center; gap: .5rem; }
-  .section h2.blocked { color: var(--red); } .section h2.debt { color: var(--amber); }
-  .section h2 .count { font-family: var(--sans); font-size: .78rem; color: var(--muted); font-weight: 500; }
-  .row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-         padding: .8rem 1.1rem; margin-bottom: .6rem; font-size: .9rem; color: var(--ink-soft); }
-  .row.blocked { border-left: 3px solid var(--red); }
-  .row.debt { border-left: 3px solid var(--amber); }
-
-  /* ---- gate table ---- */
-  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
-  table { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 580px; }
-  th, td { padding: .65rem .9rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; color: var(--ink-soft); }
-  th { color: var(--muted); font-weight: 600; background: var(--surface-2); }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: var(--surface-2); }
-
-  .empty { color: var(--muted); text-align: center; padding: 2.75rem 1.25rem;
-           border: 1px dashed var(--border-strong); border-radius: 12px; background: var(--surface); }
-  .empty.error { border-color: var(--red); color: var(--ink-soft); }
-  .empty.error b { color: var(--red); }
-  footer { text-align: center; color: var(--faint); font-size: .78rem; margin-top: 4rem;
-           padding-top: 1.5rem; border-top: 1px solid var(--border); }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>开发规范 — 进度仪表盘</title>
+  <style>
+    /* 极简风格：参考 ai-tutor 项目偏好——学术风 + 高信息密度 */
+    :root {
+      --bg: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #666;
+      --accent: #0e7c66;          /* teal：ours 列高亮色 */
+      --warn: #d97706;            /* amber：警告 */
+      --err:  #dc2626;            /* red：失败 */
+      --ok:   #059669;            /* green：通过 */
+      --border: #e5e5e5;
+    }
+    body { font-family: -apple-system, "Segoe UI", "PingFang SC", sans-serif; max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; color: var(--fg); background: var(--bg); line-height: 1.6; }
+    h1 { border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+    h2 { margin-top: 2.5rem; color: var(--accent); }
+    .meta { color: var(--muted); font-size: 0.9em; margin-bottom: 1.5rem; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+    .card { border: 1px solid var(--border); border-left: 4px solid var(--accent); padding: 1rem 1.25rem; border-radius: 4px; background: #fafafa; }
+    .card .num { font-size: 2em; font-weight: 600; color: var(--accent); display: block; }
+    .card .label { color: var(--muted); font-size: 0.9em; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: #f5f5f5; font-weight: 600; }
+    tr:hover { background: #fafafa; }
+    .ok  { color: var(--ok);  font-weight: 600; }
+    .err { color: var(--err); font-weight: 600; }
+    .warn { color: var(--warn); font-weight: 600; }
+    .progress-bar { background: #e5e5e5; height: 8px; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+    .progress-bar .fill { background: var(--accent); height: 100%; transition: width 0.3s; }
+    code { background: #f5f5f5; padding: 0.1rem 0.3rem; border-radius: 3px; font-family: "SF Mono", Consolas, monospace; font-size: 0.9em; }
+    .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85em; }
+  </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>开发规范<span class="dot"> · </span>项目仪表盘</h1>
-    <nav class="nav">
-      <a href="README.md">README</a>·
-      <a href="plan/开发清单.md">开发清单</a>·
-      <a href="meta/FILE_GRAPH.md">文件图谱</a>·
-      <a href="STATUS.md">STATUS.md</a>·
-      <a href="CLAUDE.md">CLAUDE.md</a>
-    </nav>
-  </div>
-  <div class="controls">
-    <div class="stamp" id="stamp">—</div>
-    <button class="btn" id="refresh" title="立即刷新">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
-      刷新
-    </button>
-  </div>
-</header>
+  <h1>开发规范</h1>
+  <p class="meta">
+    进度仪表盘 · 渲染于 2026-06-07 11:31 UTC · 数据源
+    <code>STATUS.md</code> + <code>conventions/_meta.yaml</code>
+  </p>
 
-<main>
-  <section class="summary">
-    <div class="summary-top">
-      <h2>总体进度</h2>
-      <span class="pct"><span id="pct">0</span>%<small id="count">— / —</small></span>
+  <!-- 总览卡片 -->
+  <div class="card-grid">
+    <div class="card">
+      <span class="num">100%</span>
+      <span class="label">总进度（35 / 35 功能点）</span>
+      <div class="progress-bar"><div class="fill" style="width: 100%"></div></div>
     </div>
-    <div class="track"><div class="fill" id="fill"></div></div>
-    <p class="sub" id="summary-sub">正在加载 STATUS.md …</p>
-    <div class="chips" id="chips"></div>
-  </section>
+    <div class="card">
+      <span class="num">8</span>
+      <span class="label">规范篇数（含 ai-workflow 流程文档）</span>
+    </div>
+    <div class="card">
+      <span class="num">32</span>
+      <span class="label">红线总数（8 篇规范的 §一红线之和）</span>
+    </div>
+    <div class="card">
+      <span class="num">0 / 0</span>
+      <span class="label">L4 规范测试（tests/conventions/）</span>
+    </div>
+  </div>
 
-  <section class="cards" id="cards"></section>
+  <!-- 规范元数据表 -->
+  <h2>规范分级标签</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>规范</th>
+        <th>红线</th>
+        <th>警告</th>
+        <th>推荐</th>
+        <th>L1 检测</th>
+        <th>L3 路由</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>01-architecture</code> 架构设计规范</td><td>4</td><td>0</td><td>0</td><td><code>importlinter</code></td><td>任务类型=架构设计 → 必读本篇</td></tr>
+      <tr><td><code>02-coding</code> 代码编写规范</td><td>7</td><td>0</td><td>0</td><td><code>ruff + gitleaks</code></td><td>任务类型=实现 → 必读本篇</td></tr>
+      <tr><td><code>03-git</code> Git 协作规范</td><td>5</td><td>0</td><td>0</td><td><code>pre-commit + commitlint</code></td><td>任务类型=提交 → 必读本篇</td></tr>
+      <tr><td><code>04-api</code> API 设计规范</td><td>7</td><td>0</td><td>0</td><td><code>spectral</code></td><td>任务类型=接口设计 → 必读本篇</td></tr>
+      <tr><td><code>05-testing</code> 测试规范</td><td>4</td><td>0</td><td>0</td><td><code>pytest --cov-fail-under</code></td><td>任务类型=实现 → 必读本篇</td></tr>
+      <tr><td><code>06-documentation</code> 文档规范</td><td>5</td><td>0</td><td>0</td><td><code>markdownlint-cli2 + .markdownlint.json</code></td><td>任务类型=写文档 → 必读本篇</td></tr>
+      <tr><td><code>07-ai-workflow</code> AI 协作开发流程</td><td>0</td><td>0</td><td>7</td><td><code>无（流程文档无 L1）</code></td><td>AI 任务路由必读</td></tr>
+      <tr><td><code>08-code-understanding</code> 代码理解与图谱规范</td><td>0</td><td>0</td><td>0</td><td><code>人工审查</code></td><td>任务类型=图谱生成 → 必读本篇</td></tr>
+    </tbody>
+  </table>
 
-  <section class="section" id="blocked-section" hidden>
-    <h2 class="blocked">🚫 阻塞项 <span class="count" id="blocked-count"></span></h2>
-    <div id="blocked-list"></div>
-  </section>
+  <!-- 功能点进度表（从 STATUS.md 解析） -->
+  <h2>功能点进度</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>功能点</th>
+        <th>状态</th>
+        <th>BDD</th>
+        <th>完成日期</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>架构设计规范 (01)</td><td>specs/01-architecture.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
+      <tr><td>代码编写规范 (02)</td><td>specs/02-coding.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
+      <tr><td>Git 协作规范 (03)</td><td>specs/03-git.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
+      <tr><td>API 设计规范 (04)</td><td>specs/04-api.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
+      <tr><td>测试规范 (05)</td><td>specs/05-testing.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
+      <tr><td>文档规范 (06)</td><td>specs/06-documentation.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
+      <tr><td>AI 协作开发流程</td><td>specs/07-ai-workflow.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
+      <tr><td>项目基础设施搭建</td><td>specs/00-infrastructure-template.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>统一模板 + BDD 规格</td><td>specs/00-infrastructure-template.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>01-架构 模板改造</td><td>specs/01-architecture.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>02-代码 模板改造</td><td>specs/02-coding.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>03-Git 模板改造</td><td>specs/03-git.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>04-API 模板改造</td><td>specs/04-api.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>05-测试 模板改造</td><td>specs/05-testing.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>06-文档 模板改造</td><td>specs/06-documentation.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>示例代码库</td><td>specs/08-examples.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>仪表盘自动生成</td><td>specs/09-dashboard-gen.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>基础设施修正（审查修复）</td><td>-</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>二轮审查修复（全量复查）</td><td>-</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>文件图谱 + 仪表盘优化</td><td>specs/09-dashboard-gen.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>统一模板规约 + 汇报模板</td><td>specs/10-templates-reporting.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>5处现有规范增强（图谱v2第一步）</td><td>specs/01-06-07</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>第08号规范初稿（图谱v2第二步）</td><td>specs/08-code-understanding.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>BDD规格：现有规范增强 + 08规范</td><td>specs/01-08</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>示例代码：src/code-understanding/</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>交叉引用更新：FILE_GRAPH + README + CLAUDE</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>文件夹重整：提取模板+补齐AI模板+消除重叠</td><td>specs/10-templates-reporting.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>合并 plan/ + design/ → docs/plan/</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>decisions 移入 worklog + 约束节点决策总结规则</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>CLAUDE.md ↔ README 角色分离（13 个 README 更新）</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>汇报体系纳入 ai-workflow（新建 07-汇报.md + 流程集成）</td><td>specs/10-templates-reporting.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>汇报与收束定义修正（CLAUDE/06/07 三文件对齐）</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>ai-workflow 流程修订（角色/收束闸门/可观测/档位）+ README 命名规范化 + 收束术语统一</td><td>specs/07-ai-workflow.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>规范正文 v2.0 重构（01-06/08 细化挂接+红线自动检测+去重+图谱收拢）+ 7 份 BDD realign + src 落地配置(5) + CLAUDE 三件套(根/模板/导航) + 汇报定义澄清(功能点级内联不落盘，9 处文档对齐)</td><td>specs/01-08</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>第08号规范 v3.0 重构（双图谱范式：CodeGraph + Understand-Anything 替代图数据库+Cypher+Mermaid）</td><td>specs/08-code-understanding.md</td><td class="ok">✅ 已完成</td><td>2026-05-28</td><td></td></tr>
+    </tbody>
+  </table>
 
-  <section class="section" id="debt-section" hidden>
-    <h2 class="debt">⚠️ 技术债 <span class="count" id="debt-count"></span></h2>
-    <div id="debt-list"></div>
-  </section>
-
-  <section class="section" id="gate-section" hidden>
-    <h2>🚦 收束节点历史 <span class="count" id="gate-count"></span></h2>
-    <div class="table-wrap"><table id="gate-table"></table></div>
-  </section>
-</main>
-
-<footer>数据源 <code>STATUS.md</code> · 每 60 秒原地刷新（保留筛选与滚动位置） · AI 协作开发流程驱动</footer>
-
-<script>
-"use strict";
-const REFRESH_MS = 60000;
-const state = { filter: "all", countdown: REFRESH_MS / 1000, loaded: false, stale: false, lastData: null };
-
-const STATUS = {
-  done:    { label: "已完成", test: s => /✅|已完成/.test(s) },
-  active:  { label: "进行中", test: s => /🔄|进行中/.test(s) },
-  blocked: { label: "阻塞",   test: s => /🚫|阻塞/.test(s) },
-  pending: { label: "待开始", test: () => true },
-};
-const ORDER = ["done", "active", "blocked", "pending"];
-const classify = s => ORDER.find(k => STATUS[k].test(s)) || "pending";
-const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-
-// --- STATUS.md 解析 ---
-function parse(md) {
-  const lines = md.split(/\r?\n/);
-  const out = { features: [], blocked: [], debt: [], gates: [], updated: "" };
-  let section = "";
-  for (const raw of lines) {
-    const line = raw.trim();
-    const dm = line.match(/^>\s*(?:最后)?更新[:：]\s*(.+)$/);
-    if (dm) out.updated = dm[1].trim();
-    if (line.startsWith("## ")) {
-      const h = line.slice(3);
-      section = h.includes("进度") ? "features"
-        : h.includes("阻塞") ? "blocked"
-        : h.includes("技术债") ? "debt"
-        : h.includes("收束") ? "gates"
-        : "other";
-      continue;
-    }
-    const isTableRow = line.startsWith("|") && !/^\|[\s|:-]+\|?$/.test(line);
-    if (isTableRow) {
-      const cols = line.split("|").slice(1, -1).map(c => c.trim());
-      if (section === "features" && cols[0] && cols[0] !== "功能点") {
-        out.features.push({ name: cols[0], bdd: cols[1] || "-", status: cols[2] || "", date: cols[3] || "-" });
-      } else if (section === "gates" && cols[0] && cols[0] !== "节点" && !/尚无/.test(cols[0])) {
-        out.gates.push(cols);
-      }
-    }
-    if (line.startsWith("- ")) {
-      const item = line.slice(2).trim();
-      if (item && item !== "（无）") {
-        if (section === "blocked") out.blocked.push(item);
-        if (section === "debt") out.debt.push(item);
-      }
-    }
-  }
-  return out;
-}
-
-// STATUS.md 写 specs/xx.md，实际位于 docs/specs/
-function bddLink(bdd) {
-  if (!bdd || bdd === "-") return "—";
-  if (/^specs\//.test(bdd)) return `<a href="docs/${bdd}">${esc(bdd)}</a>`;
-  if (/^docs\//.test(bdd)) return `<a href="${bdd}">${esc(bdd)}</a>`;
-  return esc(bdd);
-}
-
-function renderSummary(data, counts, total, done) {
-  const pct = total ? Math.round(done / total * 100) : 0;
-  document.getElementById("pct").textContent = pct;
-  document.getElementById("fill").style.width = pct + "%";
-  document.getElementById("count").textContent = `${done} / ${total}`;
-  document.getElementById("summary-sub").textContent =
-    total ? `${total} 个功能点，${done} 个已完成${counts.active ? `，${counts.active} 进行中` : ""}${counts.blocked ? `，${counts.blocked} 阻塞` : ""}。`
-          : "未解析到功能点。";
-
-  const defs = [
-    ["all", "全部", total, ""],
-    ["done", "已完成", counts.done, "d-done"],
-    ["active", "进行中", counts.active, "d-active"],
-    ["pending", "待开始", counts.pending, "d-pending"],
-    ["blocked", "阻塞", counts.blocked, "d-blocked"],
-  ];
-  const chips = document.getElementById("chips");
-  chips.innerHTML = defs.map(([k, lbl, n, dot]) =>
-    `<button class="chip ${state.filter === k ? "active" : ""}" data-k="${k}">
-       ${dot ? `<span class="dot ${dot}"></span>` : ""}<span class="n">${n}</span>${lbl}
-     </button>`).join("");
-  chips.querySelectorAll(".chip").forEach(c =>
-    c.onclick = () => { state.filter = c.dataset.k; render(data); });
-}
-
-function renderCards(data) {
-  const shown = data.features.filter(f => state.filter === "all" || classify(f.status) === state.filter);
-  const el = document.getElementById("cards");
-  if (!shown.length) { el.innerHTML = `<div class="empty">该筛选下暂无功能点</div>`; return; }
-  el.innerHTML = shown.map(f => {
-    const k = classify(f.status);
-    const txt = f.status.replace(/^[✅🔄⏳🚫]\s*/, "").trim() || STATUS[k].label;
-    const date = f.date && f.date !== "-" ? `<span>📅 ${esc(f.date)}</span>` : "";
-    return `<article class="card s-${k}">
-      <div class="card-head">
-        <span class="card-title">${esc(f.name)}</span>
-        <span class="badge badge-${k}">${esc(txt)}</span>
-      </div>
-      <div class="card-meta"><span>BDD: ${bddLink(f.bdd)}</span>${date}</div>
-    </article>`;
-  }).join("");
-}
-
-function renderList(name, items, cls) {
-  const sec = document.getElementById(name + "-section");
-  sec.hidden = !items.length;
-  if (!items.length) return;
-  document.getElementById(name + "-count").textContent = `(${items.length})`;
-  document.getElementById(name + "-list").innerHTML =
-    items.map(x => `<div class="row ${cls}">${esc(x)}</div>`).join("");
-}
-
-function renderGates(gates) {
-  const sec = document.getElementById("gate-section");
-  sec.hidden = !gates.length;
-  if (!gates.length) return;
-  document.getElementById("gate-count").textContent = `(${gates.length})`;
-  const head = ["节点", "日期", "范围", "整理", "测试", "AI审计", "人审计", "验证", "遗留"];
-  document.getElementById("gate-table").innerHTML =
-    `<thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead>` +
-    `<tbody>${gates.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody>`;
-}
-
-function render(data) {
-  state.lastData = data;
-  const counts = { done: 0, active: 0, pending: 0, blocked: 0 };
-  data.features.forEach(f => counts[classify(f.status)]++);
-  renderSummary(data, counts, data.features.length, counts.done);
-  renderCards(data);
-  renderList("blocked", data.blocked, "blocked");
-  renderList("debt", data.debt, "debt");
-  renderGates(data.gates);
-  state.loaded = true;
-}
-
-function setStamp() {
-  const u = state.lastData?.updated;
-  const tail = state.stale ? `<span class="stale">⚠ 刷新失败，显示上次数据</span>` : `${state.countdown}s 后刷新`;
-  document.getElementById("stamp").innerHTML = (u ? `<b>更新</b> ${esc(u)}<br>` : "") + tail;
-}
-
-async function load() {
-  const btn = document.getElementById("refresh");
-  btn.classList.add("spin");
-  try {
-    const res = await fetch("STATUS.md", { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    render(parse(await res.text()));
-    state.stale = false;
-  } catch (e) {
-    // 关键修复：只有首次加载失败才清空页面；
-    // 后续刷新失败保留上次数据，仅在时间戳处提示，避免内容“消失”。
-    if (!state.loaded) {
-      document.getElementById("cards").innerHTML =
-        `<div class="empty error"><b>⚠️ 无法加载 STATUS.md</b><br><br>
-         本页需通过 HTTP 服务访问，不能用 <code>file://</code> 直接打开。<br>
-         双击 <code>scripts/打开仪表盘.bat</code>，或运行 <code>python scripts/start_server.py</code>。<br>
-         <small>(${esc(e.message)})</small></div>`;
-    } else {
-      state.stale = true;
-    }
-  } finally {
-    state.countdown = REFRESH_MS / 1000;
-    setStamp();
-    btn.classList.remove("spin");
-  }
-}
-
-setInterval(() => {
-  state.countdown--;
-  if (state.countdown <= 0) load();
-  else setStamp();
-}, 1000);
-
-document.getElementById("refresh").onclick = load;
-load();
-</script>
+  <div class="footer">
+    由 <code>docs/templates/devguard/html-report-template/render.py</code> 从
+    <code>STATUS.md</code> + <code>conventions/_meta.yaml</code> 自动渲染。
+  </div>
 </body>
 </html>

@@ -32,12 +32,24 @@ def load_meta(path: Path) -> dict:
 
 
 def parse_status(path: Path) -> list[dict]:
-    """解析 STATUS.md 表格行（通用：检测 |--- 分隔符后所有 | 开头的行）"""
+    """解析 STATUS.md '## 当前进度' 节内表格（只取第一个表格，忽略 '## 收束节点历史' 等其他节）
+
+    边界条件：STATUS.md 可能含多个 markdown 表格（当前进度 + 收束历史 + 阻塞项等），
+    此函数只取 '## 当前进度' 节后的第一个表格。
+    """
     if not path.exists():
         return []
     rows: list[dict] = []
+    in_progress_section = False
     in_table = False
     for line in path.read_text(encoding="utf-8").splitlines():
+        # 跟踪是否在 ## 当前进度 节内
+        if line.startswith("## "):
+            in_progress_section = "当前进度" in line
+            in_table = False  # 进入新节就重置表格状态
+            continue
+        if not in_progress_section:
+            continue
         # 进入表格：检测 |--- 分隔符（前面是表头行）
         if not in_table:
             if "---" in line and "|" in line:
@@ -47,10 +59,10 @@ def parse_status(path: Path) -> list[dict]:
         if not line.strip().startswith("|"):
             in_table = False
             continue
-        # 跳过表头（如果有）
-        if "功能点" in line or "BDD" in line:
-            continue
+        # 跳过表头：精确匹配第一列 == "功能点"（BDD 列含"BDD" 字符串的合法数据行不跳）
         cols = [c.strip() for c in line.strip().strip("|").split("|")]
+        if cols and cols[0] == "功能点":
+            continue
         if len(cols) >= 4:
             rows.append(
                 {
