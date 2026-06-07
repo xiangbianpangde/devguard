@@ -103,6 +103,13 @@ jobs:
       - name: pytest tests/conventions/
         run: pytest tests/conventions/ -v
 
+      # V6.1: 07-ai-workflow + 08-code-understanding 章节级 L1 钩子
+      - name: check_ai_workflow.py（V6.1 07 章节级 L1）
+        run: python scripts/check_ai_workflow.py
+
+      - name: check_code_understanding.py（V6.1 08 章节级 L1）
+        run: python scripts/check_code_understanding.py
+
   # -------------------------------------------------------------
   # 阶段 4：compliance（合规扫描）
   # -------------------------------------------------------------
