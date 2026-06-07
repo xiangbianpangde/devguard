@@ -47,6 +47,10 @@ conventions:
       red_line: 7
       warning: 0
       recommend: 0
+      l1_check_path:
+        - src/coding/ruff.toml
+        - .gitleaks.toml
+        - .markdownlint.json
     l1_check: ruff + gitleaks + markdownlint-cli
     l3_route: 任务类型=实现 → 必读本篇
 
@@ -57,6 +61,10 @@ conventions:
       red_line: 5
       warning: 0
       recommend: 0
+      l1_check_path:
+        - .pre-commit-config.yaml
+        - commitlint.config.js
+        - scripts/check_worklog_ref.py
     l1_check: pre-commit + commitlint
     l3_route: 任务类型=提交 → 必读本篇
 
@@ -67,6 +75,8 @@ conventions:
       red_line: 7
       warning: 0
       recommend: 0
+      l1_check_path:
+        - .spectral.yaml
     l1_check: spectral
     l3_route: 任务类型=接口设计 → 必读本篇
 
@@ -77,6 +87,8 @@ conventions:
       red_line: 4
       warning: 0
       recommend: 0
+      l1_check_path:
+        - pyproject.toml
     l1_check: pytest --cov-fail-under
     l3_route: 任务类型=实现 → 必读本篇
 
@@ -87,6 +99,9 @@ conventions:
       red_line: 5
       warning: 0
       recommend: 0
+      l1_check_path:
+        - .markdownlint.json
+        - scripts/lint_markdown.py
     l1_check: markdownlint-cli + .markdownlint.json
     l3_route: 任务类型=写文档 → 必读本篇
 
