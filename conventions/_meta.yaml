@@ -35,6 +35,8 @@ conventions:
       red_line: 4
       warning: 0
       recommend: 0
+      l1_check_path:
+        - importlinter.ini
     l1_check: importlinter
     l3_route: 任务类型=架构设计 → 必读本篇
 

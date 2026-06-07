@@ -90,3 +90,20 @@ class TestMetaL1Check:
         assert (
             expected_tool_substr in value
         ), f"规范 {conv_id} l1_check={value!r} 不含 {expected_tool_substr!r}"
+
+    def test_l1_check_path_is_optional(self):
+        """V5.1 增强：grade.l1_check_path 是可选字段（V5.1 推广中），缺失不报错"""
+        # 现状：01-architecture 已加 l1_check_path；其他 6 篇未加（V5.x 逐步推广）
+        # 字段存在时必须为 list[str] + 所有路径实际存在；字段缺失则跳过
+        meta = self._load()
+        for c in meta["conventions"]:
+            cid = c.get("id", "?")
+            grade = c.get("grade", {})
+            if "l1_check_path" not in grade:
+                continue  # 可选字段
+            paths = grade["l1_check_path"]
+            assert isinstance(paths, list), f"规范 {cid} l1_check_path 非 list"
+            for p in paths:
+                assert isinstance(p, str), f"规范 {cid} l1_check_path 元素非 str"
+                target = REPO_ROOT / p
+                assert target.exists(), f"规范 {cid} l1_check_path 路径 {p!r} 不存在"
