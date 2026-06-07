@@ -1,3 +1,22 @@
+
+
+
+## 分级标签
+
+> 本节为**渲染产物**（由 `scripts/render_meta.py` 从 `conventions/_meta.yaml` 自动生成）。
+> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
+> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
+
+| 级别 | 数量 |
+|------|------|
+| 红线 | 5 |
+| 警告 | 0 |
+| 推荐 | 0 |
+
+**L1 检测**：无（v0.1：待
+**L3 路由**：任务类型=写文档 → 必读本篇
+
+---
 # 文档规范
 
 > **本规范是 ai-workflow 中文档产出环节的细化**：

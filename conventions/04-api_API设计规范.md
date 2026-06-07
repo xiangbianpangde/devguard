@@ -1,3 +1,22 @@
+
+
+
+## 分级标签
+
+> 本节为**渲染产物**（由 `scripts/render_meta.py` 从 `conventions/_meta.yaml` 自动生成）。
+> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
+> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
+
+| 级别 | 数量 |
+|------|------|
+| 红线 | 7 |
+| 警告 | 0 |
+| 推荐 | 0 |
+
+**L1 检测**：spectral
+**L3 路由**：任务类型=接口设计 → 必读本篇
+
+---
 # API 设计规范
 
 > **本规范是 [ai-workflow 第二步·迭代开发 §2.1 实现](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) 的细化**，约束「提供 HTTP API 的功能点」的接口设计；[§2.2 可观测验证](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) 中「API 接口」一类的证据（Swagger / curl 输出）即对照本规范。

@@ -1,3 +1,21 @@
+
+
+## 分级标签
+
+> 本节为**渲染产物**（由 `scripts/render_meta.py` 从 `conventions/_meta.yaml` 自动生成）。
+> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
+> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
+
+| 级别 | 数量 |
+|------|------|
+| 红线 | 0 |
+| 警告 | 0 |
+| 推荐 | 0 |
+
+**L1 检测**：人工审查
+**L3 路由**：任务类型=图谱生成 → 必读本篇
+
+---
 # 代码理解与图谱规范
 
 > **本规范是 [ai-workflow 第二步 §2.9 工具链增强](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) 的细化**，定义「代码理解需要什么图谱、谁来用、怎么建」。

@@ -1,3 +1,22 @@
+
+
+
+## 分级标签
+
+> 本节为**渲染产物**（由 `scripts/render_meta.py` 从 `conventions/_meta.yaml` 自动生成）。
+> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
+> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
+
+| 级别 | 数量 |
+|------|------|
+| 红线 | 5 |
+| 警告 | 0 |
+| 推荐 | 0 |
+
+**L1 检测**：pre-commit + commitlint
+**L3 路由**：任务类型=提交 → 必读本篇
+
+---
 # Git 协作规范
 
 > **本规范是 [ai-workflow 第二步·迭代开发 §2.6 Git 提交](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) 的细化**，展开提交格式、分支策略与 Review 流程；也支撑 §2.3/§2.4 的审查与确认在 Git 层面落地。

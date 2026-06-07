@@ -1,3 +1,22 @@
+
+
+
+## 分级标签
+
+> 本节为**渲染产物**（由 `scripts/render_meta.py` 从 `conventions/_meta.yaml` 自动生成）。
+> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
+> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
+
+| 级别 | 数量 |
+|------|------|
+| 红线 | 4 |
+| 警告 | 0 |
+| 推荐 | 0 |
+
+**L1 检测**：importlinter
+**L3 路由**：任务类型=架构设计 → 必读本篇
+
+---
 # 架构设计规范
 
 > **本规范是 [ai-workflow 第一步·编写计划](ai-workflow_AI协作开发流程/03-第一步_编写计划.md) 的细化**，把「技术选型 / 架构设计」环节展开成可执行标准，并作为 [第二步 §2.3 DeepSeek 审查](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md)「架构层面」的判据。

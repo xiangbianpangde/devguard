@@ -121,12 +121,103 @@ def render_pre_commit_config(meta: dict) -> str:
     return "\n".join(lines)
 
 
-def render_target(target: str, meta: dict) -> Path | None:
-    """渲染指定 target，返回写入的文件路径；不支持的 target 返回 None"""
+def render_convention_grade_section(conv: dict) -> str:
+    """生成单篇规范的 ## 分级标签 小节（markdown 块）
+
+    插入位置：每篇规范第一个 # 标题之前
+    渲染纪律：本节由 render_meta.py 维护，手改会被 --check 检测到（CI fail）
+    """
+    grade = conv.get("grade", {})
+    l1_check = conv.get("l1_check", "")
+    l3_route = conv.get("l3_route", "")
+
+    lines: list[str] = [
+        "## 分级标签",
+        "",
+        "> 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。",
+        "> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。",
+        "> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。",
+        "",
+        "| 级别 | 数量 |",
+        "|------|------|",
+        f"| 红线 | {grade.get('red_line', 0)} |",
+        f"| 警告 | {grade.get('warning', 0)} |",
+        f"| 推荐 | {grade.get('recommend', 0)} |",
+        "",
+    ]
+    if l1_check:
+        lines.append(f"**L1 检测**：{l1_check}")
+    if l3_route:
+        lines.append(f"**L3 路由**：{l3_route}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _strip_existing_grade_section(content: str) -> tuple[str, bool]:
+    """如果原文件已有 ## 分级标签 小节，先剥离（幂等渲染）"""
+    marker = "## 分级标签"
+    if marker not in content:
+        return content, False
+    # 找到 marker 位置
+    idx = content.index(marker)
+    # 找到 marker 之后第一个 `---` 分隔符
+    after_marker = content[idx:]
+    sep_idx = after_marker.find("\n---\n")
+    if sep_idx == -1:
+        return content[:idx], True
+    # 剥离从 marker 到 --- 结束的部分（包含 --- 之后的一个空行）
+    end = idx + sep_idx + len("\n---\n")
+    return content[:idx] + content[end:], True
+
+
+def render_convention_grade(meta: dict) -> list[Path]:
+    """对每篇规范渲染 ## 分级标签 小节，in-place 写回
+
+    返回写入的文件路径列表
+    """
+    written: list[Path] = []
+    for conv in meta.get("conventions", []):
+        file_rel = conv.get("file", "")
+        if not file_rel:
+            continue
+        path = REPO_ROOT / file_rel
+        if path.is_dir():
+            # 目录型规范（如 ai-workflow）：分级存在 _meta.yaml 即可，文档不渲染
+            print(f"SKIP 目录型规范（分级在 _meta.yaml，文档不渲染）: {file_rel}")
+            continue
+        if not path.exists():
+            print(f"SKIP 规范文件不存在: {file_rel}", file=sys.stderr)
+            continue
+        content = path.read_text(encoding="utf-8")
+        # 幂等：先剥离已有的
+        content, _ = _strip_existing_grade_section(content)
+        # 找到第一个 # 标题（顶级标题）位置
+        lines = content.splitlines()
+        insert_idx = 0
+        for i, line in enumerate(lines):
+            if line.startswith("# ") and not line.startswith("#!"):
+                insert_idx = i
+                break
+        # 生成新小节
+        new_section = render_convention_grade_section(conv)
+        new_lines = lines[:insert_idx] + new_section.splitlines() + lines[insert_idx:]
+        new_content = "\n".join(new_lines)
+        # 写回（newline="\n" 统一为 LF，避免 Windows CRLF 影响 check 一致性）
+        path.write_text(new_content, encoding="utf-8", newline="\n")
+        written.append(path)
+    return written
+
+
+def render_target(target: str, meta: dict) -> list[Path] | None:
+    """渲染指定 target，返回写入的文件路径列表；不支持的 target 返回 None"""
     if target == "pre-commit-config":
         content = render_pre_commit_config(meta)
         PRE_COMMIT_CONFIG.write_text(content, encoding="utf-8")
-        return PRE_COMMIT_CONFIG
+        return [PRE_COMMIT_CONFIG]
+    if target == "convention-grade":
+        return render_convention_grade(meta)
     return None
 
 
@@ -137,15 +228,49 @@ def check_target(target: str, meta: dict) -> tuple[bool, str]:
             return False, f"{PRE_COMMIT_CONFIG.name} 不存在（跑 --render 生成）"
         try:
             expected = render_pre_commit_config(meta)
+            actual = PRE_COMMIT_CONFIG.read_text(encoding="utf-8")
+            if expected != actual:
+                return False, (
+                    f"{PRE_COMMIT_CONFIG.name} 与 _meta.yaml 不一致。"
+                    f"修复: python scripts/render_meta.py --render pre-commit-config"
+                )
+            return True, f"{PRE_COMMIT_CONFIG.name} 与 _meta.yaml 一致"
         except Exception as e:
             return False, f"渲染真源失败: {e}"
-        actual = PRE_COMMIT_CONFIG.read_text(encoding="utf-8")
-        if expected != actual:
-            return False, (
-                f"{PRE_COMMIT_CONFIG.name} 与 _meta.yaml 不一致。"
-                f"修复: python scripts/render_meta.py --render pre-commit-config"
+    if target == "convention-grade":
+        mismatches: list[str] = []
+        for conv in meta.get("conventions", []):
+            file_rel = conv.get("file", "")
+            if not file_rel:
+                continue
+            path = REPO_ROOT / file_rel
+            if path.is_dir():
+                continue
+            if not path.exists():
+                mismatches.append(f"规范文件不存在: {file_rel}")
+                continue
+            content = path.read_text(encoding="utf-8")
+            content_stripped, _ = _strip_existing_grade_section(content)
+            expected_section = render_convention_grade_section(conv)
+            lines = content_stripped.splitlines()
+            insert_idx = 0
+            for i, line in enumerate(lines):
+                if line.startswith("# ") and not line.startswith("#!"):
+                    insert_idx = i
+                    break
+            expected_full = "\n".join(
+                lines[:insert_idx] + expected_section.splitlines() + lines[insert_idx:]
             )
-        return True, f"{PRE_COMMIT_CONFIG.name} 与 _meta.yaml 一致"
+            if content != expected_full:
+                mismatches.append(
+                    f"{path.relative_to(REPO_ROOT)} 的 ## 分级标签 与 _meta.yaml 不一致"
+                )
+        if mismatches:
+            return False, (
+                "; ".join(mismatches)
+                + " 修复: python scripts/render_meta.py --render convention-grade"
+            )
+        return True, "所有规范的 ## 分级标签 与 _meta.yaml 一致"
     return False, f"未知 target: {target}"
 
 
@@ -185,23 +310,24 @@ def main() -> int:
         exit_code = 0
         for target in targets:
             try:
-                path = render_target(target, meta)
+                paths = render_target(target, meta)
             except Exception as e:
                 print(f"FAIL 渲染 {target} 失败: {e}", file=sys.stderr)
                 exit_code = 1
                 continue
-            if path is None:
+            if paths is None:
                 print(f"SKIP 未实现的 target: {target}", file=sys.stderr)
                 continue
-            try:
-                rel = path.relative_to(REPO_ROOT)
-            except ValueError:
-                rel = path
-            print(f"OK 渲染 → {rel}")
+            for path in paths:
+                try:
+                    rel = path.relative_to(REPO_ROOT)
+                except ValueError:
+                    rel = path
+                print(f"OK 渲染 → {rel}")
         return exit_code
 
     if args.check:
-        targets = ["pre-commit-config"]  # 后续会加
+        targets = ["pre-commit-config", "convention-grade"]  # 加 convention-grade 校验
         ok_count = 0
         for target in targets:
             ok, msg = check_target(target, meta)
