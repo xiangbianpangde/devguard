@@ -82,6 +82,7 @@ class TestTestingContracts:
                 "test_07_ai_workflow",
                 "test_08_code_understanding",
                 "test_perf_baseline",  # V2.5: 性能基线
+                "test_meta_l1_check",  # V4.4: _meta.yaml l1_check 字段一致性
             ]
         )
         assert existing == expected, (

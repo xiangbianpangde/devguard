@@ -13,7 +13,7 @@
 | 警告 | 0 |
 | 推荐 | 0 |
 
-**L1 检测**：ruff + gitleaks
+**L1 检测**：ruff + gitleaks + markdownlint-cli
 **L3 路由**：任务类型=实现 → 必读本篇
 
 ---

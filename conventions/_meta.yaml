@@ -85,7 +85,7 @@ conventions:
       red_line: 5
       warning: 0
       recommend: 0
-    l1_check: markdownlint-cli2 + .markdownlint.json
+    l1_check: markdownlint-cli + .markdownlint.json
     l3_route: 任务类型=写文档 → 必读本篇
 
   - id: 07-ai-workflow
