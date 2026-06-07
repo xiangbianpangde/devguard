@@ -167,8 +167,20 @@ def main() -> int:
     parser.add_argument("--meta", required=True, help="conventions/_meta.yaml 路径")
     parser.add_argument("--status", required=True, help="STATUS.md 路径")
     parser.add_argument("--out", required=True, help="输出 HTML 路径")
-    parser.add_argument("--l4-passed", type=int, default=0, help="L4 规范测试通过数")
-    parser.add_argument("--l4-total", type=int, default=0, help="L4 规范测试总数")
+
+    # V7.2: 错误处理 - 接受空字符串/None 用 0 替代（V6.3 retry）
+    def _to_int_or_zero(s: str) -> int:
+        """V6.3 fix: argparse type=int 收空字符串会 ValueError；这里容忍"""
+        if s is None or not str(s).strip():
+            return 0
+        return int(s)
+
+    parser.add_argument(
+        "--l4-passed", type=_to_int_or_zero, default=0, help="L4 规范测试通过数"
+    )
+    parser.add_argument(
+        "--l4-total", type=_to_int_or_zero, default=0, help="L4 规范测试总数"
+    )
     args = parser.parse_args()
     render(
         Path(args.meta),
