@@ -192,6 +192,19 @@ conventions:
     l1_check_doc: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
     l3_route: 任务类型=PR 审查 → 必读本篇
 
+  - id: 13-changelog
+    title: CHANGELOG 规范
+    file: CHANGELOG.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - CHANGELOG.md
+    l1_check: CHANGELOG.md 存在（V1.1 章节级 L1）
+    l1_check_doc: https://keepachangelog.com/
+    l3_route: 任务类型=发布 → 必读本篇
+
 # ============================================================
 # 2. pre-commit 钩子（#1 任务专用 / 写实）
 # ============================================================

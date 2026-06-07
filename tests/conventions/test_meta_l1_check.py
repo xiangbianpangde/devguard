@@ -28,6 +28,7 @@ EXPECTED_IDS = {
     "10-templates-reporting",
     "11-readme",
     "12-codeowners",
+    "13-changelog",
 }
 
 

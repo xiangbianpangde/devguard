@@ -55,6 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **8 规范 → 12 规范**（V0.1 → V1.0）—— 累计加 09/10/11/12
 - **L4 套件 53 → 65 tests**（V0.1 → V0.9）
 
+### Deprecated
+
+- **gitleaks-action@v2**（V3.3 替换）—— 改手动跑 gitleaks 8.24.3 binary
+- **`scripts/fix_render_date.py`**（V0.3 临时）—— 改无害占位 + 删
+
 ### Removed
 
 - 无（V0.1 → V1.0 纯增量演进）
