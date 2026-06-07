@@ -30,6 +30,7 @@ EXPECTED_IDS = {
     "12-codeowners",
     "13-changelog",
     "14-security",
+    "15-support",
 }
 
 

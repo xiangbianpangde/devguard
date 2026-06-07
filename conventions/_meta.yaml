@@ -218,6 +218,19 @@ conventions:
     l1_check_doc: https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability
     l3_route: 任务类型=安全报告 → 必读本篇
 
+  - id: 15-support
+    title: SUPPORT 规范
+    file: SUPPORT.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - SUPPORT.md
+    l1_check: SUPPORT.md 存在（V1.2 章节级 L1）
+    l1_check_doc: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/adding-support-resources-to-your-project
+    l3_route: 任务类型=用户支持 → 必读本篇
+
 # ============================================================
 # 2. pre-commit 钩子（#1 任务专用 / 写实）
 # ============================================================
