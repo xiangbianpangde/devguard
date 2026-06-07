@@ -183,18 +183,60 @@ pre_commit:
     config: commitlint.config.js
 
 # ============================================================
-# 3. CI 配置（#2 任务专用 / v0.1 占位）
+# 3. CI 配置（#2 任务专用）
 # ============================================================
+# v0.1 最小可用版：lint + test 已写实；l4-conventions/compliance/build 用条件 stage 自动激活
+# 模板在 docs/templates/devguard/.github/workflows/ci.yml
 ci:
   provider: github-actions
   python_version: '3.11'
-  # 5 阶段流水线（详见 #2 任务设计）
+
+  # 触发条件
+  trigger:
+    push:
+      branches: [main, master]
+    pull_request:
+      branches: [main, master]
+    workflow_dispatch: {}
+
+  # 5 阶段流水线（每阶段独立 job，失败立即红）
   stages:
-    - lint          # ruff + gitleaks + markdownlint（#7 加）
-    - test          # pytest + 覆盖率门禁
-    - l4-conventions  # L4 规范测试（#3 任务）
-    - compliance    # 合规扫描（#10 任务）
-    - build         # 构建验证
+    - id: lint
+      name: L1 lint（ruff + gitleaks + markdownlint）
+      runner: ubuntu-latest
+      needs: []
+      tools:
+        - pip: ruff
+        - bin: gitleaks
+        - bin: markdownlint   # 可选（#7 任务后启用）
+
+    - id: test
+      name: pytest + 覆盖率门禁
+      runner: ubuntu-latest
+      needs: []
+      tools:
+        - pip: pytest pytest-cov
+      cmd: pytest -q --cov=src --cov-fail-under=80 --cov-branch
+
+    - id: l4-conventions
+      name: L4 规范测试（#3 任务产出后自动激活）
+      runner: ubuntu-latest
+      needs: []
+      conditional: "test -d tests/conventions && test -f scripts/render_meta.py"
+      cmd: python scripts/render_meta.py --check && pytest tests/conventions/ -v
+
+    - id: compliance
+      name: 合规扫描（#10 任务产出后自动激活）
+      runner: ubuntu-latest
+      needs: []
+      conditional: "test -f scripts/check_compliance.py"
+      cmd: python scripts/check_compliance.py
+
+    - id: build
+      name: 构建验证
+      runner: ubuntu-latest
+      needs: [lint, test, l4-conventions, compliance]
+      cmd: python -m compileall src/ -q
 
 # ============================================================
 # 4. L4 规范测试（#3 任务专用 / v0.1 占位）
