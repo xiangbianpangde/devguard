@@ -16,6 +16,7 @@ render.py — html-report-template 渲染脚本
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -137,9 +138,15 @@ def render(
     # 之前尝试用 git SHA / commit time，但每次新 commit HEAD 变，drift 必然
     # 用静态占位：dashboard.html 不因 render_date 字段变而需要重 commit
     commit_time = "latest"
+
+    # V5.5: render mtime 自我刷新标识（用于 dashboard.html 自身识别是否新渲染）
+    # 与 commit_time 不同：render_mtime 是 render 时的 mtime（不参与 drift check）
+    # 但 render_mtime 也必须在 dashboard.html 落地 = 跟 commit_time 一样用环境变量传入
+    render_mtime = os.environ.get("DASHBOARD_RENDER_MTIME", "build-time")
     output = template.safe_substitute(
         project_name=meta.get("project", "Unknown"),
         render_date=commit_time,
+        render_mtime=render_mtime,
         progress_done=done,
         progress_total=total,
         progress_pct=pct,

@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- V5.4: Content-Security-Policy（防 XSS，dashboard 是纯静态） -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; script-src 'unsafe-inline'">
+  <!-- V5.5: render mtime 自我刷新标识（每次 render 时由 render.py 注入） -->
+  <meta name="render-mtime" content="$render_mtime">
   <title>$project_name — 进度仪表盘</title>
   <style>
     /* 极简风格：参考 ai-tutor 项目偏好——学术风 + 高信息密度 */
