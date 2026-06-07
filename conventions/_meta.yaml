@@ -142,6 +142,19 @@ conventions:
     l1_check: render_meta.py + render.py（仪表盘模板 + 渲染脚本）
     l3_route: 任务类型=仪表盘渲染 → 必读本篇
 
+  - id: 10-templates-reporting
+    title: 模板与汇报规范
+    file: conventions/ai-workflow_AI协作开发流程/07-汇报.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - docs/templates/devguard/
+        - docs/reports/
+    l1_check: 模板 + reports/ 目录（V7.1 章节级 L1）
+    l3_route: 任务类型=模板/汇报 → 必读本篇
+
 # ============================================================
 # 2. pre-commit 钩子（#1 任务专用 / 写实）
 # ============================================================

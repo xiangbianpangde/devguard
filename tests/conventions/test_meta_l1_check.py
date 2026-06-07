@@ -25,6 +25,7 @@ EXPECTED_IDS = {
     "07-ai-workflow",
     "08-code-understanding",
     "09-dashboard-gen",
+    "10-templates-reporting",
 }
 
 
