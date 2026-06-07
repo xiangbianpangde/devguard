@@ -1,18 +1,238 @@
-# scripts/check_compliance.py — 合规扫描（#10 任务）
-# =============================================================
-# 占位：V0.1 暂不实现（v0.1 已经有 L4 规范测试覆盖合规检测）
-# V2 计划：
-#   - 读 conventions/_meta.yaml 列出所有规范
-#   - 对每篇规范做基础检查（文件存在、§一红线数 > 0、§二 落地有配置）
-#   - 输出合规报告（文本 + HTML 模板）
-#   - 接 #9 html-report-template
-# =============================================================
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+check_compliance.py — 合规扫描（#10 任务 v2 实现）
+============================================================
+读 conventions/_meta.yaml 列出所有规范，对每篇做 L1 配置 + L4 测试检查，
+输出文本合规报告。CI stage 4（compliance）会跑这个脚本。
+
+退出码:
+    0 = 全部合规
+    1 = 有 FAIL
+
+用法:
+    python scripts/check_compliance.py            # 文本报告到 stdout
+    python scripts/check_compliance.py --json     # JSON 报告
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import yaml
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+META_FILE = REPO_ROOT / "conventions" / "_meta.yaml"
+
+# 每篇规范的 L1 配置检查：id -> [(相对路径, 说明), ...]
+L1_CHECKS: dict[str, list[tuple[str, str]]] = {
+    "01-architecture": [
+        ("importlinter.ini", "01-architecture L1: importlinter 分层契约"),
+    ],
+    "02-coding": [
+        ("src/coding/ruff.toml", "02-coding L1: ruff lint/format"),
+        (".pre-commit-config.yaml", "02-coding L1: gitleaks（密钥扫描）"),
+    ],
+    "03-git": [
+        ("commitlint.config.js", "03-git L1: commitlint config（V0.1 配置就位）"),
+        (".gitmessage", "03-git §二: 提交模板"),
+        (".github/pull_request_template.md", "03-git §二: PR 模板"),
+    ],
+    "04-api": [
+        (".spectral.yaml", "04-api L1: spectral OpenAPI lint"),
+        ("src/api/main.py", "04-api §二: 统一响应 + 错误码示例"),
+    ],
+    "05-testing": [
+        ("pyproject.toml", "05-testing L1: pytest 配置"),
+    ],
+    "06-documentation": [
+        (
+            ".markdownlint.json",
+            "06-documentation L1: markdownlint 配置（V0.1 配置就位）",
+        ),
+        ("README.md", "06-documentation 红线 1: README 必含"),
+        ("CHANGELOG.md", "06-documentation 红线 2: CHANGELOG 必含"),
+    ],
+    "08-code-understanding": [
+        ("src/code-understanding/call_graph_example.py", "08 L1: AST 调用图示例"),
+    ],
+}
+
+# 每篇规范的 L4 测试文件：id -> 文件名
+L4_CHECKS: dict[str, str] = {
+    "01-architecture": "test_01_architecture.py",
+    "02-coding": "test_02_coding.py",
+    "03-git": "test_03_git.py",
+    "04-api": "test_04_api.py",
+    "05-testing": "test_05_testing.py",
+    "06-documentation": "test_06_documentation.py",
+    "07-ai-workflow": "test_07_ai_workflow.py",
+    "08-code-understanding": "test_08_code_understanding.py",
+}
 
 
-def main() -> int:
-    print("check_compliance.py: V2 待实现（V0.1 由 L4 规范测试覆盖）")
+def load_meta() -> dict:
+    """读 _meta.yaml（UTF-8 强制）"""
+    if not META_FILE.exists():
+        print(f"FAIL: {META_FILE} 不存在", file=sys.stderr)
+        sys.exit(1)
+    with META_FILE.open(encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def check_convention(conv: dict) -> list[dict]:
+    """对单篇规范跑 L1 + L4 检查
+
+    返回 [{"target": "L1", "name": "...", "path": "...", "status": "PASS/FAIL", "msg": "..."}, ...]
+    """
+    cid = conv.get("id", "")
+    file_rel = conv.get("file", "")
+    results: list[dict] = []
+
+    # 1. 规范文件存在
+    if file_rel:
+        path = REPO_ROOT / file_rel
+        if path.is_dir():
+            results.append(
+                {
+                    "target": "doc",
+                    "name": f"{cid} 规范目录",
+                    "path": file_rel,
+                    "status": "INFO",
+                    "msg": "目录型规范（ai-workflow）：分级在 _meta.yaml，文档不渲染",
+                }
+            )
+        elif path.exists():
+            results.append(
+                {
+                    "target": "doc",
+                    "name": f"{cid} 规范文件",
+                    "path": file_rel,
+                    "status": "PASS",
+                    "msg": "文件存在",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "target": "doc",
+                    "name": f"{cid} 规范文件",
+                    "path": file_rel,
+                    "status": "FAIL",
+                    "msg": "文件不存在",
+                }
+            )
+
+    # 2. L1 配置检查
+    for rel_path, desc in L1_CHECKS.get(cid, []):
+        path = REPO_ROOT / rel_path
+        results.append(
+            {
+                "target": "L1",
+                "name": desc,
+                "path": rel_path,
+                "status": "PASS" if path.exists() else "FAIL",
+                "msg": "文件存在" if path.exists() else "文件缺失",
+            }
+        )
+
+    # 3. L4 测试文件
+    l4_filename = L4_CHECKS.get(cid)
+    if l4_filename:
+        l4_path = REPO_ROOT / "tests" / "conventions" / l4_filename
+        results.append(
+            {
+                "target": "L4",
+                "name": f"{cid} L4 规范测试",
+                "path": f"tests/conventions/{l4_filename}",
+                "status": "PASS" if l4_path.exists() else "FAIL",
+                "msg": "测试文件存在" if l4_path.exists() else "测试文件缺失",
+            }
+        )
+
+    return results
+
+
+def run_compliance() -> dict:
+    """跑全部合规检查，返回报告 dict"""
+    meta = load_meta()
+    conventions = meta.get("conventions", [])
+    report = {
+        "project": meta.get("project", "unknown"),
+        "meta_version": meta.get("version", "?"),
+        "conventions_total": len(conventions),
+        "results": [],
+        "summary": {"pass": 0, "fail": 0, "info": 0},
+    }
+    for conv in conventions:
+        cid = conv.get("id", "?")
+        title = conv.get("title", "")
+        results = check_convention(conv)
+        conv_report = {
+            "id": cid,
+            "title": title,
+            "results": results,
+            "status": "PASS" if all(r["status"] != "FAIL" for r in results) else "FAIL",
+        }
+        report["results"].append(conv_report)
+        for r in results:
+            if r["status"] == "PASS":
+                report["summary"]["pass"] += 1
+            elif r["status"] == "FAIL":
+                report["summary"]["fail"] += 1
+            else:
+                report["summary"]["info"] += 1
+    return report
+
+
+def print_text_report(report: dict) -> int:
+    """打印文本报告，返回退出码"""
+    print("=== 合规扫描报告 ===")
+    print(f"项目: {report['project']}  _meta.yaml v{report['meta_version']}")
+    print(f"扫描: {report['conventions_total']} 篇规范")
+    print(
+        f"通过: {report['summary']['pass']}  "
+        f"失败: {report['summary']['fail']}  "
+        f"信息: {report['summary']['info']}"
+    )
+    print()
+    for conv_report in report["results"]:
+        status = conv_report["status"]
+        marker = "PASS" if status == "PASS" else "FAIL"
+        print(f"[{marker}] {conv_report['id']} {conv_report['title']}")
+        for r in conv_report["results"]:
+            line = (
+                f"    {r['target']:4s} {r['name']:50s} {r['path']:55s} {r['status']:5s}"
+            )
+            if r["status"] == "FAIL":
+                print(f"\033[91m{line}\033[0m  ({r['msg']})")
+            elif r["status"] == "INFO":
+                print(f"\033[90m{line}\033[0m  ({r['msg']})")
+            else:
+                print(line)
+        print()
+    if report["summary"]["fail"] > 0:
+        print(f"FAIL: {report['summary']['fail']} 项不通过")
+        return 1
+    print("OK: 全部合规")
     return 0
 
 
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="扫描 conventions/_meta.yaml 跑合规检查"
+    )
+    parser.add_argument("--json", action="store_true", help="输出 JSON 报告")
+    args = parser.parse_args()
+    report = run_compliance()
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report["summary"]["fail"] == 0 else 1
+    return print_text_report(report)
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

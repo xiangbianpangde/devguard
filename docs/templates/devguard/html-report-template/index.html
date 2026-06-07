@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>$project_name — 进度仪表盘</title>
+  <style>
+    /* 极简风格：参考 ai-tutor 项目偏好——学术风 + 高信息密度 */
+    :root {
+      --bg: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #666;
+      --accent: #0e7c66;          /* teal：ours 列高亮色 */
+      --warn: #d97706;            /* amber：警告 */
+      --err:  #dc2626;            /* red：失败 */
+      --ok:   #059669;            /* green：通过 */
+      --border: #e5e5e5;
+    }
+    body { font-family: -apple-system, "Segoe UI", "PingFang SC", sans-serif; max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; color: var(--fg); background: var(--bg); line-height: 1.6; }
+    h1 { border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+    h2 { margin-top: 2.5rem; color: var(--accent); }
+    .meta { color: var(--muted); font-size: 0.9em; margin-bottom: 1.5rem; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+    .card { border: 1px solid var(--border); border-left: 4px solid var(--accent); padding: 1rem 1.25rem; border-radius: 4px; background: #fafafa; }
+    .card .num { font-size: 2em; font-weight: 600; color: var(--accent); display: block; }
+    .card .label { color: var(--muted); font-size: 0.9em; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: #f5f5f5; font-weight: 600; }
+    tr:hover { background: #fafafa; }
+    .ok  { color: var(--ok);  font-weight: 600; }
+    .err { color: var(--err); font-weight: 600; }
+    .warn { color: var(--warn); font-weight: 600; }
+    .progress-bar { background: #e5e5e5; height: 8px; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+    .progress-bar .fill { background: var(--accent); height: 100%; transition: width 0.3s; }
+    code { background: #f5f5f5; padding: 0.1rem 0.3rem; border-radius: 3px; font-family: "SF Mono", Consolas, monospace; font-size: 0.9em; }
+    .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>$project_name</h1>
+  <p class="meta">
+    进度仪表盘 · 渲染于 $render_date · 数据源
+    <code>STATUS.md</code> + <code>conventions/_meta.yaml</code>
+  </p>
+
+  <!-- 总览卡片 -->
+  <div class="card-grid">
+    <div class="card">
+      <span class="num">$progress_pct%</span>
+      <span class="label">总进度（$progress_done / $progress_total 功能点）</span>
+      <div class="progress-bar"><div class="fill" style="width: $progress_pct%"></div></div>
+    </div>
+    <div class="card">
+      <span class="num">$convention_count</span>
+      <span class="label">规范篇数（含 ai-workflow 流程文档）</span>
+    </div>
+    <div class="card">
+      <span class="num">$red_line_total</span>
+      <span class="label">红线总数（8 篇规范的 §一红线之和）</span>
+    </div>
+    <div class="card">
+      <span class="num">$l4_passed / $l4_total</span>
+      <span class="label">L4 规范测试（tests/conventions/）</span>
+    </div>
+  </div>
+
+  <!-- 规范元数据表 -->
+  <h2>规范分级标签</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>规范</th>
+        <th>红线</th>
+        <th>警告</th>
+        <th>推荐</th>
+        <th>L1 检测</th>
+        <th>L3 路由</th>
+      </tr>
+    </thead>
+    <tbody>
+      $convention_rows
+    </tbody>
+  </table>
+
+  <!-- 功能点进度表（从 STATUS.md 解析） -->
+  <h2>功能点进度</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>功能点</th>
+        <th>状态</th>
+        <th>BDD</th>
+        <th>完成日期</th>
+      </tr>
+    </thead>
+    <tbody>
+      $status_rows
+    </tbody>
+  </table>
+
+  <div class="footer">
+    由 <code>docs/templates/devguard/html-report-template/render.py</code> 从
+    <code>STATUS.md</code> + <code>conventions/_meta.yaml</code> 自动渲染。
+  </div>
+</body>
+</html>
