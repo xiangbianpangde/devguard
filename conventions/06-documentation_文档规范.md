@@ -44,6 +44,8 @@ def create_order(user_id: str, product_id: str, quantity: int) -> Order:
 
 **CHANGELOG 六分类**：Added / Changed / Fixed / Deprecated / Removed / Security——用**用户视角**写「这次更新对我有什么影响」，不是 git log 复制。
 
+**中文批处理（Windows PowerShell 5.1 环境）**：批处理中文 markdown 字符串替换必须用 **Python 脚本 + `read_text(encoding='utf-8', errors='replace')`**，**不要在 PowerShell 5.1 里用 `[Console]::OutputEncoding`**——ANSI 编码会静默损坏 UTF-8 多字节字符。典型场景：项目大量文件改名、批量插入章节标题、跨文件字符串同步。
+
 ---
 
 ## 三、决策表 / 速查
@@ -81,6 +83,26 @@ def create_order(user_id: str, product_id: str, quantity: int) -> Order:
 |------|------|
 | 收束节点检查文档一致性 | 逐份对照代码现状（[第三步](ai-workflow_AI协作开发流程/06-第三步_收束节点.md)） |
 | 过时文档移 `archive/`，标废弃日期 | `> ⚠️ 已废弃: YYYY-MM-DD，替代: xxx` |
+
+### 配图规约（学术论文场景 — 触发时启用）
+
+**触发场景**：做学术论文配图（CHI / FAccT / JAMIA / NeurIPS 等期刊/会议 figure）时。
+
+**风格**：期刊式学术风格（与思维导图 / 流程图 / 系统架构图区分）。
+
+**高信息密度原则**——每张图至少 2-3 个 SVG 视觉元素，不是单图标点缀。
+
+| 反例（被否决）| 正例（通过）|
+|----------|----------|
+| "3 栏 + 每栏 6 字段 + 文字描述" 字典式布局——文字堆叠，无视觉锚点 | **Hero data-flow 图**：横向 swimlane 卡片 + 多色箭头 + 真实示例数据 |
+| "4 架构对比表" 用 6×4 文字 cell——全部 dim/partial/full 文字，看不出差异 | **DB schema 框图**：3 table box + 列名 + PK 高亮 + 红色 trigger 印章 + syntax-highlighted SQL |
+| 任何"大量小字段 + 大量描述文字"的设计 | **视觉对比矩阵**：4 架构 × 6 维度，单元格用 ✓ (绿) / ◐ (amber 半圆) / ✗ (灰)，ours 列 teal 背景高亮 |
+
+**实现细节**：
+- 用 SVG 内联画图（data flow 横向 swimlane 卡片、schema 表格、icon symbols），**不要用 chart 库**
+- KaTeX 渲染数学符号但要节省：标题/公式用，字段描述用普通文字
+- 字段类型用 monospace 简短标识（`text` / `int[]` / `jsonb` / `timestamptz`）一字符就够
+- 配色：ours 列用 teal 背景高亮；✓ 绿 / ◐ amber / ✗ 灰 三色语义清晰
 
 ---
 

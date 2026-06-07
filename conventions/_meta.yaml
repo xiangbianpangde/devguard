@@ -217,3 +217,75 @@ render:
     - kind: convention-grade
       output: 每篇规范顶部 ## 分级标签 小节
       template: conventions 节
+
+# ============================================================
+# 6. 用户跨项目偏好整合（#11 任务 / 审计追踪）
+# ============================================================
+# 来源：~/.mavis/agents/mavis/memory/MEMORY.md（agent memory）
+# 原则：跨项目稳定偏好进规范；纯个人偏好不进
+preferences_integration:
+  - id: mem-coding-001
+    source: agent-memory
+    target: conventions/02-coding_代码编写规范.md §三 注释
+    content: "写代码前先写注释当 prompt（非显然实现 / 技术债）"
+    date: 2026-06-07
+
+  - id: mem-coding-002
+    source: agent-memory
+    target: conventions/02-coding_代码编写规范.md §一 红线 3a
+    content: "展示密钥/Token 时用 inline code + 末 4 位明文 + 描述"
+    date: 2026-06-07
+
+  - id: mem-testing-001
+    source: agent-memory
+    target: conventions/05-testing_测试规范.md §一 红线 5
+    content: "开发按 BDD+TDD 流程（先 BDD 规格 → 红 → 绿 → 重构）"
+    date: 2026-06-07
+
+  - id: mem-docs-001
+    source: agent-memory
+    target: conventions/06-documentation_文档规范.md §二 落地
+    content: "中文批处理用 Python 脚本 + UTF-8（PowerShell 5.1 ANSI 编码坑）"
+    date: 2026-06-07
+
+  - id: mem-docs-002
+    source: user-profile
+    target: conventions/06-documentation_文档规范.md §三 配图规约
+    content: "学术论文配图要期刊式 + 高信息密度视觉图表（data flow / DB schema / 视觉对比矩阵）"
+    trigger: 仅学术论文 figure 触发
+    date: 2026-06-07
+
+  - id: mem-workflow-001
+    source: user-profile
+    target: conventions/ai-workflow_AI协作开发流程/04-第二步_迭代开发.md §2.1 前置 0
+    content: "动本地文件前必备份（git 不是备份）"
+    date: 2026-06-07
+
+  - id: mem-claude-001
+    source: user-profile
+    target: CLAUDE.md 核心规则 7
+    content: "严格按既定方法论/规范执行，不要自创抽象"
+    date: 2026-06-07
+
+  - id: mem-claude-002
+    source: user-profile
+    target: CLAUDE.md AI 协作原则
+    content: "开工前原则：先 skills / 先想好再行动 / 团队完成 status / 长程 plan 设 cron self"
+    date: 2026-06-07
+
+  - id: mem-claude-003
+    source: user-profile
+    target: CLAUDE.md 质量验证原则
+    content: "真机 E2E 验证（不信 demo 录屏 / HTTP 200 不算）"
+    date: 2026-06-07
+
+# ============================================================
+# 7. 不进规范的偏好（个人偏好 / 项目历史，不污染通用规范）
+# ============================================================
+excluded_preferences:
+  - id: excluded-001
+    reason: 个人偏好（仅 user 有 main push 权限时适用）
+    content: "完成代码修改后直接 push main，跳过 PR/Review 流程"
+  - id: excluded-002
+    reason: 项目历史（不是通用规范）
+    content: "医学问诊助手项目上下文"

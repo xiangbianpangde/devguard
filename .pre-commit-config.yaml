@@ -6,7 +6,7 @@
 # 不要手改本文件！手改会被 render_meta.py --check 检测到（CI fail）
 # ============================================================
 # 对应规范: 02-coding 红线 1/4/5, 03-git 红线 2
-# 安装命令: pip install pre-commit && pre-commit install && pre-commit install --hook-type commit-msg
+# 安装: pip install pre-commit && pre-commit install --hook-type commit-msg
 # ============================================================
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
