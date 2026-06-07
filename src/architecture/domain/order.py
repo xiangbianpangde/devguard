@@ -3,6 +3,7 @@
 规则：不依赖任何框架（FastAPI/Django/SQLAlchemy）。
 只能导入标准库和同层的领域接口。
 """
+
 from dataclasses import dataclass
 from enum import Enum
 
@@ -18,6 +19,7 @@ class OrderStatus(Enum):
 @dataclass
 class Order:
     """订单实体 — 领域层的核心对象。"""
+
     order_id: str
     user_id: str
     product_id: str

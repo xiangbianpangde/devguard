@@ -8,11 +8,13 @@
 - 异常路径（非法输入）
 - 命名规范：test_方法_场景_期望
 """
+
 import pytest
 from discount import calculate_discount, split_bill
 
 
 # === calculate_discount 测试 ===
+
 
 class TestCalculateDiscount:
     """折扣计算测试集。每个测试方法只验证一个场景。"""
@@ -62,6 +64,7 @@ class TestCalculateDiscount:
 
 
 # === split_bill 测试 ===
+
 
 class TestSplitBill:
     """分账测试 — 演示边界和精度处理。"""

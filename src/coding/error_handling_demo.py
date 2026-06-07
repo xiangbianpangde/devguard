@@ -4,6 +4,7 @@
 
 对比 02-coding 规范中"静默吞异常"和"宽泛捕获"反模式。
 """
+
 import logging
 
 # 配置日志（生产环境用 INFO，开发环境用 DEBUG）
@@ -14,16 +15,19 @@ logger = logging.getLogger(__name__)
 # --- 自定义异常（具体类型，而非泛用 Exception）---
 class UserNotFoundError(Exception):
     """用户不存在。"""
+
     pass
 
 
 class DatabaseError(Exception):
     """数据库错误。"""
+
     pass
 
 
 class ServiceUnavailableError(Exception):
     """服务不可用。"""
+
     pass
 
 
@@ -94,4 +98,4 @@ if __name__ == "__main__":
     print()
     print("=== 反模式演示 ===")
     print("静默吞异常结果:", fetch_user_bad("db_down"))  # None，但不知道原因
-    print("宽泛捕获结果:", fetch_user_bad2("db_down"))    # None，同样无法排查
+    print("宽泛捕获结果:", fetch_user_bad2("db_down"))  # None，同样无法排查

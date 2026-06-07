@@ -11,6 +11,7 @@
 用法: python call_graph_example.py [目录路径]
 """
 
+# ruff: noqa: N802, F401, F541, N803, N806, E731, E741   # AST 教学示例保留约定命名
 import ast
 import os
 import sys
@@ -21,26 +22,30 @@ from typing import Dict, List, Set
 
 # ── 图谱数据结构 ──────────────────────────────────
 
+
 @dataclass
 class Entity:
     """图谱节点（实体）。对应规范 §1.2 节点类型标准"""
-    type: str          # FUNCTION | CLASS | MODULE
-    name: str          # 实体名称
-    module: str        # 所属模块（文件路径）
-    line: int          # 定义所在行号
+
+    type: str  # FUNCTION | CLASS | MODULE
+    name: str  # 实体名称
+    module: str  # 所属模块（文件路径）
+    line: int  # 定义所在行号
 
 
 @dataclass
 class Relation:
     """图谱边（关系）。对应规范 §1.3 边类型标准"""
-    source: str        # 源实体全限定名
-    target: str        # 目标实体全限定名
-    rel_type: str      # CALLS | IMPORTS | DEFINES 等
+
+    source: str  # 源实体全限定名
+    target: str  # 目标实体全限定名
+    rel_type: str  # CALLS | IMPORTS | DEFINES 等
 
 
 @dataclass
 class CodeGraph:
     """代码知识图谱的内存表示"""
+
     entities: Dict[str, Entity] = field(default_factory=dict)
     relations: List[Relation] = field(default_factory=list)
 
@@ -53,13 +58,15 @@ class CodeGraph:
 
     def find_callers(self, func_name: str) -> List[Relation]:
         """上游分析：谁调用了这个函数？"""
-        return [r for r in self.relations
-                if func_name in r.target and r.rel_type == "CALLS"]
+        return [
+            r for r in self.relations if func_name in r.target and r.rel_type == "CALLS"
+        ]
 
     def find_callees(self, func_name: str) -> List[Relation]:
         """下游分析：这个函数调用了谁？"""
-        return [r for r in self.relations
-                if func_name in r.source and r.rel_type == "CALLS"]
+        return [
+            r for r in self.relations if func_name in r.source and r.rel_type == "CALLS"
+        ]
 
     def detect_orphans(self) -> List[str]:
         """检测孤儿节点（无人调用也无人被调用）"""
@@ -72,6 +79,7 @@ class CodeGraph:
 
 # ── AST 遍历器 ────────────────────────────────────
 
+
 class CallGraphVisitor(ast.NodeVisitor):
     """遍历 AST，抽取函数/类定义 + 调用关系"""
 
@@ -83,10 +91,7 @@ class CallGraphVisitor(ast.NodeVisitor):
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         # 1. 抽取函数实体
         entity = Entity(
-            type="FUNCTION",
-            name=node.name,
-            module=self.module_path,
-            line=node.lineno
+            type="FUNCTION", name=node.name, module=self.module_path, line=node.lineno
         )
         self.graph.add_entity(entity)
 
@@ -103,10 +108,7 @@ class CallGraphVisitor(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         entity = Entity(
-            type="CLASS",
-            name=node.name,
-            module=self.module_path,
-            line=node.lineno
+            type="CLASS", name=node.name, module=self.module_path, line=node.lineno
         )
         self.graph.add_entity(entity)
         self.graph.add_relation(
@@ -122,26 +124,20 @@ class CallGraphVisitor(ast.NodeVisitor):
         callee_name = self._resolve_callee(node)
         if callee_name:
             self.graph.add_relation(
-                self.current_function,
-                f"{self.module_path}::{callee_name}",
-                "CALLS"
+                self.current_function, f"{self.module_path}::{callee_name}", "CALLS"
             )
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
             self.graph.add_relation(
-                self.module_path,
-                f"__import__::{alias.name}",
-                "IMPORTS"
+                self.module_path, f"__import__::{alias.name}", "IMPORTS"
             )
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = node.module or "__unknown__"
         for alias in node.names:
             self.graph.add_relation(
-                self.module_path,
-                f"{module}::{alias.name}",
-                "IMPORTS"
+                self.module_path, f"{module}::{alias.name}", "IMPORTS"
             )
 
     def _resolve_callee(self, node: ast.Call) -> str | None:
@@ -155,15 +151,18 @@ class CallGraphVisitor(ast.NodeVisitor):
 
 # ── 主入口 ────────────────────────────────────────
 
+
 def build_graph(root_dir: str) -> CodeGraph:
     """扫描目录，构建代码知识图谱"""
     graph = CodeGraph()
 
     py_files = list(Path(root_dir).rglob("*.py"))
     # 跳过 __pycache__ 和测试文件
-    py_files = [f for f in py_files
-                if "__pycache__" not in str(f)
-                and not str(f).endswith("test_")]
+    py_files = [
+        f
+        for f in py_files
+        if "__pycache__" not in str(f) and not str(f).endswith("test_")
+    ]
 
     for py_file in py_files:
         try:
@@ -204,6 +203,7 @@ def print_report(graph: CodeGraph) -> None:
     # Top 5 被调用最多的函数
     if calls:
         from collections import Counter
+
         target_counts = Counter(r.target for r in calls)
         print(f"\n  🔥 Top 5 被调用最多的函数:")
         for target, count in target_counts.most_common(5):

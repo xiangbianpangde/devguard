@@ -3,6 +3,7 @@
 对比 naming_good.py 查看正确做法。
 """
 
+
 # ❌ 模糊命名
 def process(d):
     return d[0] + d[1]

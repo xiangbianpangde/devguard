@@ -10,6 +10,7 @@ from typing import Optional
 
 class OrderStatus(Enum):
     """订单状态枚举。"""
+
     PENDING = "pending"
     PAID = "paid"
     SHIPPED = "shipped"
@@ -27,6 +28,7 @@ class Order:
         unit_price: 商品单价（元）
         status: 订单状态
     """
+
     order_id: str
     user_id: str
     product_id: str

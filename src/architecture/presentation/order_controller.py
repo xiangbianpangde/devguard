@@ -3,6 +3,7 @@
 规则：接收 HTTP 请求，参数校验，调用应用层，返回响应。
 不包含业务逻辑，不直接操作数据库。
 """
+
 from ..application.order_service import OrderService
 
 
@@ -28,7 +29,11 @@ class OrderController:
         required = ["order_id", "user_id", "product_id", "quantity", "unit_price"]
         for field in required:
             if field not in request_body:
-                return {"code": 40001, "message": f"缺少必填字段: {field}", "data": None}
+                return {
+                    "code": 40001,
+                    "message": f"缺少必填字段: {field}",
+                    "data": None,
+                }
 
         if request_body["quantity"] <= 0:
             return {"code": 40002, "message": "数量必须大于 0", "data": None}
@@ -56,7 +61,7 @@ class OrderController:
             "data": {
                 "order_id": order.order_id,
                 "status": order.status.value,
-                "total": order.total,            # 原价
+                "total": order.total,  # 原价
                 "final_total": order.final_total,  # 折后应付
             },
         }

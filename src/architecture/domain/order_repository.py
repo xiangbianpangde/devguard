@@ -3,6 +3,7 @@
 规则：只定义接口，不实现细节。
 具体实现（如 PostgresOrderRepository）放在 infrastructure/ 中。
 """
+
 from abc import ABC, abstractmethod
 
 from .order import Order

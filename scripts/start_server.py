@@ -8,6 +8,7 @@
     python scripts/start_server.py 9000        # 指定端口
 端口被占用时自动顺延到下一个可用端口。Ctrl+C 停止。
 """
+
 import os
 import sys
 import threading
@@ -42,7 +43,9 @@ def find_server(start_port):
             return HTTPServer(("127.0.0.1", port), handler), port
         except OSError:
             continue
-    sys.exit(f"端口 {start_port}–{start_port + MAX_TRIES - 1} 均被占用，请关闭占用程序或指定其他端口。")
+    sys.exit(
+        f"端口 {start_port}–{start_port + MAX_TRIES - 1} 均被占用，请关闭占用程序或指定其他端口。"
+    )
 
 
 def main():

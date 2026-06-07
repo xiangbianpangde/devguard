@@ -41,6 +41,7 @@ user_address = "北京"
 @dataclass
 class UserProfile:  # ✅ PascalCase 类名
     """用户资料。"""
+
     display_name: str
     email: str
     is_verified: bool = False
@@ -48,6 +49,7 @@ class UserProfile:  # ✅ PascalCase 类名
 
 if __name__ == "__main__":
     import logging
+
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     log = logging.getLogger(__name__)
     log.info("总价: %s", calculate_total_price([10.0, 20.0, 30.0]))

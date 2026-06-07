@@ -1,0 +1,219 @@
+# ============================================================
+# 开发规范元信息（真源 / single source of truth）
+# ============================================================
+# 改这一个文件 → 规范分级、pre-commit 钩子、CI 范围、L4 测试 全部自动同步
+#
+# 同步策略（B3 变体）：
+#   - 本文件是**真源**（手维护）
+#   - 每篇规范顶部 `## 分级标签` 小节是**渲染产物**（CI 由 scripts/render_meta.py 生成）
+#   - pre-commit 钩子列表由 scripts/render_meta.py 投射到根目录 .pre-commit-config.yaml
+#
+# 配套文件：
+#   - 渲染脚本:    scripts/render_meta.py
+#   - 模板版本:    docs/templates/devguard/conventions/_meta.yaml
+#   - 本仓库实例:  conventions/_meta.yaml（本文件）
+#
+# 变更纪律：
+#   - 改本文件 → 必须同步 docs/templates/devguard/conventions/_meta.yaml
+#   - 改本文件 → commit message 加 [meta] 标记
+#   - 不在 git 里手改"渲染产物"（会被 CI 覆盖）
+# ============================================================
+
+version: 1.0.0          # _meta.yaml schema 版本（不是项目版本）
+project: 开发规范       # 项目名（仅展示用）
+
+# ============================================================
+# 1. 规范分级（每篇的红线/警告/推荐 数量 + 描述）
+# ============================================================
+# v0.1: #4 任务会从各篇 §一红线扫描后填实 + 加 warning/recommend 维度
+# 当前 grade 数字来自用户 2026-06-07 盘点表
+conventions:
+  - id: 01-architecture
+    title: 架构设计规范
+    file: conventions/01-architecture_架构设计规范.md
+    grade:
+      red_line: 4
+      warning: 0
+      recommend: 0
+    l1_check: importlinter
+    l3_route: 任务类型=架构设计 → 必读本篇
+
+  - id: 02-coding
+    title: 代码编写规范
+    file: conventions/02-coding_代码编写规范.md
+    grade:
+      red_line: 7
+      warning: 0
+      recommend: 0
+    l1_check: ruff + gitleaks
+    l3_route: 任务类型=实现 → 必读本篇
+
+  - id: 03-git
+    title: Git 协作规范
+    file: conventions/03-git_Git协作规范.md
+    grade:
+      red_line: 5
+      warning: 0
+      recommend: 0
+    l1_check: pre-commit + commitlint
+    l3_route: 任务类型=提交 → 必读本篇
+
+  - id: 04-api
+    title: API 设计规范
+    file: conventions/04-api_API设计规范.md
+    grade:
+      red_line: 7
+      warning: 0
+      recommend: 0
+    l1_check: spectral
+    l3_route: 任务类型=接口设计 → 必读本篇
+
+  - id: 05-testing
+    title: 测试规范
+    file: conventions/05-testing_测试规范.md
+    grade:
+      red_line: 4
+      warning: 0
+      recommend: 0
+    l1_check: pytest --cov-fail-under
+    l3_route: 任务类型=实现 → 必读本篇
+
+  - id: 06-documentation
+    title: 文档规范
+    file: conventions/06-documentation_文档规范.md
+    grade:
+      red_line: 5
+      warning: 0
+      recommend: 0
+    l1_check: 无（v0.1：待 #7 任务加 markdownlint）
+    l3_route: 任务类型=写文档 → 必读本篇
+
+  - id: 07-ai-workflow
+    title: AI 协作开发流程
+    file: conventions/ai-workflow_AI协作开发流程/
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 7    # 7 篇流程文档
+    l1_check: 无（流程文档无 L1）
+    l3_route: AI 任务路由必读
+
+  - id: 08-code-understanding
+    title: 代码理解与图谱规范
+    file: conventions/08-code-understanding_代码理解与图谱规范.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+    l1_check: 人工审查
+    l3_route: 任务类型=图谱生成 → 必读本篇
+
+# ============================================================
+# 2. pre-commit 钩子（#1 任务专用 / 写实）
+# ============================================================
+# v0.1 完整版（来源: src/git/.pre-commit-config.yaml，提升到根目录 + 元数据化）
+# 后续改动只动本节 + 跑 render_meta.py 即可同步到根目录 .pre-commit-config.yaml
+pre_commit:
+  - id: trailing-whitespace
+    source: pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    grade: recommend
+    maps_to: 通用整洁
+    description: 去除行尾空白
+
+  - id: end-of-file-fixer
+    source: pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    grade: recommend
+    maps_to: 通用整洁
+    description: 确保文件以换行符结尾
+
+  - id: check-yaml
+    source: pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    grade: red_line
+    maps_to: 通用整洁
+    description: YAML 语法检查（_meta.yaml 修改后必须能解析）
+
+  - id: check-json
+    source: pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    grade: red_line
+    maps_to: 通用整洁
+    description: JSON 语法检查
+
+  - id: check-added-large-files
+    source: pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    grade: red_line
+    maps_to: 通用整洁
+    description: 防止误提交大文件
+    args: ['--maxkb=10000']
+
+  - id: ruff
+    source: astral-sh/ruff-pre-commit
+    rev: v0.6.0
+    grade: red_line
+    maps_to: 02-coding
+    description: "02 红线 1/4/5：print / 裸 except / 调试断点等"
+    stages: [pre-commit]
+    args: ["--config=src/coding/ruff.toml"]   # 用项目内 02 规范的可运行配置
+
+  - id: ruff-format
+    source: astral-sh/ruff-pre-commit
+    rev: v0.6.0
+    grade: red_line
+    maps_to: 02-coding
+    description: 格式化（取代 black）
+
+  - id: gitleaks
+    source: gitleaks/gitleaks
+    rev: v8.18.0
+    grade: red_line
+    maps_to: 02-coding
+    description: "02 红线 3：阻止密钥入库"
+
+  - id: commitlint
+    source: alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.16.0
+    grade: red_line
+    maps_to: 03-git
+    description: "03 红线 2：commit message 符合 Conventional Commits"
+    stages: [commit-msg]
+    config: commitlint.config.js
+
+# ============================================================
+# 3. CI 配置（#2 任务专用 / v0.1 占位）
+# ============================================================
+ci:
+  provider: github-actions
+  python_version: '3.11'
+  # 5 阶段流水线（详见 #2 任务设计）
+  stages:
+    - lint          # ruff + gitleaks + markdownlint（#7 加）
+    - test          # pytest + 覆盖率门禁
+    - l4-conventions  # L4 规范测试（#3 任务）
+    - compliance    # 合规扫描（#10 任务）
+    - build         # 构建验证
+
+# ============================================================
+# 4. L4 规范测试（#3 任务专用 / v0.1 占位）
+# ============================================================
+l4_tests:
+  root: tests/conventions/
+  framework: pytest
+  naming: test_NN_<convention_id>.py
+  rule: 每篇规范的 §一红线至少 1 个 L4 test
+  # 0 检测的规范不进 CI 流水线（convention-enforcer skill 原则）
+
+# ============================================================
+# 5. 渲染产物配置（scripts/render_meta.py 读这一节）
+# ============================================================
+render:
+  targets:
+    - kind: pre-commit-config
+      output: .pre-commit-config.yaml
+      template: pre_commit 节
+    - kind: convention-grade
+      output: 每篇规范顶部 ## 分级标签 小节
+      template: conventions 节

@@ -3,6 +3,7 @@
 规则：实现领域层定义的接口，包含数据库操作细节。
 表现层/应用层/领域层不直接引用此模块（通过依赖注入使用）。
 """
+
 from dataclasses import dataclass
 
 from ..domain.order import Order
@@ -18,6 +19,7 @@ class PostgresOrderRepository(OrderRepository):
     - 换数据库（如 MongoDB）时只需新建一个实现类
     - 领域层完全不感知 PostgreSQL 的存在
     """
+
     db_url: str
 
     def save(self, order: Order) -> None:

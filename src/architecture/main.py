@@ -4,6 +4,7 @@
 
 运行: python -m src.architecture.main
 """
+
 import sys
 
 # Windows 控制台默认 GBK，确保中文输出不乱码
@@ -35,26 +36,30 @@ def main():
     # 模拟 HTTP 请求
     print("=" * 50)
     print("模拟：POST /api/orders — 普通用户买 3 件")
-    response = controller.create_order({
-        "order_id": "ord_001",
-        "user_id": "user_001",
-        "product_id": "prod_001",
-        "quantity": 3,
-        "unit_price": 100.0,
-    })
+    response = controller.create_order(
+        {
+            "order_id": "ord_001",
+            "user_id": "user_001",
+            "product_id": "prod_001",
+            "quantity": 3,
+            "unit_price": 100.0,
+        }
+    )
     print(f"响应: {response}")
 
     print()
     print("=" * 50)
     print("模拟：POST /api/orders — VIP 用户买 6 件")
-    response = controller.create_order({
-        "order_id": "ord_002",
-        "user_id": "user_002",
-        "product_id": "prod_001",
-        "quantity": 6,
-        "unit_price": 100.0,
-        "is_vip": True,
-    })
+    response = controller.create_order(
+        {
+            "order_id": "ord_002",
+            "user_id": "user_002",
+            "product_id": "prod_001",
+            "quantity": 6,
+            "unit_price": 100.0,
+            "is_vip": True,
+        }
+    )
     print(f"响应: {response}")
 
     print()

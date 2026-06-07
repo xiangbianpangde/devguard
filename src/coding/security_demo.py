@@ -4,6 +4,7 @@
 
 对应 02-coding 规范中的安全章节。
 """
+
 import os
 import logging
 
@@ -21,6 +22,7 @@ API_KEY = os.environ.get("API_KEY", "your-api-key-here")
 
 
 # === 2. SQL 注入防护：参数化查询 ===
+
 
 def query_user_by_id_safe(user_id: str) -> str:
     """✅ 参数化查询 — SQL 与数据分离。"""
@@ -48,6 +50,7 @@ def filter_orders(status: str) -> list:
 
 # === 4. 日志安全：脱敏 ===
 
+
 def mask_phone(phone: str) -> str:
     """手机号脱敏：138****1234"""
     if len(phone) >= 7:
@@ -57,8 +60,7 @@ def mask_phone(phone: str) -> str:
 
 def log_user_action(user_id: str, phone: str, action: str):
     """✅ 日志脱敏 — 不输出完整手机号。"""
-    logger.info("用户操作 | user_id=%s | phone=%s | action=%s",
-                user_id, mask_phone(phone), action)
+    logger.info("用户操作 | user_id=%s | phone=%s | action=%s", user_id, mask_phone(phone), action)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,9 @@
 运行: uvicorn main:app --reload
 文档: http://localhost:8000/docs
 """
-from fastapi import FastAPI, HTTPException, Query
+
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 app = FastAPI(
@@ -24,8 +26,10 @@ app = FastAPI(
 
 # === 统一响应模型 ===
 
+
 class ApiResponse(BaseModel):
     """所有接口统一使用此响应格式。"""
+
     code: int = 0
     message: str = "ok"
     data: object = None
@@ -33,6 +37,7 @@ class ApiResponse(BaseModel):
 
 class ListData(BaseModel):
     """列表响应 data 结构。"""
+
     items: list
     total: int
     page: int
@@ -41,14 +46,17 @@ class ListData(BaseModel):
 
 # === 数据模型 ===
 
+
 class UserCreate(BaseModel):
     """创建用户请求体。"""
+
     name: str = Field(..., min_length=1, max_length=50, description="用户名")
     email: str = Field(..., pattern=r"^[^@]+@[^@]+\.[^@]+$", description="邮箱")
 
 
 class UserResponse(BaseModel):
     """用户响应。"""
+
     id: str
     name: str
     email: str
@@ -65,6 +73,7 @@ _users: dict[str, dict] = {
 
 # === 错误码常量 ===
 
+
 class ErrorCodes:
     USER_NOT_FOUND = 40401
     MISSING_FIELD = 40001
@@ -72,6 +81,7 @@ class ErrorCodes:
 
 
 # === API 端点 ===
+
 
 @app.get("/api/v1/users", response_model=ApiResponse)
 def list_users(
@@ -94,8 +104,10 @@ def list_users(
     # 搜索
     if search:
         users = [
-            u for u in users
-            if search.lower() in u["name"].lower() or search.lower() in u["email"].lower()
+            u
+            for u in users
+            if search.lower() in u["name"].lower()
+            or search.lower() in u["email"].lower()
         ]
 
     # 排序
@@ -131,7 +143,10 @@ def get_user(user_id: str):
     if not user:
         raise HTTPException(
             status_code=404,
-            detail={"code": ErrorCodes.USER_NOT_FOUND, "message": f"用户不存在: {user_id}"},
+            detail={
+                "code": ErrorCodes.USER_NOT_FOUND,
+                "message": f"用户不存在: {user_id}",
+            },
         )
     return ApiResponse(code=0, message="ok", data=user)
 
@@ -165,9 +180,6 @@ def create_user(body: UserCreate):
 
 # === 全局异常处理：统一错误响应格式 ===
 
-from fastapi.responses import JSONResponse
-from fastapi import Request
-
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -176,7 +188,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     if isinstance(detail, dict) and "code" in detail:
         return JSONResponse(
             status_code=exc.status_code,
-            content={"code": detail["code"], "message": detail["message"], "data": None},
+            content={
+                "code": detail["code"],
+                "message": detail["message"],
+                "data": None,
+            },
         )
     return JSONResponse(
         status_code=exc.status_code,
