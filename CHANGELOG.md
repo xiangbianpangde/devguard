@@ -5,6 +5,14 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [V1.4] - 2026-06-07
+
+### Added
+
+- **17-contributing 规范入 _meta.yaml**（V1.4.1）—— CONTRIBUTING.md 章节级 L1
+- **CONTRIBUTING.md 新建**（V1.4.1）—— 含行为准则、贡献类型、PR 流程、Issue 报告、开发流程、编码规范、commit 格式
+- **GitHub 标准 6 件套齐**（V1.4）—— README + CHANGELOG + SECURITY + SUPPORT + LICENSE + CONTRIBUTING
+
 ## [V1.3] - 2026-06-07
 
 ### Added
