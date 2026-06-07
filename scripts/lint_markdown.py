@@ -35,9 +35,8 @@ def main() -> int:
         return 0
 
     print(f"Linting {len(md_files)} .md file(s)")
-    cli = REPO_ROOT / "node_modules" / ".bin" / "markdownlint.cmd"
-    cmd = [str(cli), *md_files]
-    # Windows 上 .cmd shim 必须 shell=True；输入是 .md 路径（glob 过滤后）安全
+    # 用 npx 跨平台调用（Windows .cmd shim / Linux 直接 binary 都通）
+    cmd = ["npx", "--no", "markdownlint", *md_files]
     result = subprocess.run(cmd, cwd=REPO_ROOT, shell=True)  # noqa: S602
     return result.returncode
 
