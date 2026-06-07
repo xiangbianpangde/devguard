@@ -321,7 +321,10 @@ def main() -> int:
     # 确定要处理的 target 列表
     if args.render:
         if args.render == "all":
-            targets = ["pre-commit-config"]  # 后续 #4 / #3 会加 convention-grade
+            targets = [
+                "pre-commit-config",
+                "convention-grade",
+            ]  # V2.1: render all targets
         else:
             targets = [args.render]
         exit_code = 0
@@ -344,7 +347,10 @@ def main() -> int:
         return exit_code
 
     if args.check:
-        targets = ["pre-commit-config", "convention-grade"]  # 加 convention-grade 校验
+        targets = [
+            "pre-commit-config",
+            "convention-grade",
+        ]  # V2.1: --check 检查所有 target
         ok_count = 0
         for target in targets:
             ok, msg = check_target(target, meta)

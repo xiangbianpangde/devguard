@@ -185,17 +185,14 @@ pre_commit:
   #   entry: pymarkdownlnt scan .markdownlint.json scan .
   #   language: system
 
-  # commitlint 钩子 v0.1 暂不启用（需 npm 依赖 @commitlint/cli + @commitlint/config-conventional）
-  # 等 V2 加 package.json 后启用（红线 2：Conventional Commits）
-  # V2 启用时把下面注释打开：
-  # - id: commitlint
-  #   source: alessandrojcm/commitlint-pre-commit-hook
-  #   rev: v9.16.0
-  #   grade: red_line
-  #   maps_to: 03-git
-  #   description: "03 红线 2：commit message 符合 Conventional Commits"
-  #   stages: [commit-msg]
-  #   config: commitlint.config.js
+  - id: commitlint
+    source: alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.16.0
+    grade: red_line
+    maps_to: 03-git
+    description: "03 红线 2：commit message 符合 Conventional Commits"
+    stages: [commit-msg]
+    config: commitlint.config.js
 
   - id: commit-msg-worklog-ref
     name: commit-msg must reference worklog file
