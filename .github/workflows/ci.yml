@@ -85,7 +85,7 @@ jobs:
           cache: 'pip'
 
       - name: Install deps
-        run: pip install pytest pyyaml
+        run: pip install pytest pyyaml ruff
 
       - name: render_meta.py --render convention-grade（保证工作区最新）
         run: python scripts/render_meta.py --render convention-grade
