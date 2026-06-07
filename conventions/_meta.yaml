@@ -38,6 +38,7 @@ conventions:
       l1_check_path:
         - importlinter.ini
     l1_check: importlinter
+    l1_check_doc: https://importlinter.readthedocs.io/
     l3_route: 任务类型=架构设计 → 必读本篇
 
   - id: 02-coding
@@ -52,6 +53,7 @@ conventions:
         - .gitleaks.toml
         - .markdownlint.json
     l1_check: ruff + gitleaks + markdownlint-cli
+    l1_check_doc: https://docs.astral.sh/ruff/
     l3_route: 任务类型=实现 → 必读本篇
 
   - id: 03-git
@@ -66,6 +68,7 @@ conventions:
         - commitlint.config.js
         - scripts/check_worklog_ref.py
     l1_check: pre-commit + commitlint
+    l1_check_doc: https://pre-commit.com/
     l3_route: 任务类型=提交 → 必读本篇
 
   - id: 04-api
@@ -78,6 +81,7 @@ conventions:
       l1_check_path:
         - .spectral.yaml
     l1_check: spectral
+    l1_check_doc: https://stoplight.io/open-source/spectral
     l3_route: 任务类型=接口设计 → 必读本篇
 
   - id: 05-testing
@@ -90,6 +94,7 @@ conventions:
       l1_check_path:
         - pyproject.toml
     l1_check: pytest --cov-fail-under
+    l1_check_doc: https://docs.pytest.org/
     l3_route: 任务类型=实现 → 必读本篇
 
   - id: 06-documentation
@@ -103,6 +108,7 @@ conventions:
         - .markdownlint.json
         - scripts/lint_markdown.py
     l1_check: markdownlint-cli + .markdownlint.json
+    l1_check_doc: https://github.com/DavidAnson/markdownlint
     l3_route: 任务类型=写文档 → 必读本篇
 
   - id: 07-ai-workflow
@@ -115,6 +121,7 @@ conventions:
       l1_check_path:
         - scripts/check_ai_workflow.py
     l1_check: check_ai_workflow.py（V5.2 章节级 L1）
+    l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
   - id: 08-code-understanding
@@ -127,6 +134,7 @@ conventions:
       l1_check_path:
         - scripts/check_code_understanding.py
     l1_check: check_code_understanding.py（V5.3 章节级 L1）
+    l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: 任务类型=图谱生成 → 必读本篇
 
   - id: 09-dashboard-gen
@@ -140,6 +148,7 @@ conventions:
         - scripts/render_meta.py
         - docs/templates/devguard/html-report-template/render.py
     l1_check: render_meta.py + render.py（仪表盘模板 + 渲染脚本）
+    l1_check_doc: https://docs.python.org/3/library/string.html#template-strings
     l3_route: 任务类型=仪表盘渲染 → 必读本篇
 
   - id: 10-templates-reporting
@@ -153,6 +162,7 @@ conventions:
         - docs/templates/devguard/
         - docs/reports/
     l1_check: 模板 + reports/ 目录（V7.1 章节级 L1）
+    l1_check_doc: https://keepachangelog.com/
     l3_route: 任务类型=模板/汇报 → 必读本篇
 
 # ============================================================

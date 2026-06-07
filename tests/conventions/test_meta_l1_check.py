@@ -72,6 +72,19 @@ class TestMetaL1Check:
                 value not in placeholders
             ), f"规范 {cid} l1_check 是占位符 {value!r}（V4.1 强制：必须有真实 tool）"
 
+    def test_l1_check_doc_url_format(self):
+        """V8.1 增强：l1_check_doc 是 URL（https:// 开头）—— V8.1 增强可发现性"""
+        meta = self._load()
+        for c in meta["conventions"]:
+            cid = c.get("id", "?")
+            if "l1_check_doc" not in c:
+                continue  # 可选字段（V8.1 试点 6 篇已加，其他 4 篇后续推广）
+            url = c["l1_check_doc"]
+            assert isinstance(url, str), f"规范 {cid} l1_check_doc 非 str"
+            assert url.startswith(
+                "https://"
+            ), f"规范 {cid} l1_check_doc={url!r} 不以 https:// 开头"
+
     @pytest.mark.parametrize(
         "conv_id,expected_tool_substr",
         [
