@@ -47,7 +47,7 @@ jobs:
   # 阶段 2：test（pytest + 覆盖率门禁）
   # -------------------------------------------------------------
   test:
-    name: pytest + coverage gate
+    name: pytest + cov gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
