@@ -14,7 +14,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 META = REPO_ROOT / "conventions" / "_meta.yaml"
 
-# 8 篇规范期望 ID（与 _meta.yaml 一致）
+# 9 篇规范期望 ID（与 _meta.yaml 一致，V6.2 加 09-dashboard-gen）
 EXPECTED_IDS = {
     "01-architecture",
     "02-coding",
@@ -24,6 +24,7 @@ EXPECTED_IDS = {
     "06-documentation",
     "07-ai-workflow",
     "08-code-understanding",
+    "09-dashboard-gen",
 }
 
 
