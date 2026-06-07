@@ -16,8 +16,8 @@ render.py — html-report-template 渲染脚本
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -134,9 +134,25 @@ def render(
     )
     template_text = TEMPLATE_FILE.read_text(encoding="utf-8")
     template = Template(template_text)
+    # V3.3 幂等性修复：render_date 用 git HEAD commit time（同 commit 多次 render 输出相同）
+    # 不用 datetime.now()——否则 CI 每次跑都 drift，drift check 必 fail
+    try:
+        # git 是固定 binary，args 来自 _meta.yaml/STATUS.md（仓库内文件）受信任
+        result = subprocess.run(  # noqa: S603, S607
+            ["git", "log", "-1", "--format=%ci", "HEAD"],
+            cwd=out_path.parent,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        commit_time = result.stdout.strip()[
+            :16
+        ]  # "2026-06-07 11:39:29 +0800" -> "2026-06-07 11:39"
+    except Exception:
+        commit_time = "unknown"
     output = template.safe_substitute(
         project_name=meta.get("project", "Unknown"),
-        render_date=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        render_date=commit_time,
         progress_done=done,
         progress_total=total,
         progress_pct=pct,

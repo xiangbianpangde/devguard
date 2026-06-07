@@ -17,7 +17,7 @@ max-statements = 50   # 函数语句数警告阈值，按项目可调
 
 # 工具脚本：允许 print/pprint/pdb
 "**/scripts/*.py" = ["T20", "T100"]
-"**/html-report-template/*.py" = ["T20", "T100"]   # html-report 模板内的渲染脚本
+"**/html-report-template/*.py" = ["T20", "T100", "S603", "S607"]   # html-report 模板内的渲染脚本
 
 # 测试文件：assert 是 pytest 标准用法（bandit S101 不适用）
 # F401 = unused import（测试常有 fixture/import）
