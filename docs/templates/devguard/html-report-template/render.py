@@ -139,15 +139,13 @@ def render(
     try:
         # git 是固定 binary，args 来自 _meta.yaml/STATUS.md（仓库内文件）受信任
         result = subprocess.run(  # noqa: S603, S607
-            ["git", "log", "-1", "--format=%ci", "HEAD"],
+            ["git", "rev-parse", "--short", "HEAD"],
             cwd=out_path.parent,
             capture_output=True,
             text=True,
             check=True,
         )
-        commit_time = result.stdout.strip()[
-            :16
-        ]  # "2026-06-07 11:39:29 +0800" -> "2026-06-07 11:39"
+        commit_time = result.stdout.strip()  # git SHA short (7 字符)
     except Exception:
         commit_time = "unknown"
     output = template.safe_substitute(
