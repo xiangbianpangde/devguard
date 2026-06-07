@@ -29,6 +29,7 @@ EXPECTED_IDS = {
     "11-readme",
     "12-codeowners",
     "13-changelog",
+    "14-security",
 }
 
 
