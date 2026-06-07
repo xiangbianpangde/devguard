@@ -1,0 +1,16 @@
+# ============================================================
+# .gitleaks.toml — gitleaks 密钥扫描白名单
+# ============================================================
+# src/coding/ 下的 *demo.py / *_bad.py 是 02-coding 教学反例文件，
+# 故意包含"硬编码密钥 / SQL 注入"等违规模式用于教学。
+# 这些不是真实泄漏——加 allowlist 豁免。
+# 模板版本：docs/templates/devguard/.gitleaks.toml
+# ============================================================
+
+[allowlist]
+paths = [
+  '''src/coding/security_demo\.py''',
+  '''src/coding/naming_bad\.py''',
+  '''src/coding/error_handling_demo\.py''',
+  '''src/code-understanding/call_graph_example\.py''',
+]
