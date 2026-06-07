@@ -112,7 +112,9 @@ conventions:
       red_line: 0
       warning: 0
       recommend: 7    # 7 篇流程文档
-    l1_check: 无（流程文档无 L1）
+      l1_check_path:
+        - scripts/check_ai_workflow.py
+    l1_check: check_ai_workflow.py（V5.2 章节级 L1）
     l3_route: AI 任务路由必读
 
   - id: 08-code-understanding
