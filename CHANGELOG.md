@@ -5,6 +5,23 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [V1.1] - 2026-06-07
+
+### Added
+
+- **14-security 规范入 _meta.yaml**（V1.1.2）—— SECURITY.md 章节级 L1
+- **13-changelog 规范入 _meta.yaml**（V1.1.1）—— CHANGELOG.md 章节级 L1
+- **SECURITY.md 新建**（V1.1.2）—— 含支持版本、漏洞报告 SLA、安全实践、Out of Scope
+
+### Fixed
+
+- **CHANGELOG 缺 Deprecated 段**（V1.1.1）—— 加 Deprecated 段，6 段齐全
+
+### Deprecated
+
+- **gitleaks-action@v2**（V3.3 替换）—— 改手动跑 gitleaks 8.24.3 binary
+- **`scripts/fix_render_date.py`**（V0.3 临时）—— 改无害占位 + 删
+
 ## [V1.0] - 2026-06-07
 
 ### Added
