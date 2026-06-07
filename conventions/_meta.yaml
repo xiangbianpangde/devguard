@@ -124,7 +124,9 @@ conventions:
       red_line: 0
       warning: 0
       recommend: 0
-    l1_check: 人工审查
+      l1_check_path:
+        - scripts/check_code_understanding.py
+    l1_check: check_code_understanding.py（V5.3 章节级 L1）
     l3_route: 任务类型=图谱生成 → 必读本篇
 
 # ============================================================
