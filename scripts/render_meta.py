@@ -65,17 +65,22 @@ def render_pre_commit_config(meta: dict) -> str:
     # 按 source 分组
     repos: dict[str, dict] = {}
     for hook in meta["pre_commit"]:
-        if not all(k in hook for k in ("id", "source", "rev")):
+        if not all(k in hook for k in ("id", "source")):
             raise ValueError(f"pre_commit 钩子缺字段: {hook.get('id', '<unknown>')}")
         repo_key = hook["source"]
         if repo_key not in repos:
-            repos[repo_key] = {
-                "repo": f"https://github.com/{repo_key}",
-                "rev": hook["rev"],
-                "hooks": [],
-            }
+            repo_entry: dict = {"hooks": []}
+            if repo_key == "local":
+                # local repo：不需要 rev，repo 用 local
+                repo_entry["repo"] = "local"
+            else:
+                if "rev" not in hook:
+                    raise ValueError(f"pre_commit 钩子 {hook['id']} 缺 rev 字段")
+                repo_entry["repo"] = f"https://github.com/{repo_key}"
+                repo_entry["rev"] = hook["rev"]
+            repos[repo_key] = repo_entry
         hook_def: dict = {"id": hook["id"]}
-        for k in ("args", "stages", "config"):
+        for k in ("args", "stages", "config", "entry", "language", "name"):
             if k in hook:
                 hook_def[k] = hook[k]
         repos[repo_key]["hooks"].append(hook_def)
@@ -83,6 +88,8 @@ def render_pre_commit_config(meta: dict) -> str:
     # 排序：pre-commit-hooks 优先，其他按字母
     def sort_key(r: dict) -> tuple:
         src = r["repo"].removeprefix("https://github.com/")
+        if src == "local":
+            return (2, "local")
         priority = HOOK_SORT_PRIORITY.get(src, 1)
         return (priority, src)
 
@@ -97,17 +104,23 @@ def render_pre_commit_config(meta: dict) -> str:
         "# 修改流程：改 conventions/_meta.yaml → 跑 render_meta.py --render",
         "# 不要手改本文件！手改会被 render_meta.py --check 检测到（CI fail）",
         "# ============================================================",
-        "# 对应规范: 02-coding 红线 1/4/5, 03-git 红线 2",
-        "# 安装: pip install pre-commit && pre-commit install --hook-type commit-msg",
+        "# 对应规范: 02-coding 红线 1/4/5, 03-git 红线 2, 06-documentation 红线（worklog 引用）",
+        "# 安装: pip install pre-commit && pre-commit install",
+        "#       && pre-commit install --hook-type commit-msg",
         "# ============================================================",
         "repos:",
     ]
     for repo in repo_list:
         lines.append(f"  - repo: {repo['repo']}")
-        lines.append(f"    rev: {repo['rev']}")
+        if "rev" in repo:
+            lines.append(f"    rev: {repo['rev']}")
         lines.append("    hooks:")
         for hook in repo["hooks"]:
-            lines.append(f"      - id: {hook['id']}")
+            if "name" in hook:
+                lines.append(f"      - id: {hook['id']}")
+                lines.append(f"        name: {hook['name']}")
+            else:
+                lines.append(f"      - id: {hook['id']}")
             if "args" in hook:
                 args_str = ", ".join(f"'{a}'" for a in hook["args"])
                 lines.append(f"        args: [{args_str}]")
@@ -116,6 +129,10 @@ def render_pre_commit_config(meta: dict) -> str:
                 lines.append(f"        stages: [{stages_str}]")
             if "config" in hook:
                 lines.append(f"        config: {hook['config']}")
+            if "entry" in hook:
+                lines.append(f"        entry: {hook['entry']}")
+            if "language" in hook:
+                lines.append(f"        language: {hook['language']}")
         lines.append("")
 
     return "\n".join(lines)

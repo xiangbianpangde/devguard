@@ -3,7 +3,7 @@
 
 ## 分级标签
 
-> 本节为**渲染产物**（由 `scripts/render_meta.py` 从 `conventions/_meta.yaml` 自动生成）。
+> 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
 > 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
 > **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
 
