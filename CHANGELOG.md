@@ -5,6 +5,13 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [V1.2] - 2026-06-07
+
+### Added
+
+- **15-support 规范入 _meta.yaml**（V1.2）—— SUPPORT.md 章节级 L1
+- **SUPPORT.md 新建**（V1.2）—— 含项目性质、获取帮助、报告 Bug、FAQ、Out of Scope
+
 ## [V1.1] - 2026-06-07
 
 ### Added
