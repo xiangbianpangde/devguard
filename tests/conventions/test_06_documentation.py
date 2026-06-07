@@ -95,17 +95,18 @@ class TestDocumentationContracts:
 
     def test_markdownlint_config_exists(self):
         """L1 检测：.markdownlint.json 必须存在（markdown 格式 L1 配置就位）"""
-        # v0.1: 钩子暂不启用（避免阻塞 commit），但配置就位
+        # V3.1: 钩子已启用（pre-commit + ci.yml L1 lint 都加 markdownlint 步）
         assert (
             MARKDOWNLINT_JSON.exists()
         ), ".markdownlint.json 缺失——markdown L1 检测无配置"
 
-    def test_markdownlint_in_precommit_optional(self):
-        """markdownlint 钩子 v0.1 暂不启用（V2 加配置/文档修整后启用）
+    def test_markdownlint_in_precommit_enabled(self):
+        """V3.1: markdownlint 钩子必须启用（红线 1：文档格式 L1 自动检测）
 
-        L4 测试只验证"配置就位"（.markdownlint.json 存在）
-        不强制钩子在 .pre-commit-config.yaml 中
+        验证 .pre-commit-config.yaml 含 markdownlint 钩子
         """
-        # v0.1: 不强求钩子启用
-        # 留作 V2 启用后的回归测试
-        pass
+        content = PRE_COMMIT_YAML.read_text(encoding="utf-8")
+        assert "markdownlint" in content, (
+            "pre-commit-config.yaml 缺 markdownlint 钩子"
+            "（红线 1：markdown 格式 L1 自动检测缺失）"
+        )

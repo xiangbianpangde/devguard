@@ -38,10 +38,17 @@ jobs:
 
       # ruff format check 跨平台 newline 差异会误报，V0.1 暂跳过（V2 修 newline 处理后启用）
 
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: gitleaks manual run V3.3
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          tar -xzf /tmp/gitleaks.tgz -C /tmp
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --log-opts="--no-merges --first-parent" --exit-code=1
+
+      # V3.4: ci.yml L1 lint 阶段加 markdownlint 步（V3.1 已启用 pre-commit 钩子）
+      - name: markdownlint V3.4
+        run: |
+          npm ci --silent
+          python scripts/lint_markdown.py
 
   # -------------------------------------------------------------
   # 阶段 2：test（pytest + 覆盖率门禁）

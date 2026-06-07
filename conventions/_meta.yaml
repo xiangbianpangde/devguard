@@ -45,7 +45,7 @@ conventions:
       red_line: 7
       warning: 0
       recommend: 0
-    l1_check: ruff + gitleaks
+    l1_check: ruff + gitleaks + markdownlint-cli
     l3_route: 任务类型=实现 → 必读本篇
 
   - id: 03-git
@@ -229,7 +229,7 @@ ci:
       tools:
         - pip: ruff
         - bin: gitleaks
-        - bin: markdownlint   # 可选（#7 任务后启用）
+        - bin: markdownlint   # V3.1 启用：markdownlint-cli + npm + Python 包装脚本 lint_markdown.py
 
     - id: test
       name: pytest + 覆盖率门禁
