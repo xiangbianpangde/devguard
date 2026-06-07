@@ -87,6 +87,9 @@ jobs:
       - name: Install deps
         run: pip install pytest pyyaml
 
+      - name: render_meta.py --render convention-grade（保证工作区最新）
+        run: python scripts/render_meta.py --render convention-grade
+
       - name: render_meta.py --check
         run: python scripts/render_meta.py --check
 
@@ -106,6 +109,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
+      - name: Install pyyaml（check_compliance.py 依赖）
+        run: pip install pyyaml
 
       - name: Run compliance scan
         run: python scripts/check_compliance.py
