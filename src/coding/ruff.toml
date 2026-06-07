@@ -19,7 +19,9 @@ max-statements = 50   # 函数语句数警告阈值，按项目可调
 "**/scripts/*.py" = ["T20", "T100"]
 
 # 测试文件：assert 是 pytest 标准用法（bandit S101 不适用）
-"tests/**/*.py" = ["S101"]
+# F401 = unused import（测试常有 fixture/import）
+# S603/S607 = subprocess 调用（测试明确要跑 subprocess）
+"tests/**/*.py" = ["S101", "F401", "S603", "S607"]
 
 # 反面教材：保留命名违规（用于 L4 规范测试断言）
 "src/coding/naming_bad.py" = ["N", "E", "F"]

@@ -1,0 +1,36 @@
+# ============================================================
+# .spectral.yaml — OpenAPI Lint 配置
+# ============================================================
+# 04-api §二 落地的可运行配置
+# L1 检测：npx @stoplight/spectral-cli lint openapi.yaml --ruleset .spectral.yaml
+# L4 验证：tests/conventions/test_04_api.py
+# 模板版本：docs/templates/devguard/.spectral.yaml
+# ============================================================
+extends: ["spectral:oas"]
+
+rules:
+  # 红线 1：URL 路径用 kebab-case（小写字母 + 数字 + / + - + 占位符 {}）
+  path-kebab-case:
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z0-9-/{}]+$"
+
+  # 红线 1：URL 路径不含动词（get/create/update/delete 等）
+  no-verb-in-path:
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "(get|create|update|delete|fetch|list|add|remove)"
+
+  # 红线 7：operationId 必填（向后兼容追踪）
+  operation-operationId: error
+
+  # 响应必须含 data 字段（红线 2：统一响应）
+  response-have-data:
+    given: "$.paths[*][get,post,put,delete,patch].responses[?(@property >= 200 && @property < 300)]"
+    then:
+      field: content.application/json.schema.properties.data
+      function: truthy

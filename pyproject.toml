@@ -1,0 +1,16 @@
+# ============================================================
+# pyproject.toml
+# ============================================================
+# 05-testing §二 落地的可运行配置
+# L1 检测：pytest（testpaths + addopts）
+# L4 验证：tests/conventions/test_05_testing.py
+# 模板版本：docs/templates/devguard/pyproject.toml
+# ============================================================
+[tool.pytest.ini_options]
+# 默认只跑 L4 规范测试（不强制业务代码覆盖率门禁）
+# 等真实业务测试建好后，可改 addopts 加 --cov-fail-under=80
+testpaths = ["tests/conventions"]
+addopts = ["-ra", "--strict-markers", "--tb=short"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
