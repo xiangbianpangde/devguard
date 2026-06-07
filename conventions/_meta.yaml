@@ -173,6 +173,18 @@ pre_commit:
     maps_to: 02-coding
     description: "02 红线 3：阻止密钥入库"
 
+  # markdownlint 钩子 v0.1 暂不启用（pymarkdownlnt 配置复杂 + 项目文档多不规范会阻塞 commit）
+  # 等项目文档整体修整后启用（L4 测试验证 .markdownlint.json + 钩子配置就位）
+  # V2 启用时把下面注释打开：
+  # - id: markdownlint
+  #   name: markdownlint
+  #   source: local
+  #   grade: recommend
+  #   maps_to: 06-documentation
+  #   description: "06 文档规范 L1 检测：markdown 格式检查"
+  #   entry: pymarkdownlnt scan .markdownlint.json scan .
+  #   language: system
+
   # commitlint 钩子 v0.1 暂不启用（需 npm 依赖 @commitlint/cli + @commitlint/config-conventional）
   # 等 V2 加 package.json 后启用（红线 2：Conventional Commits）
   # V2 启用时把下面注释打开：

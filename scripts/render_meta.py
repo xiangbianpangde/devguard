@@ -221,8 +221,8 @@ def render_convention_grade(meta: dict) -> list[Path]:
         new_section = render_convention_grade_section(conv)
         new_lines = lines[:insert_idx] + new_section.splitlines() + lines[insert_idx:]
         new_content = "\n".join(new_lines)
-        # 写回（newline="\n" 统一为 LF，避免 Windows CRLF 影响 check 一致性）
-        path.write_text(new_content, encoding="utf-8", newline="\n")
+        # 写回（不指定 newline，用平台默认——Windows = CRLF 与 pre-commit 钩子一致）
+        path.write_text(new_content, encoding="utf-8")
         written.append(path)
     return written
 

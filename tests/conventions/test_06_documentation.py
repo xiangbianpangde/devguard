@@ -21,6 +21,8 @@ README = REPO_ROOT / "README.md"
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
 CONV_06 = REPO_ROOT / "conventions" / "06-documentation_文档规范.md"
 API_MAIN = REPO_ROOT / "src" / "api" / "main.py"
+MARKDOWNLINT_JSON = REPO_ROOT / ".markdownlint.json"
+PRE_COMMIT_YAML = REPO_ROOT / ".pre-commit-config.yaml"
 
 
 class TestDocumentationContracts:
@@ -90,3 +92,20 @@ class TestDocumentationContracts:
         assert (
             "注释与代码" in content or "过时注释" in content
         ), "06 §四 反模式缺「注释与代码不符」案例（红线 5）"
+
+    def test_markdownlint_config_exists(self):
+        """L1 检测：.markdownlint.json 必须存在（markdown 格式 L1 配置就位）"""
+        # v0.1: 钩子暂不启用（避免阻塞 commit），但配置就位
+        assert (
+            MARKDOWNLINT_JSON.exists()
+        ), ".markdownlint.json 缺失——markdown L1 检测无配置"
+
+    def test_markdownlint_in_precommit_optional(self):
+        """markdownlint 钩子 v0.1 暂不启用（V2 加配置/文档修整后启用）
+
+        L4 测试只验证"配置就位"（.markdownlint.json 存在）
+        不强制钩子在 .pre-commit-config.yaml 中
+        """
+        # v0.1: 不强求钩子启用
+        # 留作 V2 启用后的回归测试
+        pass
