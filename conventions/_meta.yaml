@@ -166,6 +166,19 @@ conventions:
     l1_check_doc: https://keepachangelog.com/
     l3_route: 任务类型=模板/汇报 → 必读本篇
 
+  - id: 11-readme
+    title: README 规范
+    file: README.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - README.md
+    l1_check: README.md 存在（V9.2 章节级 L1）
+    l1_check_doc: https://www.makeareadme.com/
+    l3_route: 任务类型=项目入口 → 必读本篇
+
 # ============================================================
 # 2. pre-commit 钩子（#1 任务专用 / 写实）
 # ============================================================

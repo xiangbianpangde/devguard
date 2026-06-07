@@ -26,6 +26,7 @@ EXPECTED_IDS = {
     "08-code-understanding",
     "09-dashboard-gen",
     "10-templates-reporting",
+    "11-readme",
 }
 
 
