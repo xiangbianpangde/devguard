@@ -1,0 +1,13 @@
+# CODEOWNERS — 自动审查分配
+# ============================================================
+# 格式: <pattern>  <@user-or-team>
+# GitHub 自动 assign 指定审查者到 PR
+# ============================================================
+
+# 默认 owner
+*       @xiangbianpangde
+
+# 规范变更需 owner 审查
+/conventions/        @xiangbianpangde
+/CLAUDE.md           @xiangbianpangde
+/README.md           @xiangbianpangde

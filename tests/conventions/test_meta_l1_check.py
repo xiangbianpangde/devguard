@@ -27,6 +27,7 @@ EXPECTED_IDS = {
     "09-dashboard-gen",
     "10-templates-reporting",
     "11-readme",
+    "12-codeowners",
 }
 
 

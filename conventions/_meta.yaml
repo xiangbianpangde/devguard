@@ -179,6 +179,19 @@ conventions:
     l1_check_doc: https://www.makeareadme.com/
     l3_route: 任务类型=项目入口 → 必读本篇
 
+  - id: 12-codeowners
+    title: CODEOWNERS 规范
+    file: .github/CODEOWNERS
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - .github/CODEOWNERS
+    l1_check: CODEOWNERS 文件存在（V1.1 章节级 L1）
+    l1_check_doc: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+    l3_route: 任务类型=PR 审查 → 必读本篇
+
 # ============================================================
 # 2. pre-commit 钩子（#1 任务专用 / 写实）
 # ============================================================
