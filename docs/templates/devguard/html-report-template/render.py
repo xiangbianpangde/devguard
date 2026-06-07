@@ -150,7 +150,8 @@ def render(
         convention_rows=render_convention_rows(meta),
         status_rows=render_status_rows(status_rows),
     )
-    out_path.write_text(output, encoding="utf-8")
+    # V3.3 跨平台 newline 一致性：强制写 LF（CI Linux 不转 CRLF）
+    out_path.write_text(output, encoding="utf-8", newline="\n")
     print(f"OK 渲染 → {out_path}（{total} 功能点，{pct}% 完成，{red_line_total} 红线）")
 
 
