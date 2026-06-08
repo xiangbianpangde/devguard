@@ -1008,6 +1008,30 @@ pie title 09-17 钩子/触发方式
       </div>
     </div>
 
+    <details class="conv">
+      <summary><b>📊 钩子分布文字表</b>（默认折叠）— 图表数据的文字版</summary>
+      <div class="body">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>规范</th><th>钩子数</th><th>约束力说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><b>01</b></td><td>architecture</td><td><span class="b-pill ok">5</span></td><td>架构层最强约束——禁循环依赖 + 跨层调用 + 框架耦合</td></tr>
+              <tr><td><b>02</b></td><td>coding</td><td><span class="b-pill ok">4</span></td><td>5 条红线 → 4 钩子（print/SQL/密钥/异常 各一）</td></tr>
+              <tr><td><b>03</b></td><td>git</td><td><span class="b-pill ok">3</span></td><td>commit-msg 双钩 + 分支保护</td></tr>
+              <tr><td><b>04</b></td><td>api</td><td><span class="b-pill ok">2</span></td><td>路由命名 + 响应格式</td></tr>
+              <tr><td><b>05</b></td><td>testing</td><td><span class="b-pill ok">1</span></td><td>pytest --cov-fail-under 覆盖率门禁</td></tr>
+              <tr><td><b>06</b></td><td>documentation</td><td><span class="b-pill ok">2</span></td><td>markdownlint + CHANGELOG 必更</td></tr>
+              <tr><td><b>07</b></td><td>ai-workflow</td><td><span class="b-pill ok">2</span></td><td>worklog 引用 + 章节级 L1</td></tr>
+              <tr><td><b>08</b></td><td>code-understanding</td><td><span class="b-pill ok">1</span></td><td>双图谱 JSON 完整性</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:11px;color:var(--txt-faint);margin-top:6px">📌 这是 Mermaid 柱状图的<b>文字版</b>，核心 8 规范钩子数 + 约束力说明。图表已能独立看懂，文字表作为精查参考。</p>
+      </div>
+    </details>
+
     <h3>③ L4 测试覆盖 · 8 核心规范</h3>
     <p style="font-size:12px;color:var(--txt-faint)">65 个 L4 tests 分布在 8 个 spec 文件 + 2 个 meta/perf 文件。</p>
     <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
