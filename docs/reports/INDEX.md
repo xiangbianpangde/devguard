@@ -1,7 +1,7 @@
 # 收束报告索引
 
-> V0.x 全部 9 个收束节点的统一索引
-> 维护者: 袁 (xiangbianpangde) | 创建: 2026-06-07
+> V0.x 全部 9 个收束节点 + V1.0-V1.5 共 14 个收束节点的统一索引
+> 维护者: 袁 (xiangbianpangde) | 创建: 2026-06-07 | 更新: 2026-06-08
 
 ## V0.x 收束报告清单
 
@@ -21,14 +21,16 @@
 | [V1.2](./收束报告-v1.2.md) | V1.2 1 件任务（V1.2.1） | 15-support + SUPPORT.md | 2026-06-07 |
 | [V1.3](./收束报告-v1.3.md) | V1.3 3 件任务（V1.3.1/V1.3.2/V1.3.3） | 16-license + LICENSE + README 重写 | 2026-06-07 |
 | [V1.4](./收束报告-v1.4.md) | V1.4 2 件任务（V1.4.1/V1.4.2） | 17-contributing + CONTRIBUTING.md | 2026-06-07 |
+| [V1.5](./收束报告-v1.5.md) | V1.5 1 件任务（V1.5.1） | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML | 2026-06-08 |
 
 ## 累计统计
 
 - **L4 套件**：53 → 65 tests（V0.1 → V0.9 累计 +12）
-- **规范数**：1 → 12（V0.1 只有 8 篇，V0.4-V0.9 累计加 4 篇）
+- **规范数**：1 → 17（V0.1 8 篇 → V0.x 累计 +4 → V1.0-V1.4 累计 +5）
 - **pre-commit 钩子**：9 → 10（V0.3 加 markdownlint）
 - **CI 5 阶段**：lint / test / l4-conventions / compliance / build 全部稳定
-- **总 commits**（V0.1 → V1.0）：~80+ commits
+- **汇报模板**：1 → 2（V1.5 加 final-report-template）
+- **总 commits**（V0.1 → V1.5）：~50+ commits
 
 ## 关键时间线
 
@@ -43,6 +45,11 @@
 2026-06-07  V0.8 收尾（l1_check_doc + README 重建）
 2026-06-07  V0.9 收尾（07 §一 红线扩展 + 11-readme）
 2026-06-07  V1.0 收尾（12-codeowners + 收束索引 + CHANGELOG）
+2026-06-07  V1.1 收尾（13-changelog + 14-security）
+2026-06-07  V1.2 收尾（15-support）
+2026-06-07  V1.3 收尾（16-license + README 重写）
+2026-06-07  V1.4 收尾（17-contributing）
+2026-06-08  V1.5 收尾（final-report-template 沉淀 + 2 份 V1.x 汇报 HTML）
 ```
 
 ## 重要经验教训

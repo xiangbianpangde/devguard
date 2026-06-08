@@ -36,9 +36,18 @@ def main() -> int:
 
     print(f"Linting {len(md_files)} .md file(s)")
     # 用 npx 跨平台调用（Windows .cmd shim / Linux 直接 binary 都通）
-    cmd = ["npx", "--no", "markdownlint", *md_files]
-    result = subprocess.run(cmd, cwd=REPO_ROOT, shell=True)  # noqa: S602
-    return result.returncode
+    # Windows npx 是 .cmd shim，必须 shell=True 才能找到
+    # Windows 命令行有 ~8KB 长度限制，137 文件拼成一行会报"参数太多"
+    # 解法：分批调用 markdownlint（每批 50 个文件）
+    batch_size = 50
+    overall_exit = 0
+    for i in range(0, len(md_files), batch_size):
+        batch = md_files[i : i + batch_size]
+        cmd = ["npx", "--no", "markdownlint", *batch]
+        result = subprocess.run(cmd, cwd=REPO_ROOT, shell=True)  # noqa: S602,S603
+        if result.returncode != 0:
+            overall_exit = result.returncode
+    return overall_exit
 
 
 if __name__ == "__main__":

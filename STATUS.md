@@ -1,46 +1,31 @@
 # 项目状态
 
-> 更新: 2026-05-28（35 个功能点：含 08 规范 v3.0 双图谱重构——CodeGraph + Understand-Anything）
+> 更新: 2026-06-08（V1.5 收尾：35 + 14 = 49 个功能点 + final-report-template 沉淀，2 套汇报模板）
 
 ## 当前进度
 
-| 功能点 | BDD | 状态 | 完成日期 |
-|--------|-----|------|---------|
-| 架构设计规范 (01) | specs/01-architecture.md | 已完成 | - |
-| 代码编写规范 (02) | specs/02-coding.md | 已完成 | - |
-| Git 协作规范 (03) | specs/03-git.md | 已完成 | - |
-| API 设计规范 (04) | specs/04-api.md | 已完成 | - |
-| 测试规范 (05) | specs/05-testing.md | 已完成 | - |
-| 文档规范 (06) | specs/06-documentation.md | 已完成 | - |
-| AI 协作开发流程 | specs/07-ai-workflow.md | 已完成 | - |
-| 项目基础设施搭建 | specs/00-infrastructure-template.md | 已完成 | 2026-05-26 |
-| 统一模板 + BDD 规格 | specs/00-infrastructure-template.md | 已完成 | 2026-05-26 |
-| 01-架构 模板改造 | specs/01-architecture.md | 已完成 | 2026-05-26 |
-| 02-代码 模板改造 | specs/02-coding.md | 已完成 | 2026-05-26 |
-| 03-Git 模板改造 | specs/03-git.md | 已完成 | 2026-05-26 |
-| 04-API 模板改造 | specs/04-api.md | 已完成 | 2026-05-26 |
-| 05-测试 模板改造 | specs/05-testing.md | 已完成 | 2026-05-26 |
-| 06-文档 模板改造 | specs/06-documentation.md | 已完成 | 2026-05-26 |
-| 示例代码库 | specs/08-examples.md | 已完成 | 2026-05-26 |
-| 仪表盘自动生成 | specs/09-dashboard-gen.md | 已完成 | 2026-05-26 |
-| 基础设施修正（审查修复） | - | 已完成 | 2026-05-26 |
-| 二轮审查修复（全量复查） | - | 已完成 | 2026-05-26 |
-| 文件图谱 + 仪表盘优化 | specs/09-dashboard-gen.md | 已完成 | 2026-05-26 |
-| 统一模板规约 + 汇报模板 | specs/10-templates-reporting.md | 已完成 | 2026-05-26 |
-| 5处现有规范增强（图谱v2第一步） | specs/01-06-07 | ✅ 已完成 | 2026-05-27 |
-| 第08号规范初稿（图谱v2第二步） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-27 |
-| BDD规格：现有规范增强 + 08规范 | specs/01-08 | ✅ 已完成 | 2026-05-27 |
-| 示例代码：src/code-understanding/ | - | ✅ 已完成 | 2026-05-27 |
-| 交叉引用更新：FILE_GRAPH + README + CLAUDE | - | ✅ 已完成 | 2026-05-27 |
-| 文件夹重整：提取模板+补齐AI模板+消除重叠 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
-| 合并 plan/ + design/ → docs/plan/ | - | ✅ 已完成 | 2026-05-27 |
-| decisions 移入 worklog + 约束节点决策总结规则 | - | ✅ 已完成 | 2026-05-27 |
-| CLAUDE.md ↔ README 角色分离（13 个 README 更新） | - | ✅ 已完成 | 2026-05-27 |
-| 汇报体系纳入 ai-workflow（新建 07-汇报.md + 流程集成） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
-| 汇报与收束定义修正（CLAUDE/06/07 三文件对齐） | - | ✅ 已完成 | 2026-05-27 |
-| ai-workflow 流程修订（角色/收束闸门/可观测/档位）+ README 命名规范化 + 收束术语统一 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-05-27 |
-| 规范正文 v2.0 重构（01-06/08 细化挂接+红线自动检测+去重+图谱收拢）+ 7 份 BDD realign + src 落地配置(5) + CLAUDE 三件套(根/模板/导航) + 汇报定义澄清(功能点级内联不落盘，9 处文档对齐) | specs/01-08 | ✅ 已完成 | 2026-05-27 |
-| 第08号规范 v3.0 重构（双图谱范式：CodeGraph + Understand-Anything 替代图数据库+Cypher+Mermaid） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-28 |
+| 阶段 | 功能点 | 状态 | 完成日期 |
+|------|--------|------|---------|
+| V0.x 起步 | #1-#33 (含 35/35 列表 + 8 规范) | ✅ | 2026-05-26 |
+| V0.1 收束 | 9 钩子 + 5 阶段 CI | ✅ | 2026-05-27 |
+| V0.2-V0.9 收束 | commitlint / markdownlint / L1 检测 / 章节级 L1 / 模板同步 | ✅ | 2026-06-07 |
+| V1.0 收尾 | 12-codeowners + 收束索引 + CHANGELOG | ✅ | 2026-06-07 |
+| V1.1 收尾 | 13-changelog + 14-security | ✅ | 2026-06-07 |
+| V1.2 收尾 | 15-support + SUPPORT.md | ✅ | 2026-06-07 |
+| V1.3 收尾 | 16-license + LICENSE + README 重写 | ✅ | 2026-06-07 |
+| V1.4 收尾 | 17-contributing + CONTRIBUTING.md | ✅ | 2026-06-07 |
+| V1.5 收尾 | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML | ✅ | 2026-06-08 |
+
+## 累计数据
+
+- **17 规范齐全**（01-08 原始 + 09-17 衍展）
+- **10 pre-commit 钩子**（commit-msg / pre-commit 双层）
+- **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
+- **65 L4 tests passed**（tests/conventions/）
+- **14 收束报告**（V0.1-V1.5 全部落盘）
+- **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
+- **6 ADR 决策**（worklogs/decisions/）
+- **~50+ commits**（5/26 → 6/8 完整链可追）
 
 ## 阻塞项
 
@@ -60,7 +45,80 @@
 | 节点 | 日期 | 功能点范围 | 整理 | 测试 | AI审计 | 人审计 | 验证 | 遗留问题 |
 |------|------|-----------|------|------|--------|--------|------|---------|
 | v0.1 | 2026-05-27 | #29-#31 | ✅ | ✅ 13/13 | ✅ 0红线 | ⏳ 待签核 | ✅ | 人审计待执行 |
+| v0.2 | 2026-06-07 | V2.1-V2.6 (5 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | commitlint + 性能基线 |
+| v0.3 | 2026-06-07 | V3.1-V3.4 (4 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | markdownlint + dashboard 切换 |
+| v0.4 | 2026-06-07 | V4.1-V4.4 (4 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | L1 检测完整化 + dashboard 字段 |
+| v0.5 | 2026-06-07 | V5.1-V5.5 (5 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | grade.l1_check_path + 章节级 L1 + CSP |
+| v0.6 | 2026-06-07 | V6.1-V6.3 (3 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | 章节级 L1 入 CI + V6.3 自动收集回退 |
+| v0.7 | 2026-06-07 | V7.1-V7.2 (2 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | 10-templates-reporting + L4 retry 成功 |
+| v0.8 | 2026-06-07 | V8.1-V8.2 (2 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | l1_check_doc + README 重建 |
+| v0.9 | 2026-06-07 | V9.1-V9.2 (2 件) | ✅ | ✅ | ✅ 0红线 | ⏳ 待签核 | ✅ | 07 §一 红线扩展 + 11-readme |
+| v1.0 | 2026-06-07 | V1.1-V1.4 (4 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 12-codeowners + INDEX + CHANGELOG |
+| v1.1 | 2026-06-07 | V1.1.1-V1.1.2 (2 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 13-changelog + 14-security |
+| v1.2 | 2026-06-07 | V1.2.1 (1 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 15-support |
+| v1.3 | 2026-06-07 | V1.3.1-V1.3.3 (3 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 16-license + README 重写 |
+| v1.4 | 2026-06-07 | V1.4.1-V1.4.2 (2 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 17-contributing |
+| **v1.5** | **2026-06-08** | **V1.5.1 (1 件)** | **✅** | **✅ 65/65** | **✅ 0红线** | **⏳ 待签核** | **✅** | **final-report-template + 2 汇报** |
 
 ## 技术债
 
-- 项目自身尚无 CI/CD pipeline
+| # | 项目 | 收束节点 | 备注 |
+|---|------|----------|------|
+| 1 | `docs/重构笔记-使用开发规范重构项目指南.md` | 待用户决定 | V0 遗留 untracked |
+| 2 | commitlint "config" 警告噪音 | V2.0+ | 钩子不阻断但污染输出 |
+| 3 | 18-章外规范入 _meta.yaml | V2.0+ | 已无明显遗漏 |
+| 4 | devguard 自身 dogfood | V2.0+ | 用 V1.x 约束开发规范项目本身 |
+| 5 | CI 跨平台测试 | V2.0+ | PowerShell vs bash 兼容 |
+
+---
+
+## 详细功能点列表（V0.x-V1.5）
+
+| 功能点 | BDD | 状态 | 完成日期 |
+|--------|-----|------|---------|
+| 架构设计规范 (01) | specs/01-architecture.md | ✅ 已完成 | - |
+| 代码编写规范 (02) | specs/02-coding.md | ✅ 已完成 | - |
+| Git 协作规范 (03) | specs/03-git.md | ✅ 已完成 | - |
+| API 设计规范 (04) | specs/04-api.md | ✅ 已完成 | - |
+| 测试规范 (05) | specs/05-testing.md | ✅ 已完成 | - |
+| 文档规范 (06) | specs/06-documentation.md | ✅ 已完成 | - |
+| AI 协作开发流程 (07) | specs/07-ai-workflow.md | ✅ 已完成 | - |
+| 项目基础设施搭建 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-05-26 |
+| 统一模板 + BDD 规格 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-05-26 |
+| 01-架构 模板改造 | specs/01-architecture.md | ✅ 已完成 | 2026-05-26 |
+| 02-代码 模板改造 | specs/02-coding.md | ✅ 已完成 | 2026-05-26 |
+| 03-Git 模板改造 | specs/03-git.md | ✅ 已完成 | 2026-05-26 |
+| 04-API 模板改造 | specs/04-api.md | ✅ 已完成 | 2026-05-26 |
+| 05-测试 模板改造 | specs/05-testing.md | ✅ 已完成 | 2026-05-26 |
+| 06-文档 模板改造 | specs/06-documentation.md | ✅ 已完成 | 2026-05-26 |
+| 示例代码库 | specs/08-examples.md | ✅ 已完成 | 2026-05-26 |
+| 仪表盘自动生成 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-05-26 |
+| 基础设施修正（审查修复） | - | ✅ 已完成 | 2026-05-26 |
+| 二轮审查修复（全量复查） | - | ✅ 已完成 | 2026-05-26 |
+| 文件图谱 + 仪表盘优化 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-05-26 |
+| 统一模板规约 + 汇报模板 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-26 |
+| 5处现有规范增强（图谱v2第一步） | specs/01-06-07 | ✅ 已完成 | 2026-05-27 |
+| 第08号规范初稿（图谱v2第二步） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-27 |
+| BDD规格：现有规范增强 + 08规范 | specs/01-08 | ✅ 已完成 | 2026-05-27 |
+| 示例代码：src/code-understanding/ | - | ✅ 已完成 | 2026-05-27 |
+| 交叉引用更新：FILE_GRAPH + README + CLAUDE | - | ✅ 已完成 | 2026-05-27 |
+| 文件夹重整：提取模板+补齐AI模板+消除重叠 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
+| 合并 plan/ + design/ → docs/plan/ | - | ✅ 已完成 | 2026-05-27 |
+| decisions 移入 worklog + 约束节点决策总结规则 | - | ✅ 已完成 | 2026-05-27 |
+| CLAUDE.md ↔ README 角色分离（13 个 README 更新） | - | ✅ 已完成 | 2026-05-27 |
+| 汇报体系纳入 ai-workflow（新建 07-汇报.md + 流程集成） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
+| 汇报与收束定义修正（CLAUDE/06/07 三文件对齐） | - | ✅ 已完成 | 2026-05-27 |
+| ai-workflow 流程修订（角色/收束闸门/可观测/档位）+ README 命名规范化 + 收束术语统一 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-05-27 |
+| 规范正文 v2.0 重构（01-06/08 细化挂接+红线自动检测+去重+图谱收拢）+ 7 份 BDD realign + src 落地配置(5) + CLAUDE 三件套(根/模板/导航) + 汇报定义澄清(功能点级内联不落盘，9 处文档对齐) | specs/01-08 | ✅ 已完成 | 2026-05-27 |
+| 第08号规范 v3.0 重构（双图谱范式：CodeGraph + Understand-Anything 替代图数据库+Cypher+Mermaid） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-28 |
+| 09-dashboard-gen 规范入 _meta.yaml + dashboard.html 自动渲染 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-06-07 (V0.6) |
+| 10-templates-reporting 规范入 _meta.yaml + 模板规约 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-06-07 (V0.7) |
+| 11-readme 规范入 _meta.yaml + README 双件套分离 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-06-07 (V0.9) |
+| 12-codeowners 规范入 _meta.yaml + .github/CODEOWNERS | - | ✅ 已完成 | 2026-06-07 (V1.0) |
+| 13-changelog 规范入 _meta.yaml + CHANGELOG.md | - | ✅ 已完成 | 2026-06-07 (V1.1) |
+| 14-security 规范入 _meta.yaml + SECURITY.md + gitleaks | - | ✅ 已完成 | 2026-06-07 (V1.1) |
+| 15-support 规范入 _meta.yaml + SUPPORT.md | - | ✅ 已完成 | 2026-06-07 (V1.2) |
+| 16-license 规范入 _meta.yaml + LICENSE (MIT) | - | ✅ 已完成 | 2026-06-07 (V1.3) |
+| 17-contributing 规范入 _meta.yaml + CONTRIBUTING.md | - | ✅ 已完成 | 2026-06-07 (V1.4) |
+| **final-report-template 沉淀**（高密度学术风 HTML 模板：11 Mermaid + 3 Tab + 5 进度条 + 2 数字滚动 + 1 模拟器） | - | **✅ 已完成** | **2026-06-08 (V1.5)** |
+| **V1.x 收尾汇报 HTML × 2**（原始版 + render.py 渲染版） | - | **✅ 已完成** | **2026-06-08 (V1.5)** |
