@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-08（V1.5 收尾：35 + 14 = 49 个功能点 + final-report-template 沉淀，2 套汇报模板）
+> 更新: 2026-06-08（V1.5 收尾 + V2.0.1 devguard dogfood：49 功能点 + final-report-template 沉淀 + 89 commits 全部 push）
 
 ## 当前进度
 
@@ -14,7 +14,8 @@
 | V1.2 收尾 | 15-support + SUPPORT.md | ✅ | 2026-06-07 |
 | V1.3 收尾 | 16-license + LICENSE + README 重写 | ✅ | 2026-06-07 |
 | V1.4 收尾 | 17-contributing + CONTRIBUTING.md | ✅ | 2026-06-07 |
-| V1.5 收尾 | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML | ✅ | 2026-06-08 |
+| V1.5 收尾 | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML + STATUS 滞后修复 + worklog 断档补登 | ✅ | 2026-06-08 |
+| **V2.0.1 启动** | **devguard dogfood (V1.x 范式在自身闭环 8 次拦截 / 全部修复)** | **✅** | **2026-06-08** |
 
 ## 累计数据
 
