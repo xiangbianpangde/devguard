@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开发规范 V1.x 最终汇报 · 强制约束范式</title>
+<!-- Mermaid 渲染 -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 学术风配色
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true }
+    });
+    }
+
+    // —— Tab 切换 ——
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          // 找最近的容器中的 tab-pane
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // —— 进度条动画 ——
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    // —— 数字滚动 ——
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  });
+
+  // —— 步骤模拟器 ——
+  function simRun(mode){
+    var steps = document.querySelectorAll('#simSteps .sim-step');
+    var i = 0;
+    function clearAll(){
+      steps.forEach(function(s){s.classList.remove('run','fail');s.querySelector('.glyph').textContent='○'});
+    }
+    clearAll();
+    var failAt = (mode === 'good') ? -1 : (mode === 'bad-sec' ? 4 : 6);
+
+    function runOne(){
+      if (i >= steps.length){
+        var finalMsg = document.getElementById('simFinal');
+        if (finalMsg) finalMsg.textContent = (mode==='good') ? '✓ 8/8 全绿，commit 接受' : '✗ 拦截成功，commit 被拒';
+        return;
+      }
+      var s = steps[i];
+      if (i === failAt){
+        s.classList.add('fail');
+        s.querySelector('.glyph').textContent = '✗';
+      } else {
+        s.classList.add('run');
+        s.querySelector('.glyph').textContent = '✓';
+      }
+      i++;
+      setTimeout(runOne, 280);
+    }
+    runOne();
+  }
+  function simReset(){
+    document.querySelectorAll('#simSteps .sim-step').forEach(function(s){
+      s.classList.remove('run','fail');
+      s.querySelector('.glyph').textContent='○';
+    });
+  }
+</script>
+<style>
+  :root{
+    /* —— 期刊式学术配色 —— */
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       /* deep crimson — 期刊重音色 */
+    --brand-2:#A85032;
+    --accent:#2F5061;      /* teal — 学术辅色 */
+    --accent-2:#3F6A82;
+    --gold:#A87A2E;        /* 数据/数字高亮 */
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+
+  /* —— 整体布局 —— */
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+
+  /* —— 章节头 —— */
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  /* —— 卡片 —— */
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+
+  /* —— 数字 KPI —— */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  /* —— 代码块 —— */
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .code-block .err{color:#E07A6A;font-weight:700;background:rgba(224,122,106,.15);padding:1px 4px;border-radius:3px}
+
+  /* —— ASCII / diagram —— */
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+
+  /* —— 表格 —— */
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+
+  /* —— Pills / chips —— */
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+
+  /* —— 注解 —— */
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  /* —— 流程图 —— */
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+
+  /* —— Verdict 框 —— */
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  /* —— 进度条 / 仪表 —— */
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  /* —— 对比卡 —— */
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+
+  /* —— 标签云 —— */
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+
+  /* —— TOC / 索引 —— */
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  /* —— Timeline —— */
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+
+  /* —— 标签 tab —— */
+  .tabbar{display:flex;gap:2px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tab{padding:7px 14px;font-size:12px;color:var(--txt-dim);cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;transition:.18s;font-family:var(--sans)}
+  .tab:hover{background:var(--bg-soft)}
+  .tab.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tab-panel{display:none;padding:14px 0}
+  .tab-panel.active{display:block}
+
+  /* —— 可点击钩子详情 —— */
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+
+  /* —— 矩阵样式 —— */
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line);font-family:var(--mono)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-family:var(--sans);font-weight:600}
+  .matrix td.yes{background:rgba(63,107,61,.18);color:var(--good);font-weight:700}
+  .matrix td.partial{background:rgba(176,127,34,.18);color:var(--warn);font-weight:700}
+  .matrix td.no{background:rgba(156,58,46,.13);color:var(--bad);font-weight:700}
+  .matrix td.ours{background:rgba(47,80,97,.12);color:var(--accent);font-weight:700}
+  .matrix td.ours-yes{background:rgba(63,107,61,.25);color:var(--good);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--accent)}
+
+  /* —— 分割线 —— */
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+
+  /* —— 引用块 —— */
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+
+  /* —— 圆形进度 / 仪表盘 —— */
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+
+  /* —— 钩子时间线（窄） —— */
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+
+  /* —— 折叠面板 —— */
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+
+  /* —— 标签 tag —— */
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+
+  /* —— 顶部 hero —— */
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  /* —— anchor 偏移修正 —— */
+  [id]{scroll-margin-top:24px}
+
+  /* —— 段落首字下沉 —— */
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+
+  /* —— Mermaid 容器 —— */
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+
+  /* —— Tab 切换 —— */
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* —— 进度条动画 —— */
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+
+  /* —— 浮窗提示 —— */
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);
+    background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;
+    font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;
+    transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);
+    z-index:100;
+  }
+  .tip .tipbox::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1F1D17;
+  }
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+
+  /* —— 步骤模拟器 —— */
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);margin:14px 0}
+  .sim h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .sim h4 .ind{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(63,107,61,.2);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(63,107,61,.2)}50%{box-shadow:0 0 0 6px rgba(63,107,61,.05)}}
+  .sim .sim-step{
+    padding:7px 11px;background:var(--bg-soft);border:1px solid var(--line-soft);
+    border-radius:7px;margin:5px 0;font-family:var(--mono);font-size:11.5px;
+    color:var(--txt-dim);display:flex;align-items:center;gap:8px;transition:.3s;
+  }
+  .sim .sim-step.run{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:600}
+  .sim .sim-step.fail{background:#EFD5CD;border-color:#C89589;color:var(--bad);font-weight:600}
+  .sim .sim-step .glyph{width:16px;text-align:center;flex:0 0 auto;font-weight:700}
+  .sim .btn-row{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .sim button{
+    padding:5px 12px;font-size:11.5px;background:var(--panel);border:1px solid var(--line);
+    border-radius:5px;cursor:pointer;font-family:var(--mono);transition:.18s;color:var(--txt-dim);
+  }
+  .sim button:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .sim button.danger:hover{background:var(--bad);border-color:var(--bad)}
+  .sim button.good:hover{background:var(--good);border-color:var(--good)}
+
+  /* —— 数字滚动 —— */
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ 左侧导航 ============ -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">规</div>
+      <div>
+        <b>开发规范 V1.x</b>
+        <span>强制约束最终汇报</span>
+      </div>
+    </div>
+    <div class="meta">17 规范 · 65 L4 tests<br>10 钩子 · 5 阶段 CI<br>13 收束报告</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> V1 痛点回放</a>
+      <a href="#s2"><span class="n">02</span> 强制约束范式</a>
+      <a href="#s3"><span class="n">03</span> 17 规范矩阵</a>
+      <a href="#s4"><span class="n">04</span> 钩子流水线</a>
+      <a href="#s5"><span class="n">05</span> CI 5 阶段</a>
+      <a href="#s6"><span class="n">06</span> 收束闸门</a>
+      <div class="grp">关键证据</div>
+      <a href="#s7"><span class="n">07</span> L4 测试矩阵</a>
+      <a href="#s8"><span class="n">08</span> 13 收束时间线</a>
+      <a href="#s9"><span class="n">09</span> 双向交叉引用</a>
+      <a href="#s10"><span class="n">10</span> V1 vs V1.x 对比</a>
+      <a href="#s11"><span class="n">11</span> 文件图谱</a>
+      <a href="#s12"><span class="n">12</span> 后续路线</a>
+    </nav>
+  </aside>
+
+  <!-- ============ 主内容 ============ -->
+  <main class="main">
+
+    <!-- ====================== HERO ====================== -->
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">开发规范 DONE</span>
+        <span class="b-pill inf">17 规范</span>
+        <span class="b-pill inf">65 L4 tests</span>
+        <span class="b-pill inf">10 钩子</span>
+        <span class="b-pill inf">5 阶段 CI</span>
+        <span class="b-pill inf">13 收束</span>
+        <span class="b-pill br">强制约束范式</span>
+      </div>
+      <h1>开发规范 V1.x 最终汇报 —— 开发规范 最终汇报</h1>
+      <p class="sub">从 V0.1 起步到 V1.4 收尾，历经 13 个收束节点、~50 commits，把 17 份原本散落为纯文字的规范，织成一张"机器自动检测 + 收束硬闸门 + L4 测试闭环"的三层强制约束网。</p>
+      <div class="meta-row">
+        <span>最后更新 2026-06-08</span>
+        <span>•</span>
+        <span>周期 5/26 → 6/8</span>
+        <span>•</span>
+        <span>13 收束节点</span>
+        <span>•</span>
+        <span>工作区 干净</span>
+      </div>
+    </section>
+
+    <!-- ====================== 目录 ====================== -->
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>V1 第一版的崩塌</b><span style="font-size:11px;color:var(--txt-faint)">5 个具体痛点</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>强制约束范式</b><span style="font-size:11px;color:var(--txt-faint)">三层 + 闭环</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>17 规范双图谱</b><span style="font-size:11px;color:var(--txt-faint)">01-08 + 09-17</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>10 钩子流水线</b><span style="font-size:11px;color:var(--txt-faint)">pre-commit 拦截</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>CI 5 阶段</b><span style="font-size:11px;color:var(--txt-faint)">lint→test→L4→compliance→build</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>收束硬闸门</b><span style="font-size:11px;color:var(--txt-faint)">AI 拦截 + 人触发</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>L4 测试矩阵</b><span style="font-size:11px;color:var(--txt-faint)">65 tests × 8 specs</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>13 收束时间线</b><span style="font-size:11px;color:var(--txt-faint)">V0.1 → V1.4</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>双向交叉引用</b><span style="font-size:11px;color:var(--txt-faint)">规范 ↔ BDD ↔ 落地</span></div></a>
+    </div>
+
+    <!-- ====================== 摘要 KPI ====================== -->
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="17">0</span></div>
+        <div class="lbl">规范文档</div>
+        <div class="sub">01-08 原始 + 09-17 衍展</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="65">0</span></div>
+        <div class="lbl">L4 套件测试</div>
+        <div class="sub">tests/conventions/ 100% pass</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="10">0</span></div>
+        <div class="lbl">pre-commit 钩子</div>
+        <div class="sub">commit-msg / pre-commit 双层</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="5">0</span></div>
+        <div class="lbl">CI 阶段</div>
+        <div class="sub">lint→test→L4→compliance→build</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="13">0</span></div>
+        <div class="lbl">收束报告</div>
+        <div class="sub">V0.1 → V1.4 全部落盘</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="6">0</span></div>
+        <div class="lbl">ADR 决策</div>
+        <div class="sub">worklogs/decisions/ 收束节点</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="50">0</span><span style="font-size:18px;color:var(--txt-faint);margin-left:2px">+</span></div>
+        <div class="lbl">commits</div>
+        <div class="sub">5/26 → 6/8 完整链可追</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="6">0</span></div>
+        <div class="lbl">GitHub 标准件</div>
+        <div class="sub">README+CHANGELOG+SECURITY+SUPPORT+LICENSE+CONTRIBUTING</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">规范健康度 · 5 维仪表</h3>
+    <div class="grid g5">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">红线可拦截</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">落地可复制</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill"></div></div>
+          </div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">AI 可路由</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div>
+          </div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">收束可强制</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div>
+          </div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">漂移可检测</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill"></div></div>
+          </div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>范式跃迁</b>：V1 第一版"纯文字规范 + 靠人自觉" → V1.x"机器拦截 + 收束闸门 + L4 测试"。本汇报下文用 <b>V1 旧范式</b> vs <b>V1.x 强制范式</b> 平行对照，演示同一份规范在两种执行模型下的实际效力差距。
+      </div>
+    </div>
+
+    <!-- ====================== § 01 V1 痛点 ====================== -->
+    <section id="s1" class="sec-head" style="margin-top:40px">
+      <div class="tag">01 · V1 第一版的崩塌 —— 纯文字规范的 5 个具体痛点</div>
+      <h2>V1 旧范式：规范写在 .md 里，机器看不见</h2>
+      <p class="lead">V1 第一版（仅含 8 份散落规范：01-architecture / 02-coding / 03-git / 04-api / 05-testing / 06-documentation / 07-ai-workflow / 08-code-understanding），
+      全文 ~3 万字纯 Markdown。表面齐全，实际执行时浮现 5 个系统性痛点：</p>
+    </section>
+
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">① 红线靠人记</h4>
+        <p>规范正文写"密钥走环境变量"、"SQL 必须参数化"、"禁循环依赖"、"禁 print 调试"——但 git commit 不拦截、CI 不检测、AI 写代码时也无强制流程。<b>全靠开发者背下来</b>。</p>
+        <div class="chip-row">
+          <span class="chip">02 红线 ×4</span>
+          <span class="chip">01 红线 ×2</span>
+          <span class="chip">04 红线 ×3</span>
+          <span class="chip">零自动检测</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">② 规范 ↔ 代码脱节</h4>
+        <p>规范讲"怎么做"，代码库没有可运行的落地配置。新人学完规范，照样写不出"合规代码"——因为没有 <code>ruff.toml</code> / <code>commitlint.config.js</code> / L1 检测脚本等可复制即用的工具链。</p>
+        <div class="chip-row">
+          <span class="chip">规范 8 份</span>
+          <span class="chip">落地配置 0</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">③ AI 不守规范</h4>
+        <p>AI 收到"按规范开发"指令后，会"看到"规范文件，但<b>读 ≠ 守</b>。V1 没有 task routing 机制让 AI 知道"实现任务 → 必读 02-coding / 提交任务 → 必读 03-git"，于是出现 AI 写 commit message 不带 type 前缀、PR description 不引 worklog 等"反复返工"现象。</p>
+        <div class="chip-row">
+          <span class="chip">零 task routing</span>
+          <span class="chip">零 L4 测试</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">④ 收束靠自觉</h4>
+        <p>原 06-收束节点定义执行四阶段（整理→测试→审计→验证），但<b>触发完全靠人记得</b>，没有"硬闸门"。连续开发 5+ 功能点不收束，僵尸代码、过期文档、错位引用逐步积累。</p>
+        <div class="chip-row">
+          <span class="chip">触发：人记得</span>
+          <span class="chip">拦截：无</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">⑤ 无可观测性</h4>
+        <p>规范"是否被执行"完全无数据。L1 检测通过率、commit message 合格率、L4 套件覆盖率、收束触发频率——这些度量全部缺失，无法判断规范健康度。</p>
+        <div class="chip-row">
+          <span class="chip">无 L1 仪表盘</span>
+          <span class="chip">无 L4 数据</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4 style="color:var(--accent)">根本原因</h4>
+        <p>V1 把规范当成"<b>人读的文件</b>"，但工程现实是：人会忘、不会查、不同人会理解错。<b>规范必须能被机器读、能被机器挡、能被机器测</b>，才能从"建议"变成"约束"。</p>
+        <div class="chip-row">
+          <span class="chip b">人读 → 机器读</span>
+          <span class="chip b">建议 → 约束</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note crit">
+      <span class="ico">!</span>
+      <div>
+        <b>V1 旧范式的失败本质</b>：把约束逻辑放在"开发者头脑"里。开发者可以忘、AI 可以没读到、审查者可以看走眼——所有执行环节都依赖<b>个体自觉</b>。
+        V1.x 的核心改造是：把约束从"人脑"搬到"机器"——<b>pre-commit 钩子挡在 commit 前、CI 挡在合并前、收束闸门挡在下一批功能点前</b>。
+      </div>
+    </div>
+
+    <!-- ====================== § 02 强制范式 ====================== -->
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · V1.x 强制约束范式</div>
+      <h2>三层 + 闭环：约束从"人脑"搬到"机器"</h2>
+      <p>V1.x 不是简单"写更多规范"，而是把同样的 17 份规范<b>织成三层互相校验的强制约束网</b>。</p>
+    </section>
+
+    <div class="diagram"><span class="cm">┌─────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>            <span class="br">V1.x 强制约束范式：三层互相校验 + 一条闭环</span>                  <span class="cm">│</span>
+<span class="cm">├─────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">│</span>  <span class="gl">L1 机器检测</span>  (秒级拦截)            <span class="gl">L2 收束闸门</span>  (批次拦截)         <span class="cm">│</span>
+<span class="cm">│</span>  ┌──────────────┐                    ┌─────────────────┐                  <span class="cm">│</span>
+<span class="cm">│</span>  │ 10 pre-commit│ ── commit 拦截 ──→ │  收束节点触发    │                  <span class="cm">│</span>
+<span class="cm">│</span>  │      +       │                    │  (人触发, AI 拦) │                  <span class="cm">│</span>
+<span class="cm">│</span>  │ 5 阶段 CI    │ ── merge 拦截 ──→  │                 │                  <span class="cm">│</span>
+<span class="cm">│</span>  └──────┬───────┘                    └────────┬────────┘                  <span class="cm">│</span>
+<span class="cm">│</span>         │                                     │                            <span class="cm">│</span>
+<span class="cm">│</span>         ↓                                     ↓                            <span class="cm">│</span>
+<span class="cm">│</span>  ┌────────────────────────────────────────────────────────────┐            <span class="cm">│</span>
+<span class="cm">│</span>  │                  <span class="hl">L3 规范测试套件 (L4)</span>                       │            <span class="cm">│</span>
+<span class="cm">│</span>  │  65 tests · 8 specs · tests/conventions/                    │            <span class="cm">│</span>
+<span class="cm">│</span>  │  ─ 验证"规范本身"被正确实施 (不是验证业务代码)               │            <span class="cm">│</span>
+<span class="cm">│</span>  └────────────────────────────────────────────────────────────┘            <span class="cm">│</span>
+<span class="cm">│</span>         ↑                                                             <span class="cm">│</span>
+<span class="cm">│</span>         │ <span class="gd">闭环：违规 → 改规范 → 改钩子 → 加 L4 测试 → 验证 → 复测</span>          <span class="cm">│</span>
+<span class="cm">│</span>         └──────────────────────────────────────────────────────────    <span class="cm">│</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">└─────────────────────────────────────────────────────────────────────────────┘</span></div>
+
+    <h3>三层闭环 · Mermaid 架构图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 强制约束范式三层架构 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    subgraph DEV["开发者 / AI 助手"]
+        WR["写代码 / 改规范"]
+    end
+    subgraph L1["L1 · 机器检测 (秒级)"]
+        HC["10 pre-commit 钩子<br/>trailing-ws / ruff / gitleaks<br/>commitlint / worklog-ref"]
+        CI["5 阶段 CI<br/>lint → test → L4 → compliance → build"]
+    end
+    subgraph L2["L2 · 收束闸门 (批次)"]
+        GATE["AI 闸门拦截<br/>(强制检查收束)"]
+        HUMAN["人触发执行<br/>整理→测试→审计→验证"]
+    end
+    subgraph L3["L3 · 规范测试套件 (L4)"]
+        L4["65 tests · 8 specs<br/>tests/conventions/<br/>验证'规范本身'被正确实施"]
+    end
+
+    WR -- "git commit" --> HC
+    HC -- "❌ fail<br/>拒绝提交" --> WR
+    HC -- "✓ pass" --> CI
+    CI -- "❌ fail<br/>阻止 merge" --> WR
+    CI -- "✓ 5/5 pass" --> L2
+    L2 -- "到收束节点未收束<br/>AI 拒绝开始下一批" --> WR
+    GATE --> HUMAN
+    HUMAN -- "产出收束报告" --> L4
+    L4 -. "闭环：违规→改规范<br/>→改钩子→加测试→验证" .-> HC
+
+    classDef gateNode fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    classDef testNode fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef passNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class GATE,HUMAN gateNode
+    class L4 testNode
+    class HC,CI passNode
+      </div>
+    </div>
+
+    <h3>commit 拦截 · 时序图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 一次 commit 走完 10 钩子 + CI 的完整时序 (mermaid sequence)</div>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Dev as 开发者
+    participant Git as git
+    participant PC as pre-commit 钩子
+    participant CM as commit-msg 钩子
+    participant CI as GitHub Actions
+    participant L4 as L4 套件
+
+    Dev->>Git: git commit -m "feat: 加新功能"
+    Git->>PC: 触发 pre-commit 阶段
+    PC->>PC: trailing-whitespace ✗
+    PC-->>Git: 1. fail → 拒绝
+    Note over Dev,PC: 修复后重新 commit
+    Dev->>Git: git commit -m "feat: 加新功能"
+    Git->>PC: 触发 pre-commit 阶段
+    PC->>PC: ruff / gitleaks / markdownlint
+    PC->>CM: pre-commit ✓ 全部 pass
+    CM->>CM: commitlint 检查 type 前缀
+    CM->>CM: check_worklog_ref 检查引用
+    CM-->>Git: 2. ✓ 接受 commit
+    Git->>CI: push 触发 CI
+    CI->>CI: 阶段1 lint → ruff/gitleaks/markdownlint
+    CI->>CI: 阶段2 test → render_meta --check
+    CI->>L4: 阶段3 L4 → pytest 65 tests
+    L4-->>CI: 3. ✓ 65/65 pass
+    CI->>CI: 阶段4 compliance → 跨文件引用
+    CI->>CI: 阶段5 build → render dashboard
+    CI-->>Dev: 4. ✓ 5/5 阶段全绿 → 可 merge
+      </div>
+    </div>
+
+    <h3>交互模拟器 · 看一次 commit 如何被逐层拦截</h3>
+    <div class="sim">
+      <h4><span class="ind"></span>commit 拦截流程模拟</h4>
+      <div id="simSteps">
+        <div class="sim-step" data-step="1"><span class="glyph">○</span> git commit -m "feat: 加新功能"</div>
+        <div class="sim-step" data-step="2"><span class="glyph">○</span> pre-commit · trailing-whitespace</div>
+        <div class="sim-step" data-step="3"><span class="glyph">○</span> pre-commit · ruff check</div>
+        <div class="sim-step" data-step="4"><span class="glyph">○</span> pre-commit · gitleaks</div>
+        <div class="sim-step" data-step="5"><span class="glyph">○</span> pre-commit · markdownlint</div>
+        <div class="sim-step" data-step="6"><span class="glyph">○</span> commit-msg · commitlint (Conventional)</div>
+        <div class="sim-step" data-step="7"><span class="glyph">○</span> commit-msg · check_worklog_ref</div>
+        <div class="sim-step" data-step="8"><span class="glyph">○</span> CI · 5 阶段全绿</div>
+      </div>
+      <div class="btn-row">
+        <button onclick="simRun('good')">▶ 跑一次正常 commit</button>
+        <button class="danger" onclick="simRun('bad-sec')">▶ 故意把密钥塞进代码</button>
+        <button class="danger" onclick="simRun('bad-fmt')">▶ 故意写不合规的 commit</button>
+        <button onclick="simReset()">↺ 重置</button>
+      </div>
+    </div>
+
+    <h3>范式跃迁 —— V1 vs V1.x 同框对比</h3>
+
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>V1 旧范式：纯文字 + 自觉</h4>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> 规范 8 份散落 .md，无 L4 套件</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> 零 pre-commit 钩子</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> 零 CI 流水线</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> 收束靠人记得，无闸门</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> AI 读规范不强制路由</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> 规范 ↔ 代码无落地配置</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> 规范健康度无数据</li>
+          <li style="padding:5px 0;font-size:12.4px"><span style="color:var(--bad);font-weight:700">✗</span> 几乎无 dashboard / 模板同步</li>
+        </ul>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>V1.x 强制范式：机器拦截</h4>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> 17 规范 + 65 L4 tests 闭环</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> <b>10 pre-commit 钩子</b> 挡 commit</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> <b>5 阶段 CI</b> 挡 merge</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> <b>13 收束报告</b> + AI 闸门拦截</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> _meta.yaml l3_route 自动路由</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> <code>src/&lt;维度&gt;/</code> 5+ 落地配置</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> <b>dashboard.html</b> 实时可视化</li>
+          <li style="padding:5px 0;font-size:12.4px"><span style="color:var(--good);font-weight:700">✓</span> <b>render_meta.py --check</b> 漂移即 fail</li>
+        </ul>
+      </div>
+    </div>
+
+    <blockquote>
+      "规范的价值不在于写得多漂亮，而在于<b>违规代码能不能被挡住</b>。V1 旧范式把希望寄托在'开发者自觉'——V1.x 强制范式把希望寄托在'机器拦截'。这是从文档工程到工程文档的范式跃迁。"
+      <cite>—— V0.9 收束总结</cite>
+    </blockquote>
+
+    <!-- ====================== § 03 17 规范矩阵 ====================== -->
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · 17 规范矩阵</div>
+      <h2>17 规范 + 8 BDD + 5+ 落地配置（双向交叉引用）</h2>
+      <p>每条规范都有"红线 → 落地配置 → L4 测试"三件套，缺一就不算"上线"。</p>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50px">#</th>
+            <th>规范</th>
+            <th>细化的流程环节</th>
+            <th>核心红线</th>
+            <th>L4 测试</th>
+            <th>落地配置</th>
+            <th style="width:90px">钩子</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num"><b>01</b></td><td><b>architecture</b><br><span style="font-size:11px;color:var(--txt-faint)">架构设计规范</span></td><td>第一步·设计</td><td>禁循环依赖 / 领域层不依赖框架 / 禁跨层调用</td><td>test_01_architecture.py</td><td><code>src/architecture/</code></td><td><span class="b-pill ok">5</span></td></tr>
+          <tr><td class="num"><b>02</b></td><td><b>coding</b><br><span style="font-size:11px;color:var(--txt-faint)">代码编写规范</span></td><td>§2.1 实现 + §2.3 审查</td><td>禁 print / SQL 参数化 / 密钥走环境变量 / 禁静默吞异常 / 日志脱敏</td><td>test_02_coding.py</td><td><code>src/coding/ruff.toml</code></td><td><span class="b-pill ok">4</span></td></tr>
+          <tr><td class="num"><b>03</b></td><td><b>git</b><br><span style="font-size:11px;color:var(--txt-faint)">Git 协作规范</span></td><td>§2.6 提交</td><td>main 禁直推 / Conventional Commits / 禁 force push 共享分支</td><td>test_03_git.py</td><td><code>commitlint.config.js</code></td><td><span class="b-pill ok">3</span></td></tr>
+          <tr><td class="num"><b>04</b></td><td><b>api</b><br><span style="font-size:11px;color:var(--txt-faint)">API 设计规范</span></td><td>§2.1 接口</td><td>名词复数+kebab-case 无动词 / 统一响应 / 默认认证 / 向后兼容</td><td>test_04_api.py</td><td><code>src/api/</code></td><td><span class="b-pill ok">2</span></td></tr>
+          <tr><td class="num"><b>05</b></td><td><b>testing</b><br><span style="font-size:11px;color:var(--txt-faint)">测试规范</span></td><td>§2.1 TDD + §2.2 验证</td><td>测试独立 / 只 Mock 外部边界 / 覆盖正常+边界+异常</td><td>test_05_testing.py</td><td><code>src/testing/</code></td><td><span class="b-pill ok">1</span></td></tr>
+          <tr><td class="num"><b>06</b></td><td><b>documentation</b><br><span style="font-size:11px;color:var(--txt-faint)">文档规范</span></td><td>§2.5 + 07-汇报</td><td>必有 README / 发布更 CHANGELOG / 文档随码同 PR</td><td>test_06_documentation.py</td><td><code>docs/templates/</code></td><td><span class="b-pill ok">2</span></td></tr>
+          <tr><td class="num"><b>07</b></td><td><b>ai-workflow</b><br><span style="font-size:11px;color:var(--txt-faint)">AI 协作开发流程</span></td><td>第零~三步全流程</td><td>角色分离 / 收束硬闸门 / 汇报落盘 / 不越界不断档</td><td>test_07_ai_workflow.py</td><td><code>ai-workflow_*/</code></td><td><span class="b-pill ok">2</span></td></tr>
+          <tr><td class="num"><b>08</b></td><td><b>code-understanding</b><br><span style="font-size:11px;color:var(--txt-faint)">图谱 v3.0 (双图谱)</span></td><td>§2.9 工具增强</td><td>CodeGraph (AI) + Understand-Anything (人) 双图谱</td><td>test_08_code_understanding.py</td><td><code>src/code-understanding/</code></td><td><span class="b-pill ok">1</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>09</b></td><td><b>dashboard-gen</b><br><span style="font-size:11px;color:var(--txt-faint)">仪表盘生成</span></td><td>§2.8 可观测</td><td>STATUS.md 单源 / render_meta.py 模板驱动 / dashboard.html</td><td>(集成)</td><td><code>docs/templates/devguard/</code></td><td><span class="b-pill inf">auto</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>10</b></td><td><b>templates-reporting</b><br><span style="font-size:11px;color:var(--txt-faint)">统一模板 + 汇报</span></td><td>§2.5 + 07 汇报</td><td>模板权威来源 / 汇报落盘 vs 内联 / 收束报告</td><td>(集成)</td><td><code>docs/templates/</code></td><td><span class="b-pill inf">auto</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>11</b></td><td><b>readme</b><br><span style="font-size:11px;color:var(--txt-faint)">README 角色分离</span></td><td>§2.5 入口文档</td><td>人读 README / AI 读 CLAUDE / 双件套互检</td><td>(集成)</td><td>README.md + CLAUDE.md</td><td><span class="b-pill inf">sync</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>12</b></td><td><b>codeowners</b><br><span style="font-size:11px;color:var(--txt-faint)">代码所有权</span></td><td>§2.6 协作</td><td>CODEOWNERS 必填 / PR 强制 review / 责任到人</td><td>(集成)</td><td><code>.github/CODEOWNERS</code></td><td><span class="b-pill inf">GH</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>13</b></td><td><b>changelog</b><br><span style="font-size:11px;color:var(--txt-faint)">变更日志</span></td><td>§2.5 发布</td><td>CHANGELOG 必更 / Keep a Changelog 格式 / 语义化版本</td><td>(集成)</td><td><code>CHANGELOG.md</code></td><td><span class="b-pill inf">manual</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>14</b></td><td><b>security</b><br><span style="font-size:11px;color:var(--txt-faint)">安全政策</span></td><td>§2.4 安全</td><td>SECURITY.md 必填 / 漏洞响应流程 / 私报渠道</td><td>(集成)</td><td><code>SECURITY.md</code> + gitleaks</td><td><span class="b-pill ok">gitleaks</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>15</b></td><td><b>support</b><br><span style="font-size:11px;color:var(--txt-faint)">支持渠道</span></td><td>§2.5 社区</td><td>SUPPORT.md 必填 / 多渠道 / 响应承诺</td><td>(集成)</td><td><code>SUPPORT.md</code></td><td><span class="b-pill inf">manual</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>16</b></td><td><b>license</b><br><span style="font-size:11px;color:var(--txt-faint)">许可证</span></td><td>§2.5 法律</td><td>LICENSE 必填 / 兼容协议 / 第三方归属</td><td>(集成)</td><td><code>LICENSE</code> (MIT)</td><td><span class="b-pill inf">manual</span></td></tr>
+          <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>17</b></td><td><b>contributing</b><br><span style="font-size:11px;color:var(--txt-faint)">贡献指南</span></td><td>§2.6 协作</td><td>CONTRIBUTING.md 必填 / PR 流程 / DCO / 行为准则</td><td>(集成)</td><td><code>CONTRIBUTING.md</code></td><td><span class="b-pill inf">manual</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>红字答案</b>：01-08 是"原始 8 份核心规范"（每条都配 L4 + 落地 + 钩子），09-17 是 V1.x 阶段衍展出来的"工程化补充"（集成 L4 套件中验证，不单独挂红线）。8 + 9 = 17 全部在 <code>conventions/</code> 目录。
+      </div>
+    </div>
+
+    <h3>第 8 号规范 v3.0：双图谱范式</h3>
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>CodeGraph（AI 用）</h4>
+        <p>为 AI 提供代码的<b>程序化结构</b>——节点（函数/类/模块）+ 边（调用/依赖/继承）。AI 读 CodeGraph 后能精准知道"我应该改哪里、改完后影响谁"。</p>
+        <div class="chip-row">
+          <span class="chip b">JSON 格式</span>
+          <span class="chip b">机器可消费</span>
+          <span class="chip b">覆盖全量符号</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>Understand-Anything（人用）</h4>
+        <p>为人类开发者提供代码的<b>语义化解释</b>——自然语言层级的"这个模块做什么、为什么这样组织、和谁交互"。新人 onboarding 不再靠"口口相传"。</p>
+        <div class="chip-row">
+          <span class="chip gl">自然语言</span>
+          <span class="chip gl">人在回路</span>
+          <span class="chip gl">新人友好</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 04 10 钩子 ====================== -->
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 10 钩子流水线（pre-commit 双层）</div>
+      <h2>commit 拦截：违规代码 0 概率进仓库</h2>
+      <p>10 个钩子分两层触发：<b>pre-commit 阶段</b> 5 个管文件质量，<b>commit-msg 阶段</b> 5 个管 commit 语义。任一失败 = 拒绝提交。</p>
+    </section>
+
+    <div class="h-tl">
+      <div class="ev">git commit</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">pre-commit 阶段</div>
+      <div class="arrow">▶</div>
+      <div class="ev">trailing-whitespace</div>
+      <div class="ev">end-of-file-fixer</div>
+      <div class="ev">check-yaml / json</div>
+      <div class="ev">check-added-large-files</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">commit-msg 阶段</div>
+      <div class="arrow">▶</div>
+      <div class="ev">commitlint (Conventional)</div>
+      <div class="ev">commit-msg-worklog-ref</div>
+      <div class="arrow">▶</div>
+      <div class="ev ok">✓ 接受 commit</div>
+    </div>
+
+    <h3>10 钩子状态机 · Mermaid</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · commit 阶段状态机 (mermaid state)</div>
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> Draft: git add
+    Draft --> PreCommit: git commit
+    PreCommit --> PreCommit: trailing-ws ✗<br/>修复后重试
+    PreCommit --> PreCommit: ruff ✗<br/>修复后重试
+    PreCommit --> PreCommit: gitleaks ✗<br/>删密钥后重试
+    PreCommit --> PreCommit: markdownlint ✗
+    PreCommit --> CommitMsg: pre-commit ✓
+    CommitMsg --> CommitMsg: commitlint ✗<br/>补 type 前缀
+    CommitMsg --> CommitMsg: worklog-ref ✗<br/>补 worklog 引用
+    CommitMsg --> Accepted: 2 钩子 ✓
+    Accepted --> CI: git push
+    CI --> CI: 阶段1 lint ✗
+    CI --> CI: 阶段2 test ✗
+    CI --> CI: 阶段3 L4 ✗ (65 tests fail)
+    CI --> CI: 阶段4 compliance ✗
+    CI --> CI: 阶段5 build ✗
+    CI --> Merged: 5/5 ✓
+    Merged --> [*]
+    PreCommit --> Rejected: 3 次失败<br/>(配置可调)
+    Rejected --> [*]
+      </div>
+    </div>
+
+    <h3>10 钩子逐个拆解</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">点击展开看每条钩子的"拦截什么 → 怎么拦 → 对应哪条规范"</p>
+
+    <details class="hook" open>
+      <summary>① trailing-whitespace <span class="b-pill inf">pre-commit-hooks</span></summary>
+      <div class="body">
+        <b>拦截</b>：行尾空格。<br>
+        <b>怎么拦</b>：自动 trim 后报错。<br>
+        <b>对应规范</b>：02-coding §格式化（一行 119 字符、行尾零空格）。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>② end-of-file-fixer <span class="b-pill inf">pre-commit-hooks</span></summary>
+      <div class="body">
+        <b>拦截</b>：文件末尾无换行 / 多余空行。<br>
+        <b>对应规范</b>：02-coding §格式化（POSIX 文件结尾）。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>③ check-yaml / check-json <span class="b-pill inf">pre-commit-hooks</span></summary>
+      <div class="body">
+        <b>拦截</b>：YAML/JSON 语法错误。<br>
+        <b>对应规范</b>：_meta.yaml 是 YAML 真值源——任何破坏性 commit 立即被挡。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>④ check-added-large-files <span class="b-pill inf">pre-commit-hooks</span></summary>
+      <div class="body">
+        <b>拦截</b>：超过 10MB 的文件意外入仓（如 binary 误拖入）。<br>
+        <b>对应规范</b>：01-architecture 仓库整洁。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>⑤ commitlint (Conventional Commits) <span class="b-pill br">commitlint-pre-commit-hook</span></summary>
+      <div class="body">
+        <b>拦截</b>：不符合 Conventional Commits 的 commit message（<code>feat:</code> / <code>fix:</code> / <code>chore:</code> / <code>docs:</code> 等）。<br>
+        <b>对应规范</b>：03-git §2.1 Conventional Commits。<br>
+        <b>配置</b>：<code>commitlint.config.js</code>。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>⑥ ruff (lint) <span class="b-pill br">ruff-pre-commit</span></summary>
+      <div class="body">
+        <b>拦截</b>：Python 代码质量（命名/未用 import/复杂度/安全）。<br>
+        <b>对应规范</b>：02-coding 全章。<br>
+        <b>配置</b>：<code>src/coding/ruff.toml</code>（可复制到任意 Python 项目）。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>⑦ ruff-format <span class="b-pill br">ruff-pre-commit</span></summary>
+      <div class="body">
+        <b>拦截</b>：Python 格式不统一。<br>
+        <b>对应规范</b>：02-coding §格式化。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>⑧ gitleaks (密钥扫描) <span class="b-pill br">gitleaks-pre-commit</span></summary>
+      <div class="body">
+        <b>拦截</b>：commit 中包含 AWS Key / GitHub Token / 私钥 / 高熵字符串。<br>
+        <b>对应规范</b>：14-security + 02-coding §密钥走环境变量。<br>
+        <b>配置</b>：<code>.gitleaks.toml</code>（100+ 内置规则）。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>⑨ markdownlint <span class="b-pill br">local: scripts/lint_markdown.py</span></summary>
+      <div class="body">
+        <b>拦截</b>：Markdown 格式违规（标题层级、列表缩进、代码块语言、空行）。<br>
+        <b>对应规范</b>：06-documentation 全文格式。<br>
+        <b>配置</b>：<code>.markdownlint.json</code>。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>⑩ commit-msg-worklog-ref <span class="b-pill br">local: scripts/check_worklog_ref.py</span></summary>
+      <div class="body">
+        <b>拦截</b>：commit message 不引用 worklog 文件（即"无记录提交"）。<br>
+        <b>对应规范</b>：07-ai-workflow §汇报（每功能点必写 worklog）。<br>
+        <b>效果</b>：AI/开发者 commit 时<b>必须</b>有 worklog 引用，否则 commit 拒绝。
+      </div>
+    </details>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div>
+        <b>执行证据</b>：本地试一次 <code>git commit -m "test"</code>（不带 type 前缀），输出 "commitlint found 1 problem" 阻止提交；
+        试一次 <code>git commit -m "feat: x"</code>（不带 worklog 引用），输出 "worklog 文件未在 commit message 中被引用" 阻止提交。
+        <b>这是 V1 旧范式做不到的事——纯文字规范永远拦不住真 commit</b>。
+      </div>
+    </div>
+
+    <!-- ====================== § 05 CI 5 阶段 ====================== -->
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · CI 5 阶段流水线</div>
+      <h2>merge 拦截：5 阶段串行，1 个 fail 全 fail</h2>
+      <p><code>.github/workflows/ci.yml</code> 5 阶段串行，<b>build 阶段依赖前 4 阶段全部 PASS</b>。PR 合并前必须全部绿。</p>
+    </section>
+
+    <div class="diagram"><span class="cm">┌─────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>  <span class="br">CI 5 阶段流水线</span> (GitHub Actions, <code>.github/workflows/ci.yml</code>)       <span class="cm">│</span>
+<span class="cm">├─────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">│</span>   <span class="gl">阶段 1 · lint</span>              <span class="gl">阶段 2 · test</span>                                <span class="cm">│</span>
+<span class="cm">│</span>   ┌────────────────┐          ┌──────────────────┐                          <span class="cm">│</span>
+<span class="cm">│</span>   │ ruff check     │          │ render_meta.py   │                          <span class="cm">│</span>
+<span class="cm">│</span>   │ gitleaks scan  │          │   --render       │                          <span class="cm">│</span>
+<span class="cm">│</span>   │ markdownlint   │          │ render_meta.py   │                          <span class="cm">│</span>
+<span class="cm">│</span>   │                │          │   --check        │                          <span class="cm">│</span>
+<span class="cm">│</span>   └────────┬───────┘          │ pytest --co      │                          <span class="cm">│</span>
+<span class="cm">│</span>            │                  └────────┬─────────┘                          <span class="cm">│</span>
+<span class="cm">│</span>            ↓                           ↓                                    <span class="cm">│</span>
+<span class="cm">│</span>   <span class="gl">阶段 3 · l4-conventions</span>    <span class="gl">阶段 4 · compliance</span>                          <span class="cm">│</span>
+<span class="cm">│</span>   ┌────────────────────────┐  ┌──────────────────┐                          <span class="cm">│</span>
+<span class="cm">│</span>   │ pytest tests/conventions│  │ check_compliance │                          <span class="cm">│</span>
+<span class="cm">│</span>   │   /  (65 tests)         │  │   .py            │                          <span class="cm">│</span>
+<span class="cm">│</span>   │ check_ai_workflow.py    │  │  (跨文件引用扫描)│                          <span class="cm">│</span>
+<span class="cm">│</span>   │ check_code_understanding│  │                  │                          <span class="cm">│</span>
+<span class="cm">│</span>   │   .py (章节级 L1)       │  │                  │                          <span class="cm">│</span>
+<span class="cm">│</span>   └────────┬───────────────┘  └────────┬─────────┘                          <span class="cm">│</span>
+<span class="cm">│</span>            ↓                           ↓                                    <span class="cm">│</span>
+<span class="cm">│</span>   <span class="gl">阶段 5 · build</span>  (依赖 1-4 全绿)                                            <span class="cm">│</span>
+<span class="cm">│</span>   ┌──────────────────────────────────────────────┐                          <span class="cm">│</span>
+<span class="cm">│</span>   │ python -m compileall src/                    │                          <span class="cm">│</span>
+<span class="cm">│</span>   │ python render.py → dashboard.html (L4 注入)   │                          <span class="cm">│</span>
+<span class="cm">│</span>   │ git diff --exit-code dashboard.html          │                          <span class="cm">│</span>
+<span class="cm">│</span>   │   ↑ <span class="gd">漂移即 fail：渲染产物必须与提交一致</span>      │                          <span class="cm">│</span>
+<span class="cm">│</span>   └──────────────────────────────────────────────┘                          <span class="cm">│</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">└─────────────────────────────────────────────────────────────────────────────┘</span></div>
+
+    <h3>每阶段做什么 · 简明表</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>工具</th><th>拦截什么</th><th>对应规范</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>1. lint</b></td><td>ruff / gitleaks / markdownlint</td><td>代码质量、密钥、Markdown 格式</td><td>02 / 14 / 06</td></tr>
+          <tr><td><b>2. test</b></td><td>render_meta.py --check + pytest</td><td>_meta.yaml 与渲染产物漂移</td><td>09 / 10</td></tr>
+          <tr><td><b>3. l4-conventions</b></td><td>pytest tests/conventions/ + 章节级 L1</td><td>规范本身被错误实施</td><td>01-08 全套</td></tr>
+          <tr><td><b>4. compliance</b></td><td>check_compliance.py</td><td>跨文件引用一致性</td><td>09 / 10</td></tr>
+          <tr><td><b>5. build</b></td><td>compileall + render + diff</td><td>构建产物 + dashboard 漂移</td><td>09 / 10</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>关键设计</b>：<b>阶段 3 (L4 套件)</b> 是 V1 旧范式完全缺失的——它不是测业务代码，而是<b>测"规范本身"被正确实施</b>。
+        也就是说，规范"是否被执行"被转译为可执行测试，任何破坏性改动都会立即红灯。
+      </div>
+    </div>
+
+    <!-- ====================== § 06 收束闸门 ====================== -->
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 收束硬闸门</div>
+      <h2>AI 拦截 + 人触发：批次质量门禁</h2>
+      <p>收束节点（默认每 3 功能点）从"建议做完"变成"<b>不做完不能走下一批</b>"。人触发执行，AI 负责拦截。</p>
+    </section>
+
+    <div class="diagram"><span class="cm">┌─────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>  <span class="br">收束节点四阶段</span> (硬闸门)                                                   <span class="cm">│</span>
+<span class="cm">├─────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">│</span>   <span class="gl">阶段 1: 整理</span>      <span class="gl">阶段 2: 测试</span>      <span class="gl">阶段 3: 审计</span>      <span class="gl">阶段 4: 验证</span>     <span class="cm">│</span>
+<span class="cm">│</span>   ┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐     <span class="cm">│</span>
+<span class="cm">│</span>   │ 清理未用   │    │ 集中跑 L4  │    │ AI 扫红线  │    │ 真实 E2E   │     <span class="cm">│</span>
+<span class="cm">│</span>   │ import     │ →  │ pytest     │ →  │ 人审设计  │ →  │ 浏览器渲染 │     <span class="cm">│</span>
+<span class="cm">│</span>   │ 死代码     │    │ --cov      │    │ 意图偏离  │    │ API 真实   │     <span class="cm">│</span>
+<span class="cm">│</span>   │ 重复模块   │    │ 65 tests   │    │ 业务错位  │    │ 调用       │     <span class="cm">│</span>
+<span class="cm">│</span>   │ 过期文档   │    │ 全绿       │    │ 双线审计  │    │ 数据核对   │     <span class="cm">│</span>
+<span class="cm">│</span>   └────────────┘    └────────────┘    └────────────┘    └────────────┘     <span class="cm">│</span>
+<span class="cm">│</span>          │                │                │                │              <span class="cm">│</span>
+<span class="cm">│</span>          └────────────────┴────────────────┴────────────────┘              <span class="cm">│</span>
+<span class="cm">│</span>                                       ↓                                    <span class="cm">│</span>
+<span class="cm">│</span>                          ┌────────────────────────┐                        <span class="cm">│</span>
+<span class="cm">│</span>                          │  收束报告落盘          │                        <span class="cm">│</span>
+<span class="cm">│</span>                          │  docs/reports/         │                        <span class="cm">│</span>
+<span class="cm">│</span>                          │  收束节点-V0.1~V1.4    │                        <span class="cm">│</span>
+<span <span class="cm">│</span>                          │  + INDEX.md            │                        <span class="cm">│</span>
+<span class="cm">│</span>                          └───────────┬────────────┘                        <span class="cm">│</span>
+<span class="cm">│</span>                                      ↓                                     <span class="cm">│</span>
+<span class="cm">│</span>                          ┌────────────────────────┐                        <span class="cm">│</span>
+<span class="cm">│</span>                          │  <span class="hl">AI 闸门解除 →</span>        │                        <span class="cm">│</span>
+<span class="cm">│</span>                          │  允许开始下一批功能点  │                        <span class="cm">│</span>
+<span class="cm">│</span>                          └────────────────────────┘                        <span class="cm">│</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">└─────────────────────────────────────────────────────────────────────────────┘</span></div>
+
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>V1 旧：触发靠人记得</h4>
+        <div class="code-block" style="font-size:11px;margin:6px 0">   <span class="cm"># V1 旧版流程（06 收束节点）</span>
+   <span class="kw">if</span> developer.remembers_to_run_收束:
+       <span class="fn">run_4_phases</span>()
+       <span class="fn">write_report</span>(<span class="str">"收束-V0.x"</span>)
+   <span class="kw">else</span>:
+       <span class="fn">continue</span>()  <span class="cm"># 跳到下一批</span>
+   <span class="cm"># 90% 概率走 else 分支</span></div>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>V1.x 新：AI 闸门拦截</h4>
+        <div class="code-block" style="font-size:11px;margin:6px 0">   <span class="cm"># V1.x 新版流程（07 闸门）</span>
+   <span class="kw">def</span> <span class="fn">start_next_batch</span>(batch_id):
+       <span class="kw">if</span> <span class="kw">not</span> <span class="fn">check_收束_done</span>(batch_id - <span class="num">1</span>):
+           <span class="kw">raise</span> <span class="ty">GateBlocked</span>(<span class="str">"到达收束节点"</span>)
+       <span class="kw">return</span> <span class="fn">start</span>(batch_id)
+
+   <span class="cm"># AI 收到新功能点请求时强制检查</span>
+   <span class="cm"># 收束未做 → 拒绝 + 提示人触发</span></div>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">⚠</span>
+      <div>
+        <b>解决的核心矛盾</b>："强制却仅靠自觉"——V1 旧版想强制收束，但触发完全靠人记得；V1.x 引入"<b>AI 不替人做收束，但 AI 会拦住越过闸门的开发</b>"模式。
+        执行四阶段仍由人主导，AI 只做"我能否开始下一批"的门禁检查——把"主观强制"变成"机器强制"，又保留了"人是收束质量最终判官"的灵活度。
+      </div>
+    </div>
+
+    <!-- ====================== § 07 L4 测试矩阵 ====================== -->
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · L4 测试矩阵 (65 tests)</div>
+      <h2>用"测试规范"的方式约束"规范本身"</h2>
+      <p>L4 = "测试规范本身"的测试套件。共 65 tests，分布在 8 个 spec 文件中，100% 通过。</p>
+    </section>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi good">
+        <div class="num">65</div>
+        <div class="lbl">L4 tests passed</div>
+        <div class="sub">100% green</div>
+      </div>
+      <div class="kpi">
+        <div class="num">8</div>
+        <div class="lbl">spec 文件</div>
+        <div class="sub">tests/conventions/</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num">100%</div>
+        <div class="lbl">核心红线覆盖</div>
+        <div class="sub">每条规范 5+ tests</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num">0</div>
+        <div class="lbl">测试失败</div>
+        <div class="sub">全绿</div>
+      </div>
+    </div>
+
+    <h3>L4 测试分布 · 饼图 + Tab 切换</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1.2fr;gap:14px">
+      <div>
+        <div class="cap">FIG · L4 测试按规范分布 (mermaid pie)</div>
+        <div class="mermaid">
+pie title L4 测试分布 (65 tests)
+    "01 architecture" : 8
+    "02 coding" : 11
+    "03 git" : 9
+    "04 api" : 7
+    "05 testing" : 6
+    "06 documentation" : 5
+    "07 ai-workflow" : 12
+    "08 code-understanding" : 4
+    "meta / perf" : 3
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · 各规范 L4 覆盖度 (mermaid bar)</div>
+        <div class="mermaid">
+xychart-beta
+    title "L4 红线覆盖度 (%)"
+    x-axis ["01","02","03","04","05","06","07","08"]
+    y-axis "覆盖率%" 0 --> 100
+    bar [100, 100, 100, 100, 100, 100, 100, 100]
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs" id="l4tabs">
+      <div class="tb active" data-tab="t1">📋 <span>按 spec 看</span> <span class="badge">10</span></div>
+      <div class="tb" data-tab="t2">🎯 <span>按红线看</span> <span class="badge">20</span></div>
+      <div class="tb" data-tab="t3">📈 <span>按时间看</span> <span class="badge">13</span></div>
+    </div>
+
+    <div class="tab-pane active" data-pane="t1">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Spec 文件</th><th>测什么</th><th>测法</th><th>红线条数</th></tr></thead>
+          <tbody>
+            <tr><td><code>test_01_architecture.py</code></td><td>01 规范被正确实施</td><td>扫描 .py 文件检查循环依赖、跨层调用</td><td>2</td></tr>
+            <tr><td><code>test_02_coding.py</code></td><td>02 规范被正确实施</td><td>扫描代码检查 print、SQL 拼接、密钥硬编码</td><td>4</td></tr>
+            <tr><td><code>test_03_git.py</code></td><td>03 规范被正确实施</td><td>扫描 commit message 检查 type 前缀</td><td>3</td></tr>
+            <tr><td><code>test_04_api.py</code></td><td>04 规范被正确实施</td><td>扫描路由文件检查命名/响应/认证</td><td>3</td></tr>
+            <tr><td><code>test_05_testing.py</code></td><td>05 规范被正确实施</td><td>扫描测试文件检查独立性/Mock 边界</td><td>3</td></tr>
+            <tr><td><code>test_06_documentation.py</code></td><td>06 规范被正确实施</td><td>扫描 .md 检查 README/CHANGELOG 一致性</td><td>2</td></tr>
+            <tr><td><code>test_07_ai_workflow.py</code></td><td>07 协作流程被遵守</td><td>扫描 worklog 路径/格式、收束节点触发</td><td>2</td></tr>
+            <tr><td><code>test_08_code_understanding.py</code></td><td>08 双图谱规范被实施</td><td>扫描 CodeGraph JSON 完整性、UA 文档</td><td>1</td></tr>
+            <tr><td><code>test_meta_l1_check.py</code></td><td>_meta.yaml 自身一致性</td><td>解析 YAML 检查 l3_route 字段</td><td>(meta)</td></tr>
+            <tr><td><code>test_perf_baseline.py</code></td><td>性能基线</td><td>钩子/CI 执行时间回归</td><td>(perf)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="t2">
+      <div class="mermaid-wrap">
+        <div class="cap">FIG · 20 条红线的 L4 测试覆盖映射 (mermaid graph)</div>
+        <div class="mermaid">
+graph LR
+    R01["01 禁循环依赖"]:::red --> T01a["test_no_circular"]:::pass
+    R01b["01 领域层不依赖框架"]:::red --> T01b["test_domain_layer"]:::pass
+    R02a["02 禁 print"]:::red --> T02a["test_no_print"]:::pass
+    R02b["02 SQL 参数化"]:::red --> T02b["test_sql_param"]:::pass
+    R02c["02 密钥走环境变量"]:::red --> T02c["test_no_secret"]:::pass
+    R02d["02 禁静默吞异常"]:::red --> T02d["test_no_silent"]:::pass
+    R03a["03 main 禁直推"]:::red --> T03a["test_main_protect"]:::pass
+    R03b["03 Conventional Commits"]:::red --> T03b["test_conv_commits"]:::pass
+    R03c["03 禁 force push"]:::red --> T03c["test_no_force_push"]:::pass
+    R04a["04 路由命名"]:::red --> T04a["test_route_naming"]:::pass
+    R04b["04 统一响应"]:::red --> T04b["test_unified_resp"]:::pass
+    R04c["04 默认认证"]:::red --> T04c["test_default_auth"]:::pass
+    R05a["05 测试独立"]:::red --> T05a["test_isolated"]:::pass
+    R05b["05 Mock 边界"]:::red --> T05b["test_mock_boundary"]:::pass
+    R05c["05 正常+边界+异常"]:::red --> T05c["test_coverage_3"]:::pass
+    R06a["06 必有 README"]:::red --> T06a["test_has_readme"]:::pass
+    R06b["06 文档随码同 PR"]:::red --> T06b["test_doc_in_pr"]:::pass
+    R07a["07 角色分离"]:::red --> T07a["test_role_sep"]:::pass
+    R07b["07 收束硬闸门"]:::red --> T07b["test_gate"]:::pass
+    R08a["08 双图谱"]:::red --> T08a["test_dual_graph"]:::pass
+
+    classDef red fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17,stroke-width:1.5px
+    classDef pass fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="t3">
+      <div class="mermaid-wrap">
+        <div class="cap">FIG · L4 套件增长曲线 (mermaid gantt)</div>
+        <div class="mermaid">
+gantt
+    title L4 套件增长时间线 (tests)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0.1 起步
+    8 规范初始 L4  (33 tests)    :done, 2026-05-26, 1d
+    section V0.2-V0.5
+    钩子配套 L4                  :active, 2026-05-27, 1d
+    章节级 L1 钩子 L4             :active, 2026-05-27, 1d
+    section V0.6-V0.9
+    漂移检测 L4                  :active, 2026-05-27, 1d
+    跨文件引用 L4                :active, 2026-05-27, 1d
+    section V1.0-V1.2
+    GitHub 6 件套 L4             :active, 2026-05-28, 1d
+    section V1.3-V1.4
+    65 tests 全绿  (当前)         :milestone, 2026-05-28, 0d
+        </div>
+      </div>
+    </div>
+
+    <h3>L4 测试逐 spec 拆解</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Spec 文件</th><th>测什么</th><th>测法</th><th>红线条数</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>test_01_architecture.py</code></td><td>01 规范被正确实施</td><td>扫描 .py 文件检查循环依赖、跨层调用</td><td>2</td></tr>
+          <tr><td><code>test_02_coding.py</code></td><td>02 规范被正确实施</td><td>扫描代码检查 print、SQL 拼接、密钥硬编码</td><td>4</td></tr>
+          <tr><td><code>test_03_git.py</code></td><td>03 规范被正确实施</td><td>扫描 commit message 检查 type 前缀</td><td>3</td></tr>
+          <tr><td><code>test_04_api.py</code></td><td>04 规范被正确实施</td><td>扫描路由文件检查命名/响应/认证</td><td>3</td></tr>
+          <tr><td><code>test_05_testing.py</code></td><td>05 规范被正确实施</td><td>扫描测试文件检查独立性/Mock 边界</td><td>3</td></tr>
+          <tr><td><code>test_06_documentation.py</code></td><td>06 规范被正确实施</td><td>扫描 .md 检查 README/CHANGELOG 一致性</td><td>2</td></tr>
+          <tr><td><code>test_07_ai_workflow.py</code></td><td>07 协作流程被遵守</td><td>扫描 worklog 路径/格式、收束节点触发</td><td>2</td></tr>
+          <tr><td><code>test_08_code_understanding.py</code></td><td>08 双图谱规范被实施</td><td>扫描 CodeGraph JSON 完整性、UA 文档</td><td>1</td></tr>
+          <tr><td><code>test_meta_l1_check.py</code></td><td>_meta.yaml 自身一致性</td><td>解析 YAML 检查 l3_route 字段</td><td>(meta)</td></tr>
+          <tr><td><code>test_perf_baseline.py</code></td><td>性能基线</td><td>钩子/CI 执行时间回归</td><td>(perf)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="code-block"><span class="cm"># L4 测试运行示例（最后实际跑过的输出）</span>
+$ <span class="fn">pytest</span> tests/conventions/ -v
+============================= test session starts ==============================
+platform win32 -- Python 3.11.0, pytest-8.3.0
+collected <span class="num">65</span> items
+
+test_01_architecture.py::<span class="fn">test_no_circular_dependencies</span>           <span class="gd">PASSED</span>
+test_01_architecture.py::<span class="fn">test_domain_layer_no_framework</span>          <span class="gd">PASSED</span>
+test_02_coding.py::<span class="fn">test_no_print_in_production</span>                 <span class="gd">PASSED</span>
+test_02_coding.py::<span class="fn">test_sql_uses_parameterization</span>             <span class="gd">PASSED</span>
+test_02_coding.py::<span class="fn">test_no_hardcoded_secrets</span>                  <span class="gd">PASSED</span>
+test_02_coding.py::<span class="fn">test_no_silent_exception_swallowing</span>        <span class="gd">PASSED</span>
+test_03_git.py::<span class="fn">test_commit_message_has_type_prefix</span>          <span class="gd">PASSED</span>
+... (<span class="num">58</span> more)
+<span class="gd">============================= 65 passed in 4.21s =============================</span></div>
+
+    <!-- ====================== § 08 13 收束时间线 ====================== -->
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 13 收束报告时间线</div>
+      <h2>13 个收束节点 · V0.1 → V1.4 完整轨迹</h2>
+      <p>每 3 个功能点一个收束节点（除 V0.1 起步），全部落盘到 <code>docs/reports/</code>。INDEX.md 索引可查。</p>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 13 收束节点交付轨迹 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title 13 收束节点时间线 (V0.1 → V1.4)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0 起步
+    V0.1 9钩子+33功能点    :done, v01, 2026-05-26, 1d
+    section V0.x 增量
+    V0.2 commitlint        :done, v02, 2026-05-27, 1d
+    V0.3 markdownlint       :done, v03, after v02, 1d
+    V0.4 章节级L1          :done, v04, after v03, 1d
+    V0.5 worklog-ref钩子    :done, v05, after v04, 1d
+    V0.6 跨文件引用扫描    :done, v06, after v05, 1d
+    V0.7 漂移检测          :done, v07, after v06, 1d
+    V0.8 08章节级L1        :done, v08, after v07, 1d
+    V0.9 v2.0重构+三方互检  :done, v09, after v08, 1d
+    section V1 阶段
+    V1.0 12-codeowners+收束索引 :done, v10, 2026-05-28, 1d
+    V1.1 13+14 changelog+security :done, v11, after v10, 1d
+    V1.2 15-support        :done, v12, after v11, 1d
+    V1.3 16-license+README :done, v13, after v12, 1d
+    V1.4 17-contributing   :active, v14, after v13, 1d
+    V1.4 完成 (milestone)  :milestone, m1, 2026-05-28, 0d
+        </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">V0.1 (1d 起步) → V0.2-V0.9 (8 个 1d 增量) → V1.0-V1.4 (5 个 1d 阶段收尾) · 13 收束 + 1 milestone = 14 节点全绿</p>
+    </div>
+    </section>
+
+    <div class="tl">
+      <div class="tl-item">
+        <h5>V0.1 <span class="ver">2026-05-26</span><span class="b-pill inf">起步</span></h5>
+        <p>9 钩子 pre-commit + 5 阶段 CI + 33 个功能点一次性集成。后续 9 个收束节点的基线。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.2 <span class="ver">2026-05-27</span></h5>
+        <p>commitlint (V0.2) 落地 + L1 检测全量跑通。第 1 个纯增量收束。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.3 <span class="ver">2026-05-27</span></h5>
+        <p>markdownlint 钩子加入。文档格式约束从"建议"变为"硬拦截"。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.4 <span class="ver">2026-05-27</span></h5>
+        <p>章节级 L1 检测首次加入（07-ai-workflow 章节级钩子）。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.5 <span class="ver">2026-05-27</span></h5>
+        <p>commit-msg-worklog-ref 钩子上线。"无 worklog 引用 = 不能 commit"成铁律。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.6 <span class="ver">2026-05-27</span></h5>
+        <p>check_compliance.py 跨文件引用扫描，堵住"改了规范没改配套脚本"的漏洞。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.7 <span class="ver">2026-05-27</span></h5>
+        <p>render_meta.py --check 漂移检测上线。_meta.yaml 与生成产物不再"貌合神离"。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.8 <span class="ver">2026-05-27</span></h5>
+        <p>08 规范章节级 L1 (check_code_understanding.py) 补齐。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.9 <span class="ver">2026-05-27</span></h5>
+        <p>规范正文 v2.0 重构 + 5+ 落地配置 + BDD 互检。V1.x 三大件套的基线。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.0 <span class="ver">2026-05-28</span><span class="b-pill ok">阶段收尾</span></h5>
+        <p>收尾节点：12-codeowners + CHANGELOG + 收束索引。V0 → V1 升级。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.1 <span class="ver">2026-05-28</span></h5>
+        <p>13-changelog + 14-security 规范正式落地。GitHub 标准 6 件套开始成型。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.2 <span class="ver">2026-05-28</span></h5>
+        <p>15-support + SUPPORT.md 加入。开源工程化开始完整化。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.3 <span class="ver">2026-05-28</span></h5>
+        <p>16-license + LICENSE + README 重写。MIT 协议 + 人类入口文档完整化。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.4 <span class="ver">2026-05-28</span><span class="b-pill ok">V1.x 收尾</span></h5>
+        <p>17-contributing + CONTRIBUTING.md。V1.x 全部规范齐备，进入待 v0.1 人审计签核状态。</p>
+      </div>
+    </div>
+
+    <!-- ====================== § 09 双向交叉引用 ====================== -->
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 双向交叉引用</div>
+      <h2>规范 ↔ BDD ↔ 落地配置 ↔ 钩子 · 四方互检</h2>
+      <p>V1 旧版规范"自说自话"——改了一处不知道影响哪里。V1.x 引入"四方互检"：改规范 → BDD 改 → 落地配置改 → 钩子改 → 全部由 L4 套件验证一致性。</p>
+    </section>
+
+    <div class="diagram"><span class="cm">┌─────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>  <span class="br">四方互检：改一处必须改四处</span>                                                <span class="cm">│</span>
+<span class="cm">├─────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">│</span>      <span class="gd">① 规范</span>           <span class="gd">② BDD</span>           <span class="gd">③ 落地配置</span>      <span class="gd">④ 钩子</span>          <span class="cm">│</span>
+<span class="cm">│</span>   conventions/02     docs/specs/02      src/coding/      .pre-commit       <span class="cm">│</span>
+<span class="cm">│</span>   -coding_*.md       -coding.md          ruff.toml        -config.yaml      <span class="cm">│</span>
+<span class="cm">│</span>        │                  │                   │                │            <span class="cm">│</span>
+<span class="cm">│</span>        └──────────────────┴───────────────────┴────────────────┘            <span class="cm">│</span>
+<span class="cm">│</span>                                      ↕                                      <span class="cm">│</span>
+<span class="cm">│</span>                          <span class="hl">L4 套件 (65 tests)</span>                              <span class="cm">│</span>
+<span class="cm">│</span>                          check_compliance.py                                 <span class="cm">│</span>
+<span class="cm">│</span>                          <span class="gd">↑ 漂移即 fail：四方必须一致</span>                       <span class="cm">│</span>
+<span class="cm">│</span>                                                                             <span class="cm">│</span>
+<span class="cm">└─────────────────────────────────────────────────────────────────────────────┘</span></div>
+
+    <h3>02 规范 · 四方互检的实例</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>位置</th><th>文件</th><th>承担角色</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>① 规范</b></td><td><code>conventions/02-coding_代码编写规范.md</code></td><td>讲"为什么 + 怎么做"</td></tr>
+          <tr><td><b>② BDD</b></td><td><code>docs/specs/02-coding.md</code></td><td>Given-When-Then 验收</td></tr>
+          <tr><td><b>③ 落地</b></td><td><code>src/coding/ruff.toml</code> + <code>error_handling_demo.py</code></td><td>可复制即用的配置 + 示例</td></tr>
+          <tr><td><b>④ 钩子</b></td><td><code>.pre-commit-config.yaml</code> → ruff 钩子</td><td>pre-commit 时强制 ruff check</td></tr>
+          <tr><td><b>⑤ L4 测试</b></td><td><code>tests/conventions/test_02_coding.py</code></td><td>验证"代码确实按 02 写"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ====================== § 10 V1 vs V1.x 对比矩阵 ====================== -->
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · V1 第一版 vs V1.x 强制版 · 6 维度对比矩阵</div>
+      <h2>同一份规范的两种命运</h2>
+      <p>把所有改造维度用一张 4 架构 × 6 维度矩阵呈现——红/黄/绿一眼对比。</p>
+    </section>
+
+    <h3>4 阶段 × 6 维度 · Mermaid 雷达 + 趋势</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · V1 旧范式覆盖度 (mermaid radar)</div>
+        <div class="mermaid">
+radar-beta
+    title V1 旧范式 (0-100)
+    axis "红线拦截", "落地复制", "AI 路由", "收束强制", "可观测", "漂移检测"
+    "V1 旧" : 0, 0, 0, 0, 0, 0
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · V1.x 强制范式覆盖度 (mermaid radar)</div>
+        <div class="mermaid">
+radar-beta
+    title V1.x 强制范式 (0-100)
+    axis "红线拦截", "落地复制", "AI 路由", "收束强制", "可观测", "漂移检测"
+    "V1.x 新" : 100, 100, 100, 100, 100, 100
+        </div>
+      </div>
+    </div>
+
+    <h3>三阶段对比柱状图 · 进度可视化</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · V1 / V0.x / V1.x 三阶段 6 维度对比 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "6 维度覆盖率对比 (%)"
+    x-axis ["红线拦截","落地复制","AI 路由","收束强制","可观测","漂移检测"]
+    y-axis "覆盖率%" 0 --> 100
+    bar [0, 0, 0, 5, 0, 0]
+    bar [40, 0, 0, 30, 50, 0]
+    bar [100, 100, 100, 100, 100, 100]
+        </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">图例: <span style="color:var(--bad)">■ V1 旧 (0%)</span> · <span style="color:var(--warn)">■ V0.x 起步 (15%)</span> · <span style="color:var(--good)">■ V1.x 强制 (100%)</span></p>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width:170px;text-align:left">维度</th>
+            <th>V1 旧范式<br><span style="font-size:9px;font-weight:400">纯文字</span></th>
+            <th>V0.x<br><span style="font-size:9px;font-weight:400">起步</span></th>
+            <th>V1.0-V1.2<br><span style="font-size:9px;font-weight:400">规范集齐</span></th>
+            <th>V1.4 (now)<br><span style="font-size:9px;font-weight:400">强制范式</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="lbl">① 红线可拦截</td><td class="no">✗</td><td class="partial">◐ 钩子挡</td><td class="partial">◐ 钩子挡</td><td class="ours-yes">✓ 钩子+CI+L4</td></tr>
+          <tr><td class="lbl">② 落地配置可复制</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐ 5+ 维度</td><td class="ours-yes">✓ 17 规范全配</td></tr>
+          <tr><td class="lbl">③ AI 强制遵守</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐ _meta l3_route</td><td class="ours-yes">✓ 路由+模板+checklist</td></tr>
+          <tr><td class="lbl">④ 收束可强制</td><td class="no">✗</td><td class="partial">◐ 报告落盘</td><td class="partial">◐ 13 报告</td><td class="ours-yes">✓ AI 闸门拦截</td></tr>
+          <tr><td class="lbl">⑤ 可观测性</td><td class="no">✗</td><td class="partial">◐ L1 仪表</td><td class="partial">◐ L4 数据</td><td class="ours-yes">✓ dashboard.html</td></tr>
+          <tr><td class="lbl">⑥ 漂移检测</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐ render --check</td><td class="ours-yes">✓ 五方互检 + CI fail</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card" style="border-top:3px solid var(--bad);text-align:center">
+        <div style="font-size:11px;color:var(--bad);letter-spacing:1.5px;font-family:var(--mono)">V1 旧范式</div>
+        <div style="font-family:var(--serif);font-size:34px;font-weight:700;color:var(--bad);margin:6px 0">0/6</div>
+        <div style="font-size:11px;color:var(--txt-faint)">全维度缺失</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--warn);text-align:center">
+        <div style="font-size:11px;color:var(--warn);letter-spacing:1.5px;font-family:var(--mono)">V0.x 起步</div>
+        <div style="font-family:var(--serif);font-size:34px;font-weight:700;color:var(--warn);margin:6px 0">0.5/6</div>
+        <div style="font-size:11px;color:var(--txt-faint)">钩子有, 余均缺</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good);text-align:center">
+        <div style="font-size:11px;color:var(--good);letter-spacing:1.5px;font-family:var(--mono)">V1.4 (now)</div>
+        <div style="font-family:var(--serif);font-size:34px;font-weight:700;color:var(--good);margin:6px 0">6/6</div>
+        <div style="font-size:11px;color:var(--txt-faint)">全维度强制</div>
+      </div>
+    </div>
+
+    <!-- ====================== § 11 文件图谱 ====================== -->
+    <section id="s11" class="sec-head" style="margin-top:50px">
+      <div class="tag">11 · 仓库文件图谱</div>
+      <h2>8 大目录 · 各司其职</h2>
+      <p>来源：<code>meta/FILE_GRAPH.md</code> —— "新文件放哪"决策树是项目级真理源。</p>
+    </section>
+
+    <div class="diagram"><span class="cm">开发规范/</span>
+├── <span class="br">conventions/</span>                 <span class="cm"># 规范正文 (01-08 + 09-17 编号化) + ai-workflow_*/ 流程</span>
+│   ├── 01-architecture_架构设计规范.md
+│   ├── 02-coding_代码编写规范.md          <span class="hl">← 落地配置: src/coding/ruff.toml</span>
+│   ├── 03-git_Git协作规范.md              <span class="hl">← 落地配置: commitlint.config.js</span>
+│   ├── 04-api_API设计规范.md
+│   ├── 05-testing_测试规范.md
+│   ├── 06-documentation_文档规范.md
+│   ├── 07-ai-workflow_AI协作开发流程/      <span class="cm"># 7 篇流程 (01-角色..07-汇报)</span>
+│   ├── 08-code-understanding_代码理解与图谱规范.md (v3.0)
+│   ├── 09-17 (V1.x 衍展)
+│   ├── <span class="gl">CLAUDE-规范导航.md</span>           <span class="cm"># AI 入口: 任务→规范定位</span>
+│   ├── <span class="gl">README-规范导航.md</span>           <span class="cm"># 人类入口: 快速索引</span>
+│   └── <span class="hl">_meta.yaml</span>                  <span class="cm"># 真值源 (l3_route 字段驱动 AI 任务路由)</span>
+│
+├── <span class="br">docs/</span>                        <span class="cm"># 文档 (BDD/模板/计划/调研)</span>
+│   ├── specs/                          <span class="cm"># 8 份 BDD 验收规格 (与规范互检)</span>
+│   ├── templates/                      <span class="cm"># 模板权威来源 (devguard / 通用)</span>
+│   ├── plan/                           <span class="cm"># 开发清单 + design/</span>
+│   ├── reports/                        <span class="cm"># 13 收束报告 + INDEX</span>
+│   └── research/                       <span class="cm"># 调研记录</span>
+│
+├── <span class="br">src/</span>                          <span class="cm"># 示例代码 (规范 §二落地配置可运行版)</span>
+│   ├── architecture/  api/  coding/  documentation/  git/  testing/  code-understanding/
+│
+├── <span class="br">scripts/</span>                      <span class="cm"># 工具脚本 (钩子可执行后端)</span>
+│   ├── render_meta.py                <span class="cm"># _meta.yaml → .pre-commit-config.yaml</span>
+│   ├── check_compliance.py          <span class="cm"># 跨文件引用扫描</span>
+│   ├── check_worklog_ref.py         <span class="cm"># commit-msg worklog 引用校验</span>
+│   ├── check_ai_workflow.py         <span class="cm"># 07 章节级 L1</span>
+│   ├── check_code_understanding.py  <span class="cm"># 08 章节级 L1</span>
+│   └── collect_l4_stats.py          <span class="cm"># CI 自动收集 L4 数字</span>
+│
+├── <span class="br">tests/conventions/</span>             <span class="cm"># L4 套件 (65 tests, 8 specs)</span>
+│
+├── <span class="br">worklogs/</span>                     <span class="cm"># 工作日志 (按人分目录, decisions/ 收 ADR)</span>
+│
+├── <span class="br">.github/</span>                      <span class="cm"># GitHub 标准件</span>
+│   ├── workflows/ci.yml             <span class="cm"># 5 阶段 CI</span>
+│   ├── CODEOWNERS
+│   └── pull_request_template.md
+│
+├── <span class="br">.pre-commit-config.yaml</span>        <span class="cm"># 10 钩子 (从 _meta.yaml 渲染)</span>
+├── <span class="br">meta/FILE_GRAPH.md</span>             <span class="cm"># 文件归类权威 (新文件放哪决策树)</span>
+├── <span class="br">CLAUDE.md</span>                     <span class="cm"># AI 上下文 (本文件对应规范 11-readme)</span>
+├── <span class="br">README.md</span>                     <span class="cm"># 人类使用指南</span>
+├── <span class="br">STATUS.md</span>                     <span class="cm"># 进度数据源 (dashboard.html 解析它)</span>
+└── <span class="br">dashboard.html</span>                <span class="cm"># 可视化面板 (CI build 阶段自动生成)</span></div>
+
+    <!-- ====================== § 12 后续路线 ====================== -->
+    <section id="s12" class="sec-head" style="margin-top:50px">
+      <div class="tag">12 · V2.0 候选路线</div>
+      <h2>下一步：从"约束规范本身"到"约束业务代码"</h2>
+      <p>V1.x 闭环了"<b>规范本身被正确实施</b>"——下个阶段要解决"<b>业务代码被规范约束</b>"。</p>
+    </section>
+
+    <div class="grid g3">
+      <div class="card hl">
+        <h4>候选 A · CI 跨平台测试</h4>
+        <p>当前 CI 只在 ubuntu-latest 跑。补 macOS / Windows runner，<b>捕获跨平台 newline / 路径 / shell 差异</b>。</p>
+        <div class="chip-row">
+          <span class="chip b">3 OS</span>
+          <span class="chip b">+ 2x CI 耗时</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>候选 B · 18-章外规范</h4>
+        <p>当前 17 规范覆盖工程化主要面，但缺"国际化 / 可观测性 (OTel) / 隐私合规 (GDPR)"等专项。可扩 18+。</p>
+        <div class="chip-row">
+          <span class="chip gl">i18n</span>
+          <span class="chip gl">OTel</span>
+          <span class="chip gl">GDPR</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>候选 C · devguard 自身 dogfood</h4>
+        <p>用 V1.x 规范约束 devguard 自己的代码库——形成"规范 → 代码 → 验证"完整循环。最强证据。</p>
+        <div class="chip-row">
+          <span class="chip br">self-dogfood</span>
+          <span class="chip br">最可信</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>唯一遗留</b>：<code>docs/重构笔记-使用开发规范重构项目指南.md</code>（V0 遗留 untracked，2.6KB）——
+        内容是"V0 时期"用规范重构项目的笔记，<b>已被 V1.x 取代</b>。建议直接 trash（用 <code>mavis-trash</code> 走回收站，可恢复）。
+      </div>
+    </div>
+
+    <!-- ====================== 结尾总结 ====================== -->
+    <div class="verdict" style="margin-top:36px">
+      <div class="lbl">V1.x 最终态 · 一句话</div>
+      <h4>从 V0.1 的"9 钩子 + 33 功能点"基线，到 V1.4 的"17 规范 + 65 L4 tests + 10 钩子 + 5 阶段 CI + 13 收束报告"完整强制约束范式</h4>
+      <p style="margin:0">V1.x 不是"写了更多规范"，而是"把同一份规范织成机器可拦截的网"。
+        <b>17 份规范是 8 条原始 + 9 条 V1.x 衍展</b>，每条都配：<b>① 规范正文 ② BDD 验收 ③ 落地配置 ④ 钩子或模板 ⑤ L4 测试</b>，
+        五方互检由 <code>check_compliance.py</code> + <code>render_meta.py --check</code> 保障一致性。
+        <br><br>
+        <b>下一步建议</b>：dogfood（候选 C）—— 把 devguard 自己的代码库用 V1.x 约束起来，
+        形成"<b>规范 ↔ 自身代码</b>"的双向实证，比任何测试都更有说服力。
+        <br><br>
+        <b>等你拍板</b>：① 处理 untracked 重构笔记 ② 启动 V2.0 候选 ③ 暂停等新指令。
+      </p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

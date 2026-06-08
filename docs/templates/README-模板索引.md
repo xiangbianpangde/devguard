@@ -1,7 +1,7 @@
 # 模板库 — 索引与编写规约
 
 > **👤 人类参考** | `docs/templates/` 是所有文件模板的**权威来源**。新项目从此处复制；新增模板须遵循本规约。
-> 更新: 2026-05-27
+> 更新: 2026-06-08
 
 ---
 
@@ -23,6 +23,8 @@
 | `收束报告模板.md` | 四阶段收束整合报告 | 收束节点完成时 | `docs/reports/收束报告-vX.Y.md` |
 | `AI协作提示词模板.md` | 四步开发标准提示词 | 功能点开发各阶段 | 粘贴到 AI 会话 |
 | `AI会话启动模板.md` | 新会话初始化清单 | AI 新会话启动时 | 嵌入 CLAUDE.md 或系统 prompt |
+| `devguard/html-report-template/` | 自动 dashboard 渲染（从 _meta.yaml + STATUS.md） | 项目状态可视化 | `dashboard.html` |
+| `devguard/final-report-template/` | **高密度学术风 HTML 报告**（11 Mermaid + 3 Tab + 5 进度条 + 1 步骤模拟器） | 阶段性汇报 / 收束报告 / 季度总结 | `docs/reports/YYYY-MM-DD_xxx.html` |
 
 ---
 
@@ -68,4 +70,15 @@
 - **worklog 有完整版与精简版**：精简版是完整版的**子集**——必填段（标题 / 日期 / 功能点 / 做了什么 / 验证结果 / 交接）一致，可选段（关联 BDD / 关键决策 / 遇到的问题）按需增删。
 - **汇报两档共享同一事实源**（`STATUS.md` / `worklogs/`），避免各档数字打架。
 - **AI 模板是提示词而非文档**：`AI协作提示词模板.md` 和 `AI会话启动模板.md` 面向 AI 读取执行，人类仅维护不填写。
+- **`devguard/html-report-template/`（dashboard）vs `devguard/final-report-template/`（人工撰写）**：
+  - dashboard 是机器自动渲染（render.py 从 _meta.yaml + STATUS.md 拉数据），每个 devguard 派生项目 fork
+  - final-report-template 是 AI/开发者人工按节填充的"高密度学术风 + 大量可视化 + 多交互"报告，**后续所有阶段性汇报都按这个标准出**
+  - 两者并列：dashboard 给"持续状态"，final-report 给"阶段性事件"
 - 修改任何模板 → 同步更新本索引对应行 + `## 更新记录`。
+
+## 四、更新记录
+
+| 日期 | 版本 | 变更说明 |
+|------|------|----------|
+| 2026-05-27 | v1 | 初版（13 个模板） |
+| 2026-06-08 | v1.1 | 新增 `devguard/final-report-template/`（V1.x 收尾汇报定型，11 Mermaid / 3 Tab / 5 进度条 / 1 步骤模拟器） |

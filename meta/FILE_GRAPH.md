@@ -56,7 +56,10 @@
 │       ├── 收束报告模板.md
 │       ├── AI协作提示词模板.md
 │       ├── AI会话启动模板.md
-│       └── 规范文档模板.md
+│       ├── 规范文档模板.md
+│       └── devguard/                   #     devguard 项目专属模板（fork 时整组复制）
+│           ├── html-report-template/   #       自动 dashboard 渲染（_meta.yaml + STATUS.md）
+│           └── final-report-template/  #       高密度学术风 HTML 报告（Mermaid+Tab+交互，V1.x 收尾定型）
 │
 ├── src/                              # 【示例代码】按规范维度分目录（非产品结构）
 │   ├── README-示例代码总览.md        #   组织方式说明（重要：见此文件）
