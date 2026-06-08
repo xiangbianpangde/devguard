@@ -1066,46 +1066,54 @@ gantt
       <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">V0.1: 1-8 / V0.6: +9 / V0.7: +10 / V0.9: +11 / V1.0: +12 / V1.1: +13+14 / V1.2: +15 / V1.3: +16 / V1.4: +17 / V1.5: 沉淀 final-report-template</p>
     </div>
 
-    <h3>⑤ 简洁索引卡 · 17 规范一句话定位</h3>
-    <p style="font-size:12px;color:var(--txt-faint)">点击下方 details 看每条规范详情（隐藏式——不占首屏视觉）。</p>
-
-    <details class="conv" open>
-      <summary><b>核心 8 规范</b>（01-08）— 配 L4 测试 + 落地配置 + 钩子</summary>
-      <div class="body">
-        <div class="grid g3" style="font-size:12px">
-          <div class="card" style="border-top:3px solid var(--brand)"><b>01 architecture</b><br><span style="color:var(--txt-faint)">架构设计</span><br>5 钩子 · test_01 · src/architecture/</div>
-          <div class="card" style="border-top:3px solid var(--brand)"><b>02 coding</b><br><span style="color:var(--txt-faint)">代码编写</span><br>4 钩子 · test_02 · src/coding/ruff.toml</div>
-          <div class="card" style="border-top:3px solid var(--brand)"><b>03 git</b><br><span style="color:var(--txt-faint)">Git 协作</span><br>3 钩子 · test_03 · commitlint.config.js</div>
-          <div class="card" style="border-top:3px solid var(--brand)"><b>04 api</b><br><span style="color:var(--txt-faint)">API 设计</span><br>2 钩子 · test_04 · src/api/</div>
-          <div class="card" style="border-top:3px solid var(--brand)"><b>05 testing</b><br><span style="color:var(--txt-faint)">测试</span><br>1 钩子 · test_05 · src/testing/</div>
-          <div class="card" style="border-top:3px solid var(--brand)"><b>06 documentation</b><br><span style="color:var(--txt-faint)">文档</span><br>2 钩子 · test_06 · docs/templates/</div>
-          <div class="card" style="border-top:3px solid var(--brand)"><b>07 ai-workflow</b><br><span style="color:var(--txt-faint)">AI 协作</span><br>2 钩子 · test_07 · ai-workflow_*/</div>
-          <div class="card" style="border-top:3px solid var(--brand)"><b>08 code-understanding</b><br><span style="color:var(--txt-faint)">双图谱 v3.0</span><br>1 钩子 · test_08 · src/code-understanding/</div>
-        </div>
-      </div>
-    </details>
+    <h3>⑤ 完整 17 规范参考表（默认折叠）</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">上方 4 块 Mermaid 图已经把关键信息（钩子数 / L4 覆盖 / 演进时间）一目了然呈现。下方<details>块保留<b>原始 17 行 × 7 列完整表格</b>，需要查具体某条规范的红线 / 落地配置时再点开。</p>
 
     <details class="conv">
-      <summary><b>衍展 9 规范</b>（09-17）— V1.x 阶段工程化补充</summary>
+      <summary><b>📋 完整 17 规范矩阵表</b>（默认折叠 · 点击展开）— 每条规范：核心红线 + L4 测试 + 落地配置 + 钩子</summary>
       <div class="body">
-        <div class="grid g3" style="font-size:12px">
-          <div class="card" style="border-top:3px solid var(--accent)"><b>09 dashboard-gen</b><br><span style="color:var(--txt-faint)">仪表盘自动生成</span><br>auto · STATUS.md → dashboard.html</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>10 templates-reporting</b><br><span style="color:var(--txt-faint)">模板 + 汇报</span><br>auto · docs/templates/</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>11 readme</b><br><span style="color:var(--txt-faint)">README 角色分离</span><br>sync · README + CLAUDE 双件套</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>12 codeowners</b><br><span style="color:var(--txt-faint)">代码所有权</span><br>GH · .github/CODEOWNERS</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>13 changelog</b><br><span style="color:var(--txt-faint)">变更日志</span><br>manual · CHANGELOG.md</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>14 security</b><br><span style="color:var(--txt-faint)">安全政策</span><br>gitleaks · SECURITY.md</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>15 support</b><br><span style="color:var(--txt-faint)">支持渠道</span><br>manual · SUPPORT.md</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>16 license</b><br><span style="color:var(--txt-faint)">许可证</span><br>manual · LICENSE (MIT)</div>
-          <div class="card" style="border-top:3px solid var(--accent)"><b>17 contributing</b><br><span style="color:var(--txt-faint)">贡献指南</span><br>manual · CONTRIBUTING.md</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>规范</th>
+                <th>细化的流程环节</th>
+                <th>核心红线</th>
+                <th>L4 测试</th>
+                <th>落地配置</th>
+                <th style="width:90px">钩子</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="num"><b>01</b></td><td><b>architecture</b><br><span style="font-size:11px;color:var(--txt-faint)">架构设计规范</span></td><td>第一步·设计</td><td>禁循环依赖 / 领域层不依赖框架 / 禁跨层调用</td><td>test_01_architecture.py</td><td><code>src/architecture/</code></td><td><span class="b-pill ok">5</span></td></tr>
+              <tr><td class="num"><b>02</b></td><td><b>coding</b><br><span style="font-size:11px;color:var(--txt-faint)">代码编写规范</span></td><td>§2.1 实现 + §2.3 审查</td><td>禁 print / SQL 参数化 / 密钥走环境变量 / 禁静默吞异常 / 日志脱敏</td><td>test_02_coding.py</td><td><code>src/coding/ruff.toml</code></td><td><span class="b-pill ok">4</span></td></tr>
+              <tr><td class="num"><b>03</b></td><td><b>git</b><br><span style="font-size:11px;color:var(--txt-faint)">Git 协作规范</span></td><td>§2.6 提交</td><td>main 禁直推 / Conventional Commits / 禁 force push 共享分支</td><td>test_03_git.py</td><td><code>commitlint.config.js</code></td><td><span class="b-pill ok">3</span></td></tr>
+              <tr><td class="num"><b>04</b></td><td><b>api</b><br><span style="font-size:11px;color:var(--txt-faint)">API 设计规范</span></td><td>§2.1 接口</td><td>名词复数+kebab-case 无动词 / 统一响应 / 默认认证 / 向后兼容</td><td>test_04_api.py</td><td><code>src/api/</code></td><td><span class="b-pill ok">2</span></td></tr>
+              <tr><td class="num"><b>05</b></td><td><b>testing</b><br><span style="font-size:11px;color:var(--txt-faint)">测试规范</span></td><td>§2.1 TDD + §2.2 验证</td><td>测试独立 / 只 Mock 外部边界 / 覆盖正常+边界+异常</td><td>test_05_testing.py</td><td><code>src/testing/</code></td><td><span class="b-pill ok">1</span></td></tr>
+              <tr><td class="num"><b>06</b></td><td><b>documentation</b><br><span style="font-size:11px;color:var(--txt-faint)">文档规范</span></td><td>§2.5 + 07-汇报</td><td>必有 README / 发布更 CHANGELOG / 文档随码同 PR</td><td>test_06_documentation.py</td><td><code>docs/templates/</code></td><td><span class="b-pill ok">2</span></td></tr>
+              <tr><td class="num"><b>07</b></td><td><b>ai-workflow</b><br><span style="font-size:11px;color:var(--txt-faint)">AI 协作开发流程</span></td><td>第零~三步全流程</td><td>角色分离 / 收束硬闸门 / 汇报落盘 / 不越界不断档</td><td>test_07_ai_workflow.py</td><td><code>ai-workflow_*/</code></td><td><span class="b-pill ok">2</span></td></tr>
+              <tr><td class="num"><b>08</b></td><td><b>code-understanding</b><br><span style="font-size:11px;color:var(--txt-faint)">图谱 v3.0 (双图谱)</span></td><td>§2.9 工具增强</td><td>CodeGraph (AI) + Understand-Anything (人) 双图谱</td><td>test_08_code_understanding.py</td><td><code>src/code-understanding/</code></td><td><span class="b-pill ok">1</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>09</b></td><td><b>dashboard-gen</b><br><span style="font-size:11px;color:var(--txt-faint)">仪表盘生成</span></td><td>§2.8 可观测</td><td>STATUS.md 单源 / render_meta.py 模板驱动 / dashboard.html</td><td>(集成)</td><td><code>docs/templates/devguard/</code></td><td><span class="b-pill inf">auto</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>10</b></td><td><b>templates-reporting</b><br><span style="font-size:11px;color:var(--txt-faint)">统一模板 + 汇报</span></td><td>§2.5 + 07 汇报</td><td>模板权威来源 / 汇报落盘 vs 内联 / 收束报告</td><td>(集成)</td><td><code>docs/templates/</code></td><td><span class="b-pill inf">auto</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>11</b></td><td><b>readme</b><br><span style="font-size:11px;color:var(--txt-faint)">README 角色分离</span></td><td>§2.5 入口文档</td><td>人读 README / AI 读 CLAUDE / 双件套互检</td><td>(集成)</td><td>README.md + CLAUDE.md</td><td><span class="b-pill inf">sync</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>12</b></td><td><b>codeowners</b><br><span style="font-size:11px;color:var(--txt-faint)">代码所有权</span></td><td>§2.6 协作</td><td>CODEOWNERS 必填 / PR 强制 review / 责任到人</td><td>(集成)</td><td><code>.github/CODEOWNERS</code></td><td><span class="b-pill inf">GH</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>13</b></td><td><b>changelog</b><br><span style="font-size:11px;color:var(--txt-faint)">变更日志</span></td><td>§2.5 发布</td><td>CHANGELOG 必更 / Keep a Changelog 格式 / 语义化版本</td><td>(集成)</td><td><code>CHANGELOG.md</code></td><td><span class="b-pill inf">manual</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>14</b></td><td><b>security</b><br><span style="font-size:11px;color:var(--txt-faint)">安全政策</span></td><td>§2.4 安全</td><td>SECURITY.md 必填 / 漏洞响应流程 / 私报渠道</td><td>(集成)</td><td><code>SECURITY.md</code> + gitleaks</td><td><span class="b-pill ok">gitleaks</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>15</b></td><td><b>support</b><br><span style="font-size:11px;color:var(--txt-faint)">支持渠道</span></td><td>§2.5 社区</td><td>SUPPORT.md 必填 / 多渠道 / 响应承诺</td><td>(集成)</td><td><code>SUPPORT.md</code></td><td><span class="b-pill inf">manual</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>16</b></td><td><b>license</b><br><span style="font-size:11px;color:var(--txt-faint)">许可证</span></td><td>§2.5 法律</td><td>LICENSE 必填 / 兼容协议 / 第三方归属</td><td>(集成)</td><td><code>LICENSE</code> (MIT)</td><td><span class="b-pill inf">manual</span></td></tr>
+              <tr style="background:rgba(47,80,97,.04)"><td class="num"><b>17</b></td><td><b>contributing</b><br><span style="font-size:11px;color:var(--txt-faint)">贡献指南</span></td><td>§2.6 协作</td><td>CONTRIBUTING.md 必填 / PR 流程 / DCO / 行为准则</td><td>(集成)</td><td><code>CONTRIBUTING.md</code></td><td><span class="b-pill inf">manual</span></td></tr>
+            </tbody>
+          </table>
         </div>
+        <p style="font-size:11px;color:var(--txt-faint);margin-top:6px">📌 这是 <b>原始 17 行 × 7 列完整数据表</b>，保留作为"参考原始数据"。上方 4 块 Mermaid 图已经覆盖关键信息（钩子数 / L4 覆盖 / 演进时间），无需展开本表也能读懂核心要点。</p>
       </div>
     </details>
 
     <div class="note info">
       <span class="ico">i</span>
       <div>
-        <b>视觉对比</b>：4 块 Mermaid 图 + 2 个折叠索引卡，<b>替代了 17 行 7 列文字表格</b>。原表格 17 × 7 = 119 个单元格，本图组用 4 图 + 2 折叠 = 6 个独立视觉块，<b>视觉锚点减少 95%</b>，关键信息（钩子数 / L4 覆盖 / 演进时间）反而更清晰。
+        <b>视觉设计</b>：<b>4 块 Mermaid 图</b>做主视觉（钩子分布 / L4 覆盖 / 演进时间） + <b>1 个折叠表格</b>做参考数据（默认折叠，需要时点开）。<b>兼顾"扫读"和"精查"</b>两种使用模式。
       </div>
     </div>
 
