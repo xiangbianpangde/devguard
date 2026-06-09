@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M1 IM 聊天补全 · 实现计划</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true, theme: 'base', securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4', primaryTextColor: '#1F1D17', primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447', secondaryColor: '#E8E1D2', tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif', fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      gantt: { useMaxWidth: true }
+    });
+    }
+    // counter animation
+    setTimeout(function(){
+      document.querySelectorAll('.counter').forEach(function(el){
+        var t = parseInt(el.getAttribute('data-target')||'0',10), d=1200, s=performance.now();
+        function step(n){ var p=Math.min((n-s)/d,1), e=1-Math.pow(1-p,3); el.textContent=Math.floor(e*t); if(p<1) requestAnimationFrame(step); else el.textContent=t; }
+        requestAnimationFrame(step);
+      });
+    }, 400);
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7; --bg-soft:#F4F2EC; --panel:#FFFFFF; --panel-2:#F8F6F0;
+    --line:#E0DCD0; --line-soft:#ECEAE2; --txt:#1F1D17; --txt-dim:#5A5447; --txt-faint:#9A9385;
+    --brand:#8B3A1F; --brand-2:#A85032; --accent:#2F5061; --accent-2:#3F6A82;
+    --gold:#A87A2E; --good:#3F6B3D; --warn:#B07F22; --bad:#9C3A2E;
+    --code-bg:#26241F; --code-fg:#E8E2D4; --shadow:0 16px 40px -28px rgba(60,40,20,.32); --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{font-family:var(--sans);background:radial-gradient(1100px 700px at 86% -6%,#F2E8DC 0%,transparent 55%),radial-gradient(900px 600px at -8% 14%,#EAE2D2 0%,transparent 50%),var(--bg);color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{position:fixed;top:0;left:0;bottom:0;width:240px;background:linear-gradient(180deg,#FAF7F0,#F4F0E5);border-right:1px solid var(--line);padding:22px 14px 28px;overflow-y:auto;z-index:50}
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{width:36px;height:36px;border-radius:9px;flex:0 0 auto;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;box-shadow:0 10px 24px -10px var(--brand)}
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px}
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card.good{border-left:3px solid var(--good)}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right,rgba(139,58,31,.08),transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+  .code-block{background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);margin:12px 0}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);margin:14px 0}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td .mono{font-size:11.5px}
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .flow-step.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:600}
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow);margin:14px 0}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+  .hero{background:linear-gradient(135deg,#FAF6EC 0%,#F2E8D8 50%,#EAD9C0 100%);border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle,rgba(139,58,31,.10),transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(47,80,97,.08),transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+  blockquote{border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);font-style:italic}
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-family:var(--sans);font-weight:600}
+  .matrix td.yes{background:rgba(63,107,61,.18);color:var(--good);font-weight:700}
+  .matrix td.no{background:rgba(156,58,46,.13);color:var(--bad);font-weight:700}
+  .mermaid-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);overflow-x:auto}
+  .mermaid-wrap .cap{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .mermaid-wrap .cap::before{content:"";width:18px;height:1.5px;background:var(--accent)}
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+  [id]{scroll-margin-top:24px}
+  /* footer */
+  .doc-footer{
+    margin-top:38px;padding-top:18px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);letter-spacing:.5px;
+  }
+  .doc-footer a{color:var(--accent);text-decoration:none}
+  .doc-footer a:hover{text-decoration:underline}
+  @media (max-width:1080px){.g4{grid-template-columns:1fr 1fr}.kpi-row{grid-template-columns:1fr 1fr}.vs{grid-template-columns:1fr}.vs-mid{padding:8px 0}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="side">
+  <div class="brand"><a href="设计.html" style="text-decoration:none;display:flex;align-items:center;gap:10px;color:inherit">
+    <div class="mark">M1</div>
+    <div><b>IM 聊天补全</b><span>Implementation Plan</span></div>
+  </a></div>
+  <div class="meta">AGENTHUB · 2026-06-09 · v2.0</div>
+  <nav>
+    <div class="grp">总览</div>
+    <a href="#overview"><span class="n">01</span>四阶段总览</a>
+    <a href="#phase-a"><span class="n">02</span>阶段 A · 私聊入口</a>
+    <a href="#phase-b"><span class="n">03</span>阶段 B · 会话归档</a>
+    <a href="#phase-c"><span class="n">04</span>阶段 C · 消息 E2E</a>
+    <a href="#phase-d"><span class="n">05</span>阶段 D · 对话建 Agent</a>
+    <div class="grp">交叉关注</div>
+    <a href="#milestones"><span class="n">06</span>里程碑</a>
+    <a href="#testing"><span class="n">07</span>测试策略</a>
+    <a href="#redlines"><span class="n">08</span>红线矩阵</a>
+    <hr style="margin:16px 4px;border-color:var(--line);border-style:solid">
+    <a href="设计.html" style="color:var(--accent);font-weight:600"><span class="n">→</span>设计文档</a>
+    <a href="README.md" style="color:var(--txt-faint)"><span class="n">↩</span>返回 README</a>
+  </nav>
+</aside>
+
+<main class="main">
+
+<!-- Hero -->
+<div class="hero">
+  <div class="tag-row"><span class="b-pill br">M1</span><span class="b-pill inf">IM 聊天补全</span><span class="b-pill ok">v2.0</span></div>
+  <h1>实施路径 · IM 聊天补全</h1>
+  <p class="sub">四阶段由易到难：零后端 → 5 层全链路 → 纯测试 → 双阻塞新端点。A+B+C 互不阻塞可并行，D 依赖外部条件排最后。</p>
+  <div class="meta-row"><span>总工时 ~23-33h</span><span>4 阶段</span><span>1 新端点 (PR-01)</span><span>3 新前端组件</span></div>
+</div>
+
+<!-- KPI -->
+<div class="kpi-row">
+  <div class="kpi"><div class="num counter" data-target="4">0</div><div class="lbl">功能点 / 阶段</div><div class="sub">A · B · C · D</div></div>
+  <div class="kpi accent"><div class="num counter" data-target="1">0</div><div class="lbl">新增后端端点</div><div class="sub">/agents/draft-from-chat</div></div>
+  <div class="kpi gold"><div class="num counter" data-target="3">0</div><div class="lbl">新增前端组件</div><div class="sub">ConversationalAgentCreate 等</div></div>
+  <div class="kpi good"><div class="num counter" data-target="2">0</div><div class="lbl">零后端功能</div><div class="sub">阶段 A 入口修复 · 阶段 C E2E</div></div>
+</div>
+
+<!-- ====== §1 OVERVIEW ====== -->
+<div id="overview" class="sec-head"><div class="tag">§1</div><h2>四阶段总览</h2><p>推荐顺序 A → B → C → D：无阻塞的先做，有硬阻塞的最后做。</p></div>
+
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>功能点</th><th>阶段</th><th>优先级</th><th>工时</th><th>后端改动</th><th>前端改动</th><th>阻塞</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>1 私聊入口修复</strong></td>
+  <td><span class="b-pill ok">A · 先做</span></td>
+  <td>P0</td>
+  <td>4-6h</td>
+  <td><span class="b-pill ok">无</span></td>
+  <td>chatStore + LeftPanel</td>
+  <td><span class="b-pill ok">无</span></td>
+</tr>
+<tr>
+  <td><strong>2 会话归档</strong></td>
+  <td><span class="b-pill inf">B</span></td>
+  <td>P0</td>
+  <td>6-8h</td>
+  <td>5 层全链路</td>
+  <td>3 个组件</td>
+  <td>alembic stamp</td>
+</tr>
+<tr>
+  <td><strong>3 消息操作 E2E</strong></td>
+  <td><span class="b-pill inf">C</span></td>
+  <td>P1</td>
+  <td>3-5h</td>
+  <td><span class="b-pill ok">无</span></td>
+  <td>1 个新测试文件</td>
+  <td>真 CLI/mock 环境</td>
+</tr>
+<tr>
+  <td><strong>4 对话式创建 Agent</strong></td>
+  <td><span class="b-pill mid">D · 后做</span></td>
+  <td>P2</td>
+  <td>10-14h</td>
+  <td>1 新端点</td>
+  <td>2 个新组件</td>
+  <td><span class="b-pill no">LLM key + PR-01</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="mermaid-wrap"><div class="cap">GANTT · 推荐排期</div><div class="mermaid">
+gantt
+  title M1 实施甘特
+  dateFormat YYYY-MM-DD
+  axisFormat %m/%d
+  section 阶段 A · 私聊入口
+  chatStore hydrate 方法     :a1, 2026-06-10, 1d
+  AppShell 启动调用           :a2, after a1, 1d
+  LeftPanel 空态 CTA          :a3, after a2, 1d
+  section 阶段 B · 会话归档
+  SessionModel archived 列    :b1, 2026-06-10, 1d
+  Alembic migration           :b2, after b1, 1d
+  service + API 透传          :b3, after b2, 1d
+  chatStore + LeftPanel UI    :b4, after b3, 1d
+  section 阶段 C · 消息 E2E
+  message-actions.spec.ts     :c1, 2026-06-10, 1d
+  Playwright 全链路截图       :c2, after c1, 1d
+  section 阶段 D · 对话建 Agent
+  PR-01 冻结 draft-from-chat  :crit, 2026-06-10, 1d
+  /agents/draft-from-chat     :d1, after crit, 1d
+  ConversationalAgentCreate   :d2, after d1, 1d
+  CreateAgentModal Step1 入口 :d3, after d2, 1d
+</div></div>
+
+<hr class="div">
+
+<!-- ====== §2 PHASE A ====== -->
+<div id="phase-a" class="sec-head"><div class="tag">§2 · 最先做 · 零后端</div><h2>阶段 A：私聊入口修复（~4-6h）</h2><p>新用户打开 AgentHub → 左侧面板有「发起私聊」按钮。已有会话的用户 → 启动时自动加载历史会话。<strong>零新后端。</strong></p></div>
+
+<div class="note info"><span class="ico">✦</span><div><strong>改动面最小、产品感最强</strong>——复用已有 <code>GET /api/sessions?type=private</code> 接口，App 启动调一次 + store 注入。前端只加 store 方法 + 空态按钮 + 启动钩子。</div></div>
+
+<h3><span class="dot"></span>实现路径</h3>
+<div class="code-block">chatStore 新增 hydrateFromSessions
+    │  把后端 SessionOut[] 映射成 conversation 对象
+    │  以 agent_id 为 key 去重（本地优先）
+    │
+App 启动时调用 → sessionsApi.list({type:'private'}) → hydrate
+    │
+LeftPanel 空态改造
+    │  dmList.length === 0 → 显示「发起私聊」按钮
+    │  点击 → 弹出选择 Agent 对话框 → 创建会话 → 进入聊天</div>
+
+<h3><span class="dot"></span>前端改动</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>模块</th><th>改什么</th><th>估时</th></tr></thead>
+<tbody>
+<tr><td>chatStore</td><td>新增 <code>hydrateFromSessions(sessions)</code> + sessionIds 映射</td><td>2h</td></tr>
+<tr><td>AppShell / App</td><td>启动时调 <code>sessionsApi.list</code> + <code>hydrate</code></td><td>1h</td></tr>
+<tr><td>LeftPanel</td><td>空态加「发起私聊」CTA + 触发 StartChatModal</td><td>2h</td></tr>
+</tbody>
+</table></div>
+
+<h3><span class="dot"></span>后端改动</h3>
+<div class="verdict"><div class="lbl">无</div><h4>GET /api/sessions?type=private 已存在</h4><p>只需前端调用即可，零后端改动。</p></div>
+
+<div class="note good"><span class="ico">✓</span><div><strong>验收</strong>：浏览器新用户 → 看到「发起私聊」按钮 → 点击 → 选 Agent → 进入聊天。刷新页面 → 会话还在列表中。</div></div>
+
+<hr class="div">
+
+<!-- ====== §3 PHASE B ====== -->
+<div id="phase-b" class="sec-head"><div class="tag">§3 · 5 层全链路</div><h2>阶段 B：会话归档（~6-8h）</h2><p>右键会话 → 归档 → 移入「已归档」折叠分区。刷新页面状态不丢。</p></div>
+
+<h3><span class="dot"></span>实现路径</h3>
+<div class="code-block">Session 实体加 archived: bool = False
+    │
+    ▼
+SessionModel 加列 → 新 alembic migration
+    │
+    ▼
+UpdateSessionCommand 加 archived 字段 → session_service.update 透传
+    │
+    ▼
+sessions.py PATCH 透传 archived → 前端 sessions.ts patch body 加 archived
+    │
+    ▼
+chatStore 加 setConversationArchived + Conversation 类型加 archived
+    │
+    ▼
+LeftPanel 加归档按钮 + 「已归档」折叠分区 + filteredDmList 默认过滤 archived</div>
+
+<h3><span class="dot"></span>改动模块</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>层</th><th>模块</th><th>改什么</th><th>估时</th></tr></thead>
+<tbody>
+<tr><td>后端 L2</td><td>session.py</td><td>实体加 <code>archived: bool = False</code></td><td>0.5h</td></tr>
+<tr><td>后端 L1</td><td>models.py</td><td>SessionModel 加 column</td><td>0.5h</td></tr>
+<tr><td>后端 L1</td><td>新 migration</td><td>alembic 加列（接当前 head）</td><td>0.5h</td></tr>
+<tr><td>后端 L3</td><td>commands</td><td>UpdateSessionCommand 加 archived</td><td>0.5h</td></tr>
+<tr><td>后端 L3</td><td>session_service</td><td>update 透传 archived</td><td>0.5h</td></tr>
+<tr><td>后端 L4</td><td>sessions.py</td><td>PATCH 透传 archived</td><td>0.5h</td></tr>
+<tr><td>前端</td><td>sessions.ts</td><td>patch body 加 archived</td><td>0.5h</td></tr>
+<tr><td>前端</td><td>chatStore</td><td>setConversationArchived + 类型</td><td>1h</td></tr>
+<tr><td>前端</td><td>LeftPanel</td><td>归档按钮 + 折叠分区 + 过滤</td><td>2h</td></tr>
+</tbody>
+</table></div>
+
+<h3><span class="dot"></span>阻塞</h3>
+<div class="note warn"><span class="ico">⚠</span><div><strong>alembic stamp 冲突</strong>：多 worktree 共享 PG 可能导致 <code>Can't locate revision</code>。解决：<code>UPDATE alembic_version SET version_num='&lt;main 链最新&gt;'</code> 再 <code>upgrade head</code>。</div></div>
+
+<div class="note good"><span class="ico">✓</span><div><strong>验收</strong>：浏览器右键会话 → 归档 → 从主列表消失 → 底部「已归档(1)」出现 → 展开可见 → 右键取消归档 → 回到主列表。刷新页面 → 归档状态保持。</div></div>
+
+<hr class="div">
+
+<!-- ====== §4 PHASE C ====== -->
+<div id="phase-c" class="sec-head"><div class="tag">§4 · 纯测试</div><h2>阶段 C：消息操作 E2E（~3-5h）</h2><p>用 Playwright 在真浏览器里跑通消息操作完整链路并截图存档。<strong>零源码改动。</strong></p></div>
+
+<h3><span class="dot"></span>实现路径</h3>
+<div class="code-block">新建 e2e/message-actions.spec.ts
+    │
+    启动 PG/Redis(docker) + 后端:8000 + 前端:5173
+    │
+    创建会话 → 发消息 → Agent 返回带代码块+diff+URL 的消息
+    │
+    逐一验证：
+    ├── 回复 → Composer 出现引用
+    ├── 复制代码 → 剪贴板有内容
+    ├── Pin → 消息被固定
+    ├── Diff 渲染绿色/红色行
+    ├── 网页预览卡片 → 全屏展开
+    └── 重新生成按钮 → disabled 状态
+    │
+    全流程截图存档</div>
+
+<h3><span class="dot"></span>改动</h3>
+<div class="verdict"><div class="lbl">无源码改动</div><h4>仅新建 src/frontend/e2e/message-actions.spec.ts</h4><p>不修改任何产品代码——只加测试，验证已有 UI 在真实环境下行为正确。</p></div>
+
+<h3><span class="dot"></span>依赖</h3>
+<div class="note info"><span class="ico">✦</span><div>真 CLI provider 可用或 mock 流式环境。</div></div>
+
+<div class="note good"><span class="ico">✓</span><div><strong>验收</strong>：Playwright 全部通过 + 截图可见每个操作的正确 UI 状态。</div></div>
+
+<hr class="div">
+
+<!-- ====== §5 PHASE D ====== -->
+<div id="phase-d" class="sec-head"><div class="tag">§5 · 后做 · 双阻塞</div><h2>阶段 D：对话式创建 Agent（~10-14h）</h2><p>用户输入自然语言描述 → LLM 抽取 → 预览 → 一键创建 Agent。需 PR-01 评审新端点 + LLM 凭证可用。</p></div>
+
+<h3><span class="dot"></span>实现路径</h3>
+<div class="code-block">后端新增 POST /api/agents/draft-from-chat
+    │  接收 { description }
+    │  调 LLM（复用协调者凭证）→ 抽取 { name, role, system_prompt, skills }
+    │  返回草稿 JSON
+    │  **PR-01 评审 Approve 后才能实现**
+
+前端新增 ConversationalAgentCreate 组件
+    │  聊天式 UI（复用 Composer/MessageBubble）
+    │  多轮对话收集需求 → 调 draft-from-chat → 预览草稿卡片
+    │  确认 → 调 createAgent
+
+CreateAgentModal Step 1 加入口
+    │  「对话式创建」按钮 → 切换到 ConversationalAgentCreate</div>
+
+<h3><span class="dot"></span>改动模块</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>层</th><th>模块</th><th>改什么</th><th>估时</th></tr></thead>
+<tbody>
+<tr><td>—</td><td>04-commands</td><td><span class="b-pill no">PR-01 冻结新端点（前置）</span></td><td>—</td></tr>
+<tr><td>后端 L4</td><td>agents.py</td><td><code>POST /agents/draft-from-chat</code> 端点</td><td>3h</td></tr>
+<tr><td>后端 L3</td><td>agent_service</td><td>draft 方法 + prompt 模板</td><td>3h</td></tr>
+<tr><td>前端</td><td>ConversationalAgentCreate（新建）</td><td>聊天式 UI</td><td>4h</td></tr>
+<tr><td>前端</td><td>CreateAgentModal</td><td>Step 1 加入口</td><td>1h</td></tr>
+</tbody>
+</table></div>
+
+<h3><span class="dot"></span>硬阻塞</h3>
+<div class="grid g2">
+  <div class="card brand">
+    <h4>LLM 凭证</h4>
+    <p>需可用 LLM（复用协调者凭证 <code>reactive_router.py</code>）。不可用则 mock LLM 先做前端。</p>
+  </div>
+  <div class="card gold">
+    <h4>PR-01 接口先行</h4>
+    <p>新端点须先冻结在 <code>docs/specs/04-commands</code> + 2 人 Approve 后才能写实现。</p>
+  </div>
+</div>
+
+<h3><span class="dot"></span>降级</h3>
+<div class="note warn"><span class="ico">⚠</span><div>如果 LLM 不可用、或 PR-01 不通过：<strong>砍掉对话式创建，仅保留表单向导</strong>。表单向导已完整可用。</div></div>
+
+<div class="note good"><span class="ico">✓</span><div><strong>验收</strong>：输入"帮我建一个前端代码审查 Agent，关注 React 性能" → LLM 返回草稿 → 预览卡片显示 name/role/prompt/skills → 确认 → 跳转新 Agent 详情页。</div></div>
+
+<hr class="div">
+
+<!-- ====== §6 MILESTONES ====== -->
+<div id="milestones" class="sec-head"><div class="tag">§6</div><h2>里程碑</h2></div>
+
+<div class="tl">
+  <div class="tl-item"><h5>阶段 A · 私聊入口修复 <span class="ver">~4-6h</span></h5><p>零后端改动 · 纯前端 · 产品感最高 · 改 3 个文件</p></div>
+  <div class="tl-item"><h5>阶段 B · 会话归档 <span class="ver">~6-8h</span></h5><p>5 层全链路 · alembic stamp 风险 · 改 ~9 个文件</p></div>
+  <div class="tl-item"><h5>阶段 C · 消息操作 E2E <span class="ver">~3-5h</span></h5><p>纯测试文件 · 需真实环境 · 改 0 个源码文件</p></div>
+  <div class="tl-item"><h5>阶段 D · 对话式创建 Agent <span class="ver">~10-14h</span></h5><p>1 新端点 · 2 新组件 · LLM key + PR-01 双阻塞 · 排最后</p></div>
+</div>
+
+<div class="mermaid-wrap"><div class="cap">四阶段依赖关系</div><pre class="mermaid">
+graph LR
+  A["阶段 A<br/>私聊入口<br/>P0 · 4-6h"]
+  B["阶段 B<br/>会话归档<br/>P0 · 6-8h"]
+  C["阶段 C<br/>消息 E2E<br/>P1 · 3-5h"]
+  D["阶段 D<br/>对话建 Agent<br/>P2 · 10-14h"]
+  EXT["外部依赖<br/>LLM key + PR-01"]
+
+  A -.-|互不阻塞| B
+  B -.-|互不阻塞| C
+  C -.-|互不阻塞| D
+  D -->|需等待| EXT
+
+  style A fill:#DDE9D5,stroke:#9AB58D,color:#1F1D17
+  style B fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+  style C fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+  style D fill:#F0E2C5,stroke:#B07F22,color:#5A5447
+  style EXT fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17
+</pre></div>
+
+<div class="note good"><span class="ico">✓</span><div><strong>前三阶段（A+B+C，~13-19h）互不阻塞</strong>，可并行开发。阶段 D 依赖外部条件，排最后。</div></div>
+
+<hr class="div">
+
+<!-- ====== §7 TESTING ====== -->
+<div id="testing" class="sec-head"><div class="tag">§7</div><h2>测试策略</h2></div>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>功能点</th><th>单测（pytest / vitest）</th><th>浏览器 / 手工验证</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>1 私聊入口</strong></td>
+  <td>vitest: hydrate 映射 + 空态 CTA 渲染</td>
+  <td>浏览器：新用户走通完整链路</td>
+</tr>
+<tr>
+  <td><strong>2 会话归档</strong></td>
+  <td>pytest: archived 持久化 + PATCH 透传 · vitest: 过滤</td>
+  <td>浏览器：归档 → 刷新保持 → 取消归档</td>
+</tr>
+<tr>
+  <td><strong>3 消息 E2E</strong></td>
+  <td>—</td>
+  <td><span class="b-pill br">Playwright 截图验证（必须）</span></td>
+</tr>
+<tr>
+  <td><strong>4 对话式创建</strong></td>
+  <td>pytest: draft 抽取（mock LLM）+ vitest: 草稿预览</td>
+  <td>浏览器：完整对话式创建链路</td>
+</tr>
+</tbody>
+</table></div>
+
+<div class="note crit"><span class="ico">⚠</span><div><strong>后端端点必须覆盖三条路径</strong>：正常输入 → 预期输出 / 非法输入 → 错误响应 / 边界条件（archived=null、并发更新等）。</div></div>
+
+<hr class="div">
+
+<!-- ====== §8 REDLINES ====== -->
+<div id="redlines" class="sec-head"><div class="tag">§8</div><h2>红线矩阵</h2></div>
+
+<div class="tbl-wrap"><table class="matrix">
+<thead><tr><th>红线</th><th>阶段 A</th><th>阶段 B</th><th>阶段 C</th><th>阶段 D</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td class="lbl">CR-03 Alembic migration</td><td class="no">—</td><td class="yes">触发</td><td class="no">—</td><td class="no">—</td><td>归档加列必须走 migration</td></tr>
+<tr><td class="lbl">PR-01 接口先行</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">触发</td><td>draft-from-chat 需冻结 + 2 人 Approve</td></tr>
+<tr><td class="lbl">PR-09 spec 同步</td><td class="no">—</td><td class="yes">遵守</td><td class="no">—</td><td class="yes">遵守</td><td>改数据模型/API 前先改 specs</td></tr>
+<tr><td class="lbl">AP-01 kebab 路径</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">遵守</td><td>新端点用 kebab-case</td></tr>
+<tr><td class="lbl">AP-02 错误信封</td><td class="no">—</td><td class="yes">遵守</td><td class="no">—</td><td class="yes">遵守</td><td>{error:{code,message}}</td></tr>
+<tr><td class="lbl">CR-12 禁同步阻塞</td><td class="no">—</td><td class="yes">遵守</td><td class="no">—</td><td class="yes">遵守</td><td>DB / LLM 调用走 async</td></tr>
+<tr><td class="lbl">AR-05 事件溯源</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td>不涉及 FSM 状态变更</td></tr>
+</tbody>
+</table></div>
+
+<!-- footer -->
+<div class="doc-footer">
+  <span>M1 IM 聊天补全 · 实现计划 v2.0 · 2026-06-09 · 作者 袁</span>
+  <span><a href="设计.html">→ 设计文档</a> · <a href="README.md">README</a> · <a href="简报.md">简报</a></span>
+</div>
+
+</main>
+</div>
+</body>
+</html>

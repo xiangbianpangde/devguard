@@ -5,6 +5,28 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [V2.0.1] - 2026-06-08
+
+### Fixed
+
+- **lint_markdown.py 长命令行 bug**（V2.0.1.2）—— Windows `shell=True` 下 137 文件拼接成超长命令行报“参数太多”；改为分批调用 markdownlint（50/批）+ N806 命名风格修正，脚本单独跑通 exit 0
+
+### Changed
+
+- **devguard dogfood**（V2.0.1）—— V1.x 强制约束范式首次施加于 devguard 自身代码：10 钩子 + commitlint 在自身仓库触发 8 次拦截（ruff F401/T201、ruff-format 行长、markdownlint MD024、commit-msg-worklog-ref 文件名正则），全部修复后复测 100% PASS
+
+## [V1.5] - 2026-06-08
+
+### Added
+
+- **final-report-template 模板沉淀**（V1.5.1）—— `docs/templates/devguard/final-report-template/`：template.html（41 占位符 + 11 Mermaid + 3 Tab + 5 进度条 + 1 模拟器）+ render.py（std-lib 渲染）+ example-data.json + demo.html + README
+- **2 份 V1.x 最终汇报 HTML**（V1.5.3）—— 原始带数据版 + render.py 渲染版（0 残留占位符）
+
+### Changed
+
+- **README-模板索引 + FILE_GRAPH 同步**（V1.5.2）—— 登记 final-report-template 节点
+- **STATUS 滞后修复 + worklog 断档补登**（V1.5.2 / V1.5.4）
+
 ## [V1.4] - 2026-06-07
 
 ### Added
