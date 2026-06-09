@@ -120,7 +120,8 @@ conventions:
       recommend: 7    # 7 篇流程文档
       l1_check_path:
         - scripts/check_ai_workflow.py
-    l1_check: check_ai_workflow.py（V5.2 章节级 L1）
+        - scripts/check_convergence_gate.py
+    l1_check: check_ai_workflow.py（章节级 L1）+ check_convergence_gate.py（收束节点硬闸门）
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
@@ -400,7 +401,7 @@ ci:
       runner: ubuntu-latest
       needs: []
       conditional: "test -f scripts/check_compliance.py"
-      cmd: python scripts/check_compliance.py
+      cmd: python scripts/check_compliance.py && python scripts/check_convergence_gate.py
 
     - id: build
       name: 构建验证

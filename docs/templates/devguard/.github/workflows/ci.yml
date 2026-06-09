@@ -116,6 +116,10 @@ jobs:
       - name: Run compliance scan
         run: python scripts/check_compliance.py
 
+      # 07-ai-workflow 收束节点硬闸门强制化（流程档位 + 收束声明 + 到点未收束拦截）
+      - name: check_convergence_gate.py（收束节点硬闸门）
+        run: python scripts/check_convergence_gate.py
+
   # -------------------------------------------------------------
   # 阶段 5：build（构建验证，依赖前 4 阶段）
   # -------------------------------------------------------------
