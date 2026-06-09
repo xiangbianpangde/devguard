@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M1 IM 聊天补全 · 设计 v2.0</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true, theme: 'base', securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4', primaryTextColor: '#1F1D17', primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447', secondaryColor: '#E8E1D2', tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif', fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 }
+    });
+    }
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;--bg-soft:#F4F2EC;--panel:#FFFFFF;--panel-2:#F8F6F0;
+    --line:#E0DCD0;--line-soft:#ECEAE2;--txt:#1F1D17;--txt-dim:#5A5447;--txt-faint:#9A9385;
+    --brand:#8B3A1F;--brand-2:#A85032;--accent:#2F5061;--accent-2:#3F6A82;
+    --gold:#A87A2E;--good:#3F6B3D;--warn:#B07F22;--bad:#9C3A2E;
+    --code-bg:#26241F;--code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);--radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);
+    background:radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+               radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%), var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+
+  /* hero */
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  /* section headers */
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+
+  /* cards */
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.good{border-left:3px solid var(--good)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+
+  /* tables */
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);margin:14px 0}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+
+  /* pills & chips */
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+
+  /* flow row */
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.br{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.ac{background:rgba(47,80,97,.12);border-color:rgba(47,80,97,.35);color:var(--accent);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+
+  /* timeline */
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+
+  /* notes */
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  /* mermaid */
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{content:"";width:18px;height:1.5px;background:var(--accent)}
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto}
+
+  /* vs comparison */
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)} .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+
+  /* verdict */
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow);margin:14px 0}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  /* kpi */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  /* code block (ascii flow) */
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;
+    padding:16px 18px;font-family:var(--mono);font-size:12px;line-height:1.65;
+    overflow-x:auto;white-space:pre;box-shadow:var(--shadow);margin:12px 0;
+  }
+
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+  [id]{scroll-margin-top:24px}
+  code{font-family:var(--mono);font-size:11.5px;background:var(--bg-soft);padding:1px 5px;border-radius:3px;color:var(--accent)}
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);font-style:italic;
+  }
+
+  /* footer */
+  .doc-footer{
+    margin-top:38px;padding-top:18px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);letter-spacing:.5px;
+  }
+  .doc-footer a{color:var(--accent);text-decoration:none}
+  .doc-footer a:hover{text-decoration:underline}
+
+  @media(max-width:1080px){
+    .g3{grid-template-columns:1fr 1fr}
+    .g4{grid-template-columns:1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M1</div>
+      <div><b>IM 聊天补全</b><span>Design v2.0</span></div>
+    </div>
+    <div class="meta">2026-06-09 · 宏观设计</div>
+    <nav>
+      <div class="grp">概览</div>
+      <a href="#bg"><span class="n">§1</span> 背景与缺口</a>
+      <a href="#stories"><span class="n">§2</span> 用户故事</a>
+      <div class="grp">设计</div>
+      <a href="#decisions"><span class="n">§3</span> 架构决策</a>
+      <a href="#dataflow"><span class="n">§4</span> 数据流</a>
+      <a href="#components"><span class="n">§5</span> 组件关系</a>
+      <div class="grp">收束</div>
+      <a href="#boundaries"><span class="n">§6</span> 边界与降级</a>
+      <a href="#acceptance"><span class="n">§7</span> 验收标准</a>
+      <a href="#relations"><span class="n">§8</span> 模块关系</a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="tag-row">
+        <span class="b-pill inf">PRD §1</span>
+        <span class="b-pill br">IM 聊天 ×4 功能点</span>
+        <span class="b-pill ok">设计稿</span>
+      </div>
+      <h1>M1 IM 聊天补全</h1>
+      <p class="sub">版本: v2.0 · 2026-06-09 · 覆盖 PRD §1 IM 聊天的 4 个未完成功能点。配套: README.md · 简报.md · 实现计划.md。</p>
+      <div class="meta-row">
+        <span>📐 宏观设计 v2.0</span>
+        <span>👤 袁</span>
+        <span>📅 2026-06-09</span>
+      </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi"><div class="num">4</div><div class="lbl">功能点</div><div class="sub">入口 · 归档 · E2E · 对话建 Agent</div></div>
+      <div class="kpi accent"><div class="num">1</div><div class="lbl">新增后端端点</div><div class="sub">/agents/draft-from-chat（PR-01 评审）</div></div>
+      <div class="kpi gold"><div class="num">3</div><div class="lbl">新增前端组件</div><div class="sub">ConversationalAgentCreate 等</div></div>
+      <div class="kpi good"><div class="num">2</div><div class="lbl">零后端改动功能</div><div class="sub">私聊入口修复 · 消息 E2E</div></div>
+    </div>
+
+    <!-- §1 背景 -->
+    <div id="bg">
+      <div class="sec-head">
+        <div class="tag">§1 背景</div>
+        <h2>现在能做什么，缺什么</h2>
+        <p>AgentHub 的 IM 聊天核心链路已跑通：创建会话、发消息、流式回复、代码高亮和 Diff。左侧有会话列表（私聊+群聊分 Tab），右侧是聊天窗口，消息气泡支持 Pin、复制代码、Diff 内联预览、网页预览卡片。但 PRD §1 还有四个功能点空白。</p>
+      </div>
+
+      <div class="grid g2" style="margin-bottom:14px">
+        <div class="card good">
+          <h4>现在能做的（已有基建）</h4>
+          <p>创建会话 / 发消息 / 流式回复 / 代码高亮 / Diff / Pin / 复制代码 / 网页预览卡片 / 私聊+群聊 Tab</p>
+        </div>
+        <div class="card brand">
+          <h4>缺什么（四个功能点）</h4>
+          <p>私聊入口修复 · 会话归档 · 消息操作 E2E 验证 · 对话式创建 Agent</p>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>功能点</th><th>现在</th><th>目标</th></tr></thead>
+          <tbody>
+            <tr><td><strong>私聊入口</strong></td><td>新用户打开左侧面板 → 空白页 + "去 AI 队友里发起"纯文字，无可点击入口</td><td>启动时自动加载已有会话 + 空态显示「发起私聊」按钮</td></tr>
+            <tr><td><strong>会话归档</strong></td><td>几十个会话堆在一起，没有归档能力</td><td>右键 → 归档 → 移入「已归档」折叠分区</td></tr>
+            <tr><td><strong>消息操作验证</strong></td><td>按钮代码都写了但没在真浏览器里跑过完整链路</td><td>Playwright 截图：发消息 → 回复/复制/Pin/Diff → 逐个断言</td></tr>
+            <tr><td><strong>对话式建 Agent</strong></td><td>只能 3 步表单向导（选模板→配 CLI→填信息）</td><td>输入自然语言描述 → LLM 抽取 → 预览 → 一键创建</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- §2 用户故事 -->
+    <div id="stories">
+      <div class="sec-head">
+        <div class="tag">§2 用户故事</div>
+        <h2>四个功能点的完整体验</h2>
+        <p>从用户视角出发，描述每个功能的完整交互流程——用户做什么，系统如何响应。</p>
+      </div>
+
+      <!-- 功能点 1 -->
+      <h3><span class="dot"></span> 功能点 1：私聊入口修复</h3>
+      <div class="card brand">
+        <h4>用户故事</h4>
+        <p>小陈第一次打开 AgentHub，左侧面板空空如也，只显示"去 AI 队友里发起"几个字。他不知道"AI 队友"在哪，也不知道怎么开始第一次对话。</p>
+      </div>
+
+      <p style="margin-top:14px"><strong>根本原因</strong></p>
+      <div class="card hl">
+        <p>左侧面板的私聊列表只显示用户在当前会话中手动创建的会话。后端数据库里已经存在的 Session（比如之前创建的、或者别人分享的）从不加载到左侧面板。空态时也没有任何可点击的按钮。</p>
+      </div>
+
+      <p style="margin-top:14px"><strong>交互流程</strong></p>
+      <div class="code-block">用户打开 AgentHub
+    │
+    ▼
+系统启动时自动调用后端 → 拿到所有属于当前用户的私聊 Session
+    │
+    ▼
+把这些 Session 加载到左侧面板的会话列表里
+    │
+    ├── 有会话 → 正常显示列表，点击任意一条进聊天
+    │
+    └── 没有会话 → 显示「发起私聊」按钮
+                      │
+                      ▼
+                  点击 → 弹出选择 Agent 的对话框
+                      │
+                      ▼
+                  选一个 Agent → 创建会话 → 进入聊天</div>
+
+      <div class="note info">
+        <span class="ico">💡</span>
+        <span><strong>为什么按钮"不响应"是误判</strong>：之前有人反馈建议按钮点了没反应。调查发现按钮代码本身没问题——它只有在已经有活跃会话时才工作。真正的坑是：新用户根本没有活跃会话，按钮根本不会出现。问题不在按钮逻辑，在会话加载。</span>
+      </div>
+
+      <!-- 功能点 2 -->
+      <h3><span class="dot"></span> 功能点 2：会话归档</h3>
+      <div class="card brand">
+        <h4>用户故事</h4>
+        <p>小李用 AgentHub 两周了，左侧面板堆了 50+ 个会话。有些是上个月的项目早就不用了，但和活跃会话混在一起。他想把不用的归档掉，但发现根本没有归档功能。</p>
+      </div>
+
+      <p style="margin-top:14px"><strong>交互流程</strong></p>
+      <div class="code-block">用户右键某个会话
+    │
+    ▼
+弹出菜单 → 点击「归档」
+    │
+    ▼
+该会话从主列表消失
+    │
+    ▼
+左侧面板底部出现「已归档（N）」折叠分区
+    │
+    ▼
+点击展开 → 看到所有已归档的会话
+    │
+    ▼
+右键 → 「取消归档」→ 回到主列表</div>
+
+      <div class="note warn">
+        <span class="ico">⚠</span>
+        <span><strong>数据流向</strong>：归档不是纯前端行为——它需要持久化到数据库，否则刷新页面归档状态就丢了。这是一个从前端到数据库的完整链路：前端 toggle → API PATCH → 后端 Service → 数据库更新。</span>
+      </div>
+
+      <p style="font-size:11.5px;color:var(--txt-faint)">※ 搜索功能前端已经有了（输入关键词即时过滤），但目前只搜索本地 store 里的会话名和 Agent 名。后端其实也有按标题搜索的接口，只是前端没接。本期先保持本地搜索——对大多数用户够用。如果会话量特别大再改走后端。</p>
+
+      <!-- 功能点 3 -->
+      <h3><span class="dot"></span> 功能点 3：消息操作端到端验证</h3>
+      <div class="card brand">
+        <h4>用户故事</h4>
+        <p>开发团队已经实现了消息气泡的全部操作按钮（回复、复制代码、Pin、Diff 预览、网页预览），也有单元测试。但从来没在真实浏览器里，连着真实后端和真实 Agent 跑过一条完整链路——用户能不能正常回复消息？复制代码按钮真的能复制吗？Diff 渲染对不对？</p>
+      </div>
+
+      <p style="margin-top:14px"><strong>交互流程（验证而非新功能）</strong></p>
+      <div class="code-block">Playwright 自动执行：
+    起后端 + 前端 → 创建会话 → 发一条包含代码块 + diff + URL 的消息
+        │
+        ▼
+    Agent 返回消息后，在消息气泡上逐一验证：
+        ├── 点「回复」→ 输入框出现引用
+        ├── 点「复制代码」→ 剪贴板有内容
+        ├── 点「Pin」→ 消息被固定
+        ├── Diff 区域正确渲染绿色（新增行）和红色（删除行）
+        ├── 网页预览卡片能展开全屏
+        └── 「重新生成」按钮是禁用态（后端还没做这个功能）
+    全流程截图存档</div>
+
+      <!-- 功能点 4 -->
+      <h3><span class="dot"></span> 功能点 4：对话式创建 Agent</h3>
+      <div class="card brand">
+        <h4>用户故事</h4>
+        <p>小王想建一个"前端代码审查 Agent"，但他不想填 3 步表单。他想像聊天一样输入"帮我建一个 Agent，专门审查 React 代码，关注性能和安全"，系统自动理解他的需求并生成 Agent。</p>
+      </div>
+
+      <p style="margin-top:14px"><strong>交互流程</strong></p>
+      <div class="code-block">用户在创建 Agent 页面选「对话式创建」（新增入口）
+    │
+    ▼
+进入聊天式界面（和普通聊天一样的体验）
+    │
+    ▼
+用户说："帮我建一个前端代码审查 Agent，关注 React 性能和安全"
+    │
+    ▼
+系统调 LLM 抽取 → 返回结构化草稿：
+    { name: "前端代码审查助手",
+      role: "代码审查",
+      system_prompt: "你是资深前端审查专家，重点关注 React 性能优化和…",
+      skills: ["React", "性能分析", "安全审计"] }
+    │
+    ▼
+前端展示草稿卡片："这是根据你的描述生成的 Agent 配置，确认创建吗？"
+    │
+    ├── 确认 → 调 POST /api/agents 创建 → 跳转到新 Agent 详情页
+    │
+    └── 不满意 → 继续聊天调整："再加一个 TypeScript 类型检查"</div>
+
+      <h4>传统方式 vs 对话式创建</h4>
+      <div class="vs">
+        <div class="vs-col old">
+          <h4>表单向导</h4>
+          <p>3 步：选模板 → 配 CLI → 填信息</p>
+          <p style="font-size:11.5px;color:var(--txt-dim);margin-top:6px">门槛：需要知道 system_prompt / skills / role 的含义</p>
+          <p style="color:var(--bad);font-size:11px;margin-top:8px">✗ 操作 ~3-5 分钟 · 返回去改表单字段</p>
+        </div>
+        <div class="vs-mid">→</div>
+        <div class="vs-col new">
+          <h4>对话式创建</h4>
+          <p>一句话描述 → 确认</p>
+          <p style="font-size:11.5px;color:var(--txt-dim);margin-top:6px">用自然语言描述需求，无门槛</p>
+          <p style="color:var(--good);font-size:11px;margin-top:8px">✓ ~30 秒 · 继续聊天调整</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- §3 架构决策 -->
+    <div id="decisions">
+      <div class="sec-head">
+        <div class="tag">§3 架构决策</div>
+        <h2>为什么这样做，不那样做</h2>
+        <p>4 个关键决策，每个都包含选择、原因、代价。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card hl">
+          <h4>决策 1：私聊死路修 Session 回灌而不是改按钮</h4>
+          <p><span class="b-pill ok">选择</span> 在 store 里加一个 <code>hydrateFromSessions</code> 方法，App 启动时调一次后端 list 接口，把所有已有 Session 加载到前端</p>
+          <p><span class="b-pill inf">原因</span> 按钮逻辑没问题——它只在有活跃会话时才工作。真坑是"没有会话可用"。回灌解决的是数据源头问题</p>
+          <p style="color:var(--warn);margin-top:6px">代价：启动时多一次 API 调用；回灌的 Session 和本地新建的 Session 需要以 agent_id 去重</p>
+        </div>
+        <div class="card hl">
+          <h4>决策 2：归档走全链路 DB 持久化而不是纯前端</h4>
+          <p><span class="b-pill ok">选择</span> 在 Session 实体上加 <code>archived</code> 字段，沿 domain → model → migration → command → service → API → 前端 完整链路实现</p>
+          <p><span class="b-pill inf">原因</span> 归档是持久行为——用户期望刷新页面后归档状态还在。纯前端做（比如 localStorage）会在清缓存后丢失</p>
+          <p style="color:var(--warn);margin-top:6px">代价：需要一条 alembic migration（涉及多 worktree stamp 冲突风险）；改动面大（~9 个文件）</p>
+        </div>
+        <div class="card hl">
+          <h4>决策 3：E2E 不改源码只补测试</h4>
+          <p><span class="b-pill ok">选择</span> 消息操作 E2E 只新建一个 Playwright spec 文件，不动任何源码</p>
+          <p><span class="b-pill inf">原因</span> MessageBubble 的所有操作按钮代码已经完整（回复/Pin/复制/Diff/网页预览），缺的只是端到端证据。加功能 = 加风险；补测试 = 降低风险</p>
+          <p style="color:var(--warn);margin-top:6px">代价：依赖真实后端和 Agent 能跑起来——如果环境挂了 E2E 跑不了，但这不是代码问题</p>
+        </div>
+        <div class="card hl">
+          <h4>决策 4：对话式创建走 LLM 抽取而不是规则模板</h4>
+          <p><span class="b-pill ok">选择</span> 用户自然语言 → 调 LLM 抽取结构化 JSON → 预览 → 确认创建</p>
+          <p><span class="b-pill inf">原因</span> 规则模板（比如关键词匹配"前端"→role="前端开发"）太僵硬，用户稍微换种说法就匹配不上。LLM 抽取灵活但依赖 LLM 可用性</p>
+          <p style="color:var(--warn);margin-top:6px">代价：需要 LLM 凭证（复用现有协调者凭证）；需要 PR-01 评审新端点</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- §4 数据流 -->
+    <div id="dataflow">
+      <div class="sec-head">
+        <div class="tag">§4 数据流</div>
+        <h2>三个功能点的全链路</h2>
+        <p>从用户操作到系统响应的完整数据路径（功能点 3 仅验证、无新链路，故略）。</p>
+      </div>
+
+      <h3><span class="dot"></span> 功能点 1：Session 回灌</h3>
+      <div class="code-block">App 启动
+    │
+    ▼
+前端调 GET /api/sessions?type=private
+    │
+    ▼
+后端返回 SessionOut[]（含 agent_id / title / updated_at）
+    │
+    ▼
+chatStore.hydrateFromSessions(sessions)
+    遍历每个 session，映射成 conversation 对象
+    以 agent_id 为 key 存入 store，避免和本地新建的重复
+    同时填充 sessionIds 映射表（session_id → agent_id）
+    │
+    ▼
+左侧面板重新渲染 → 会话列表可见</div>
+
+      <h3><span class="dot"></span> 功能点 2：归档</h3>
+      <div class="code-block">用户点击归档按钮
+    │
+    ▼
+前端调 PATCH /api/sessions/{id}  { archived: true }
+    │
+    ▼
+后端 session_service.update() → repository 更新 DB
+    │
+    ▼
+前端 chatStore.setConversationArchived(id, true)
+    │
+    ▼
+左侧面板从主列表移除该会话 → 移入「已归档」分区</div>
+
+      <h3><span class="dot"></span> 功能点 4：对话式创建 Agent</h3>
+      <div class="code-block">用户输入自然语言描述
+    │
+    ▼
+前端 POST /api/agents/draft-from-chat  { description: "…" }
+    │
+    ▼
+后端调 LLM（复用协调者凭证）→ 抽取 JSON
+    │
+    ▼
+返回 { name, role, system_prompt, skills }
+    │
+    ▼
+前端渲染草稿卡片 → 用户确认
+    │
+    ▼
+调 POST /api/agents → 创建 Agent → 跳转详情页</div>
+
+      <div class="mermaid-wrap">
+        <div class="cap">接口拓扑 · 三个写端点</div>
+        <pre class="mermaid">
+graph LR
+    FE[前端 Frontend]
+    BE[后端 Backend]
+    DB[(PostgreSQL)]
+    LLM[LLM 协调者凭证]
+
+    subgraph F1_回灌
+      F1a["GET /api/sessions?type=private ◀ 已有"]
+      F1b["chatStore.hydrateFromSessions()"]
+    end
+    subgraph F2_归档
+      F2a["PATCH /api/sessions/{id} ◀ 新增 archived"]
+      F2b["session_service.update()"]
+    end
+    subgraph F4_对话建Agent
+      F4a["POST /api/agents/draft-from-chat ◀ 新增 · PR-01"]
+      F4b["POST /api/agents ◀ 已有"]
+      F4c["agent_service.draft()"]
+    end
+
+    FE --> F1a --> BE
+    F1a --> DB
+    FE --> F2a --> F2b --> DB
+    FE --> F4a --> F4c --> LLM
+    FE --> F4b --> DB
+
+    style FE fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    style BE fill:#E8E1D2,stroke:#5A5447,color:#1F1D17
+    style DB fill:#E8E1D2,stroke:#5A5447,color:#1F1D17
+    style LLM fill:#F0E2C5,stroke:#B07F22,color:#5A5447
+    style F2a fill:#F0E2C5,stroke:#B07F22,color:#5A5447
+    style F4a fill:#F0E2C5,stroke:#B07F22,color:#5A5447
+        </pre>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- §5 组件关系 -->
+    <div id="components">
+      <div class="sec-head">
+        <div class="tag">§5 组件关系</div>
+        <h2>概念层组件树</h2>
+        <p>已有组件如何被本模块的四个功能点扩展或新增。</p>
+      </div>
+
+      <div class="mermaid-wrap">
+        <div class="cap">M1 组件关系（概念层）</div>
+        <pre class="mermaid">
+graph TD
+    APP["AppShell / App<br/>启动触发 hydrateFromSessions ◀ 改"]
+    APP --> LP[LeftPanel 会话列表]
+    APP --> CV["ChatView 聊天窗口（已有）"]
+    CV --> MB[MessageBubble 消息气泡]
+    MB --> OP1["回复（已有）"]
+    MB --> OP2["复制代码（已有）"]
+    MB --> OP3["Pin（已有）"]
+    MB --> OP4["Diff 内联（已有）"]
+    MB --> OP5["网页预览（已有）"]
+
+    LP --> EMPTY["空态 CTA<br/>「发起私聊」按钮 ◀ 改"]
+    LP --> LIST[私聊列表]
+    LP --> ARCHIVE["「已归档」折叠分区 ◀ 新增"]
+    LP --> ARCH_BTN["右键菜单 → 归档 ◀ 新增"]
+
+    APP --> CAM[CreateAgentModal]
+    CAM --> STEP1["Step 1 加入口<br/>「对话式创建」按钮 ◀ 改"]
+    CAM --> CAC["ConversationalAgentCreate<br/>聊天式 UI ◀ 新增"]
+    CAC --> DRAFT["POST /agents/draft-from-chat ◀ 新端点"]
+    DRAFT --> LLM[LLM 协调者凭证]
+
+    style APP fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    style ARCHIVE fill:#F0E2C5,stroke:#B07F22,color:#5A5447
+    style ARCH_BTN fill:#F0E2C5,stroke:#B07F22,color:#5A5447
+    style CAC fill:#F0E2C5,stroke:#B07F22,color:#5A5447
+    style EMPTY fill:#DDE9D5,stroke:#9AB58D,color:#1F1D17
+    style LLM fill:#E8E1D2,stroke:#5A5447,color:#5A5447
+        </pre>
+      </div>
+
+      <div class="note info">
+        <span class="ico">💡</span>
+        <span><strong>扩展模式</strong>：功能点 1 改 3 个已有模块（App/chatStore/LeftPanel）。功能点 2 改 9 个模块（5 层后端 + 前端 3 文件）。功能点 3 零源码改动、纯加测试。功能点 4 新增 1 后端端点 + 1 前端组件，CreateAgentModal Step 1 加一个入口。</span>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- §6 边界与降级 -->
+    <div id="boundaries">
+      <div class="sec-head">
+        <div class="tag">§6 边界与降级</div>
+        <h2>什么情况会失败，失败了怎么办</h2>
+      </div>
+
+      <h4>优雅降级</h4>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>场景</th><th>降级行为</th></tr></thead>
+          <tbody>
+            <tr><td>Session 回灌和本地新建重复</td><td>以 agent_id 去重，本地优先</td></tr>
+            <tr><td>归档 migration 遇到 alembic stamp 冲突</td><td>手动修复 stamp 再 upgrade</td></tr>
+            <tr><td>功能点 4 的 LLM 不可用</td><td>mock LLM 返回固定草稿，前端链路先跑通</td></tr>
+            <tr><td>功能点 4 的 PR-01 未通过</td><td>对话式创建不实现，回退到仅有表单向导</td></tr>
+            <tr><td>E2E 环境挂了</td><td>跳过 E2E 但保留 spec 文件，环境恢复后再跑</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 style="margin-top:18px">明确不做（防 scope creep）</h4>
+      <div class="chip-row">
+        <span class="chip">❌ 重新生成消息的真实现（后端无此端点，按钮暂 disabled）</span>
+        <span class="chip">❌ 搜索强制改走后端（本地搜索够用）</span>
+        <span class="chip">❌ LLM 凭证体系新建（功能点 4 复用现有协调者凭证）</span>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- §7 验收标准 -->
+    <div id="acceptance">
+      <div class="sec-head">
+        <div class="tag">§7 验收标准</div>
+        <h2>怎么算做完</h2>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>功能点</th><th>验收方式</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td>私聊入口修复</td><td>浏览器手动测试 + vitest</td><td>新用户打开 → 看到「发起私聊」按钮 → 点击 → 选 Agent → 进聊天</td></tr>
+            <tr><td>会话归档</td><td>浏览器手动测试 + pytest</td><td>右键归档 → 从主列表消失 → 「已归档」分区出现 → 刷新页面状态还在</td></tr>
+            <tr><td>消息操作 E2E</td><td><span class="b-pill br">Playwright 浏览器截图</span></td><td>发消息 → 回复/复制/Pin/Diff/网页预览 → 每个操作截图通过</td></tr>
+            <tr><td>对话式创建 Agent</td><td>pytest(mock LLM) + 浏览器截图</td><td>输入描述 → LLM 抽取 → 草稿预览 → 确认创建 → 跳转详情</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <span class="ico">⚠</span>
+        <span>消息操作 E2E（功能点 3）涉及真实用户交互，<strong>不能只靠单测</strong>，必须用真浏览器走通一次并截图存档。功能点 4（对话式创建）同理需要浏览器验证草稿卡片渲染。</span>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- §8 模块关系 -->
+    <div id="relations">
+      <div class="sec-head">
+        <div class="tag">§8 模块关系</div>
+        <h2>与其他模块的关联</h2>
+      </div>
+
+      <div class="grid g2">
+        <div class="card hl">
+          <h4>依赖（上游输入）</h4>
+          <p>已有的 Session CRUD、WebSocket 通道、Agent 管理、协调者 LLM 凭证</p>
+        </div>
+        <div class="card brand">
+          <h4>被依赖（下游消费）</h4>
+          <p>私聊入口修复后，M2（任务编排）的群聊列表也能受益于回灌逻辑</p>
+        </div>
+        <div class="card good">
+          <h4>并行（互不阻塞）</h4>
+          <p>四项功能点互不阻塞（功能点 4 的阻塞不影响 P0/P1）</p>
+        </div>
+        <div class="card">
+          <h4>无关（无冲突）</h4>
+          <p>与 M3（产物预览）、M4（部署桌面）无契约冲突</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- footer -->
+    <div class="doc-footer">
+      <span>M1 IM 聊天补全 · 宏观设计 v2.0 · 2026-06-09 · 作者 袁</span>
+      <span><a href="实现计划.html">→ 实现计划</a> · <a href="README.md">README</a> · <a href="简报.md">简报</a></span>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

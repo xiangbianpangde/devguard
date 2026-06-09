@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>强制性约束审查与修复 · v1.0</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'base', securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#F5F0E4', primaryTextColor: '#1F1D17', primaryBorderColor: '#8B3A1F',
+          lineColor: '#5A5447', secondaryColor: '#E8E1D2', tertiaryColor: '#FAF7F0',
+          fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif', fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true }
+      });
+    }
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;--panel:#FFFFFF;--panel-2:#F8F6F0;--line:#E0DCD0;--line-soft:#ECEAE2;
+    --txt:#1F1D17;--txt-dim:#5A5447;--txt-faint:#9A9385;
+    --brand:#8B3A1F;--brand-2:#A85032;--accent:#2F5061;
+    --good:#3F6B3D;--warn:#B07F22;--bad:#9C3A2E;
+    --code-bg:#26241F;--code-fg:#E8E2D4;--radius:14px;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+    --serif:'Source Serif Pro','Charter','Noto Serif CJK SC','Songti SC',serif;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{font-family:var(--sans);color:var(--txt);line-height:1.75;
+    background:radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),var(--bg);
+    padding:48px 20px;}
+  .wrap{max-width:920px;margin:0 auto;}
+  header.doc{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:38px 40px;box-shadow:var(--shadow);margin-bottom:28px;
+    border-top:4px solid var(--brand);}
+  header.doc h1{font-family:var(--serif);font-size:30px;letter-spacing:.5px;margin-bottom:8px;}
+  header.doc .meta{color:var(--txt-faint);font-size:13.5px;font-family:var(--mono);}
+  header.doc .verdict{margin-top:18px;padding:16px 20px;background:var(--panel-2);
+    border-left:4px solid var(--accent);border-radius:8px;font-size:15px;}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:30px 38px;box-shadow:var(--shadow);margin-bottom:24px;}
+  h2{font-family:var(--serif);font-size:21px;color:var(--brand);margin-bottom:16px;
+    padding-bottom:8px;border-bottom:2px solid var(--line-soft);}
+  h3{font-size:16px;color:var(--accent);margin:18px 0 10px;}
+  p{margin:10px 0;color:var(--txt-dim);}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{background:var(--panel-2);color:var(--txt);font-weight:600;border-bottom:2px solid var(--line);}
+  td.c,th.c{text-align:center;white-space:nowrap;}
+  code{font-family:var(--mono);font-size:12.5px;background:#EFEBE0;padding:1px 6px;border-radius:5px;color:var(--brand-2);}
+  .pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .p-hi{background:#F6DAD3;color:var(--bad);}
+  .p-mid{background:#F6E6C8;color:var(--warn);}
+  .p-low{background:#FCEFC9;color:#8a6d1a;}
+  .p-ok{background:#D9E9D6;color:var(--good);}
+  .p-wait{background:#F0E2C4;color:var(--warn);}
+  .p-na{background:#E6E3DA;color:var(--txt-faint);}
+  pre.mermaid{background:var(--panel-2);border:1px solid var(--line-soft);border-radius:10px;
+    padding:18px;text-align:center;margin:16px 0;}
+  ul{margin:8px 0 8px 22px;}li{margin:5px 0;color:var(--txt-dim);}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:8px 0;}
+  .kpi .card{background:var(--panel-2);border:1px solid var(--line-soft);border-radius:10px;padding:16px;}
+  .kpi .k{font-size:12px;color:var(--txt-faint);}
+  .kpi .v{font-size:15px;font-weight:700;margin-top:4px;}
+  .kpi .v b{color:var(--good);}
+  footer{text-align:center;color:var(--txt-faint);font-size:12.5px;font-family:var(--mono);margin-top:8px;}
+  .arrow{color:var(--brand);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <h1>强制性约束审查与修复 · v1.0</h1>
+  <div class="meta">标的: /root/开发规范（devguard）&nbsp;·&nbsp;审查日期: 2026-06-10&nbsp;·&nbsp;体例参照 M1-im-chat-v2.0-参考模板</div>
+  <div class="verdict">
+    <b>3 秒读懂：</b>devguard 的强制约束<b>设计满分、执行四层</b>；漏的全在「人收尾」环节——
+    本轮修掉 4 项机器可改项并交叉验证，留账 3 项需 Owner 签字/定夺，AI 不代办。
+  </div>
+</header>
+
+<section>
+  <h2>一 · 关键数字（修复前 <span class="arrow">→</span> 后）</h2>
+  <div class="kpi">
+    <div class="card"><div class="k">版本口径</div><div class="v">V1.2/35/V2.0.1 三方打架 <span class="arrow">→</span> <b>统一 V2.0.1</b></div></div>
+    <div class="card"><div class="k">规范计数</div><div class="v">15/16/17 不一 <span class="arrow">→</span> <b>统一 17</b>（=_meta.yaml）</div></div>
+    <div class="card"><div class="k">功能点</div><div class="v">35（陈旧） <span class="arrow">→</span> <b>49</b></div></div>
+    <div class="card"><div class="k">CHANGELOG 最新</div><div class="v">V1.4 <span class="arrow">→</span> <b>V2.0.1</b></div></div>
+    <div class="card"><div class="k">工作树脏文件</div><div class="v">16 <span class="arrow">→</span> <b>0</b></div></div>
+    <div class="card"><div class="k">改动文件（未提交）</div><div class="v">— <span class="arrow">→</span> <b>4</b></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>二 · 强制性约束盘点</h2>
+  <h3>六维度红线（违反 = 打回）</h3>
+  <table>
+    <tr><th class="c">维度</th><th>强制红线</th><th>自动检测层</th></tr>
+    <tr><td class="c">01 架构</td><td>禁循环依赖 · 领域层不依赖框架 · 禁跨层调用</td><td><code>import-linter</code></td></tr>
+    <tr><td class="c">02 代码</td><td>禁 print · SQL 参数化 · 密钥走环境变量 · 禁 <code>except:pass</code> · 禁注释代码/断点 · 日志脱敏 · 输入校验</td><td><code>ruff</code> + <code>gitleaks</code></td></tr>
+    <tr><td class="c">03 Git</td><td><b>main 禁直推</b> · Conventional Commits · 一 commit 一事 · 禁 force push · ≥1 Approve</td><td><code>commitlint</code> + 分支保护</td></tr>
+    <tr><td class="c">04 API</td><td>名词复数+kebab · 统一响应 · 错误码唯一 · 默认认证 · 向后兼容</td><td><code>spectral</code></td></tr>
+    <tr><td class="c">05 测试</td><td>独立不依赖顺序 · 只 Mock 外部边界 · 覆盖正常+边界+异常 · 无 flaky</td><td>覆盖率门禁</td></tr>
+    <tr><td class="c">06 文档</td><td>必有 README · <b>发布更 CHANGELOG</b> · 文档随码同步 · 公共 API docstring · 注释与代码一致</td><td>审查</td></tr>
+  </table>
+  <h3>流程级强制 + 五核心原则</h3>
+  <p><b>收束节点</b>为强制流程：到点未收束 AI 拒绝下一功能点；AI 审计须 0 红线，<b>人审计必做且在 AI 之后</b>，产物必落盘。
+  核心原则：不越界 / 不黑盒 / 不断档 / 不拖欠 / <b>不积压</b>。</p>
+</section>
+
+<section>
+  <h2>三 · 约束执行架构（四层防御）</h2>
+  <pre class="mermaid">
+graph TD
+    A[L1 本地 pre-commit<br/>10 钩子] --> B[L1 服务端 CI<br/>5 阶段]
+    B --> C[L4 规范测试<br/>tests/conventions 65 项]
+    C --> D[人审计签核<br/>收束节点]
+    style D fill:#ffd
+  </pre>
+  <p>前三层「机器可强制」，第四层「人审计」靠自觉——这正是规范自己点名的「强制却仅靠自觉」矛盾点，也是本次发现欠账所在。</p>
+</section>
+
+<section>
+  <h2>四 · 审查发现与处置（6 项）</h2>
+  <table>
+    <tr><th class="c">#</th><th>发现</th><th>违反约束</th><th class="c">严重度</th><th class="c">处置</th></tr>
+    <tr><td class="c">F1</td><td>14 个收束节点中 13 个人审计 <code>⏳ 待签核</code>，仅 v0.1 有签核文件</td><td>06-收束「人审计必做」「强制流程」</td><td class="c"><span class="pill p-hi">🔴 高</span></td><td class="c"><span class="pill p-ok">v0.1 已订正</span><br><span class="pill p-wait">余 13 留账</span></td></tr>
+    <tr><td class="c">F2</td><td>README/CLAUDE/STATUS 三方数据漂移</td><td>06「文档随码同步」· 单一事实源</td><td class="c"><span class="pill p-mid">🟠 中</span></td><td class="c"><span class="pill p-ok">已修</span></td></tr>
+    <tr><td class="c">F2+</td><td>CHANGELOG 停在 V1.4，漏 V1.5/V2.0.1</td><td>06 红线「发布更 CHANGELOG」</td><td class="c"><span class="pill p-mid">🟠 中</span></td><td class="c"><span class="pill p-ok">已回填</span></td></tr>
+    <tr><td class="c">F3</td><td>工作树 16 个 research 文件长期未提交</td><td>核心原则「不积压」</td><td class="c"><span class="pill p-mid">🟠 中</span></td><td class="c"><span class="pill p-ok">已清(纯CRLF噪音)</span></td></tr>
+    <tr><td class="c">F4</td><td>直接在 <code>master</code> 提交，无 PR</td><td>03 红线 1「main 禁直推」</td><td class="c"><span class="pill p-low">🟡 低</span></td><td class="c"><span class="pill p-wait">留账</span></td></tr>
+    <tr><td class="c">F5</td><td>调研目录 N1–N6 各存两个近重名文件</td><td>FILE_GRAPH 单一权威 / 08 去重</td><td class="c"><span class="pill p-low">🟡 低</span></td><td class="c"><span class="pill p-wait">留账(非字节重复)</span></td></tr>
+  </table>
+  <p style="font-size:13px;color:var(--txt-faint)">不可达项：本机无 <code>pytest</code> 模块，「65 L4 tests passed」未能独立复跑（仅静态核对计数演进合理）。</p>
+</section>
+
+<section>
+  <h2>五 · 约束执行拓扑（修复后）</h2>
+  <pre class="mermaid">
+graph LR
+    DEV[AI 写代码] --> L1[L1 pre-commit] --> CI[CI 5 阶段] --> L4[L4 65 测试]
+    DEV -.每功能点.-> WL[worklog+STATUS]
+    WL --> GATE{收束闸门 强制}
+    GATE --> AIAUD[AI 审计 0 红线]
+    AIAUD --> HUMAN[人审计签核]
+    HUMAN -->|v0.1 已订正| OK[落盘报告]
+    HUMAN -.余 13 节点缺.-> PEND[待人签]
+    style GATE fill:#ffd
+    style PEND fill:#fdd
+    style OK fill:#dfd
+  </pre>
+</section>
+
+<section>
+  <h2>六 · 改动清单（4 文件，截至落盘未提交）</h2>
+  <table>
+    <tr><th>文件</th><th>改了什么</th></tr>
+    <tr><td><code>README.md</code></td><td>版本 V1.2→V2.0.1（2 处）· 16 维度→17 · 规范清单补第 17 行 CONTRIBUTING · CHANGELOG 链接范围 →V2.0.1</td></tr>
+    <tr><td><code>CLAUDE.md</code></td><td>进度 35/35→49/49 · 项目概述 35→49 · 收束节点「尚无记录」→ 据实（14 执行 / v0.1 已签 / 13 待签）</td></tr>
+    <tr><td><code>STATUS.md</code></td><td>v0.1 人审计 <code>⏳ 待签核</code> → <code>✅ 已签核</code>（指向签核文件）</td></tr>
+    <tr><td><code>CHANGELOG.md</code></td><td>新增 <code>## [V2.0.1]</code> + <code>## [V1.5]</code> 两条 Keep-a-Changelog 条目</td></tr>
+  </table>
+  <p>每处替换带「唯一匹配断言」执行，0 误伤；working tree 仅含这 4 项有意编辑（CRLF 噪音已清）。</p>
+</section>
+
+<section>
+  <h2>七 · 结论 + Owner 决策点</h2>
+  <table>
+    <tr><th>维度</th><th>结论</th></tr>
+    <tr><td>约束设计</td><td><span class="pill p-ok">标杆</span> 红线分层 · 配检测 · 去重映射清晰 · 3 表口径一致</td></tr>
+    <tr><td>可执行性</td><td><span class="pill p-ok">完整</span> 四层防御落地，配置复制即用</td></tr>
+    <tr><td>自身守约</td><td><span class="pill p-mid">部分</span> 机器可强制的守住了，靠人自觉的原本欠账</td></tr>
+  </table>
+  <h3>仍需 Owner（袁 / xiangbianpangde）</h3>
+  <ul>
+    <li><b>F1 红线</b>：补签 v0.2–v1.5 共 13 份人审计，或在 STATUS 注明「单人延后签核 + 期限」</li>
+    <li><b>F5</b>：定夺 N1–N6 保留哪套主题树，更新 <code>00-主表.md</code> + FILE_GRAPH</li>
+    <li><b>F4</b>：03 红线补「单人/档位例外」脚注，或启用分支保护</li>
+    <li><b>提交</b>：4 文档改动 + 本报告均未提交（03 走 PR 流程，未获授权）</li>
+  </ul>
+  <p style="margin-top:16px;padding:14px 18px;background:var(--panel-2);border-left:4px solid var(--brand);border-radius:8px;">
+    <b>一句话：</b>这套规范「教得对、做得差一口气」——凡机器能卡的都守住，凡需人收尾的都欠着，而这恰是它自己点名的最难处；AI 替不了，也不该替。</p>
+</section>
+
+<footer>强制性约束审查与修复 · v1.0 · 2026-06-10 · 落盘于 docs/reports/</footer>
+
+</div>
+</body>
+</html>
