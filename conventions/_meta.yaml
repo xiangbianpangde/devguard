@@ -67,6 +67,9 @@ conventions:
         - .pre-commit-config.yaml
         - commitlint.config.js
         - scripts/check_worklog_ref.py
+        - scripts/check_status_updated.py
+        - scripts/check_worklog_structure.py
+        - scripts/check_file_placement.py
     l1_check: pre-commit + commitlint
     l1_check_doc: https://pre-commit.com/
     l3_route: 任务类型=提交 → 必读本篇
@@ -120,7 +123,8 @@ conventions:
       recommend: 7    # 7 篇流程文档
       l1_check_path:
         - scripts/check_ai_workflow.py
-    l1_check: check_ai_workflow.py（V5.2 章节级 L1）
+        - scripts/check_claude.py
+    l1_check: check_ai_workflow.py + check_claude.py（V5.2 章节级 L1 + CLAUDE 结构）
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
@@ -147,7 +151,8 @@ conventions:
       l1_check_path:
         - scripts/render_meta.py
         - docs/templates/devguard/html-report-template/render.py
-    l1_check: render_meta.py + render.py（仪表盘模板 + 渲染脚本）
+        - scripts/check_status.py
+    l1_check: render_meta.py + render.py + check_status.py（仪表盘模板 + 渲染 + STATUS L1）
     l1_check_doc: https://docs.python.org/3/library/string.html#template-strings
     l3_route: 任务类型=仪表盘渲染 → 必读本篇
 
@@ -162,7 +167,9 @@ conventions:
         - docs/templates/devguard/
         - docs/templates/devguard/README-模板索引.md
         - docs/reports/
-    l1_check: 模板 + reports/ 目录（V7.1 章节级 L1）
+        - scripts/check_plan.py
+        - scripts/check_template_drift.py
+    l1_check: 模板 + reports/ 目录 + check_plan.py + 模板漂移检测（V7.1 章节级 L1 + 开发清单格式）
     l1_check_doc: https://keepachangelog.com/
     l3_route: 任务类型=模板/汇报 → 必读本篇
 
@@ -347,9 +354,39 @@ pre_commit:
     source: local
     grade: red_line
     maps_to: 06-documentation
-    description: "06 红线：commit message 必须引用 worklog 文件（汇报不断档）"
+    description: "06 红线：commit message 必须引用 worklog 文件且该文件真实在本次变更中（V2.1 #36 增强）"
     stages: [commit-msg]
     entry: python scripts/check_worklog_ref.py
+    language: python
+
+  - id: commit-msg-status-updated
+    name: worklog change requires STATUS.md sync
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "06 汇报：改 worklog 必须同步更新 STATUS.md 且日期一致（V2.1 #37）；豁免 [skip-status]"
+    stages: [commit-msg]
+    entry: python scripts/check_status_updated.py
+    language: python
+
+  - id: commit-msg-worklog-structure
+    name: worklog must have required sections
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "06 汇报：worklog 必须含必需段 + 至少 1 个完成项 [x]（V2.1 #38）；豁免 [skip-worklog-structure]"
+    stages: [commit-msg]
+    entry: python scripts/check_worklog_structure.py
+    language: python
+
+  - id: commit-msg-file-placement
+    name: new files must follow FILE_GRAPH decision tree
+    source: local
+    grade: warning
+    maps_to: meta/FILE_GRAPH.md
+    description: "核心规则 1：新增文件按 FILE_GRAPH 决策树放置；根目录禁散文件（V2.1 #45）；豁免 [skip-file-placement]"
+    stages: [commit-msg]
+    entry: python scripts/check_file_placement.py
     language: python
 
 # ============================================================

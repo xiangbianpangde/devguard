@@ -1,6 +1,4 @@
 
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -75,6 +73,7 @@ GET /api/v1/users          列表      POST   /api/v1/users        创建
 GET /api/v1/users/:id      详情      PUT/PATCH /api/v1/users/:id 更新
 DELETE /api/v1/users/:id   删除      GET /api/v1/users/:id/orders 子资源
 ```
+
 层级 ≤ 3 层；特殊操作用 `POST /orders/:id/cancel`。
 
 ### 响应结构

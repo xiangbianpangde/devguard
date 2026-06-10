@@ -82,7 +82,6 @@ pre-commit install --hook-type commit-msg
 
 **维护者**：袁 (xiangbianpangde)  **版本**：V2.0.1  **许可**：MIT License
 
-
 ## 快速开始（新项目）
 
 ### 1. 复制模板

@@ -1,6 +1,4 @@
 
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -161,6 +159,7 @@ def fetch_user(user_id: str) -> User:
 def process(d):           # 看完函数体才知道干嘛
     return d[0] + d[1]
 ```
+
 ✅ `def calculate_total_price(item_prices: list[float]) -> float:` —— 名字即文档，调用方不读实现就懂。
 
 ### ❌ 静默吞异常
@@ -172,6 +171,7 @@ def fetch_user(user_id):
     except Exception:
         pass              # 返回 None，调用方不知出错，排查时日志空白
 ```
+
 ✅ 见 §四：分类型捕获，明确传播或记日志后转换。静默失败让 bug 在远处才暴露，上下文已丢。
 
 ---

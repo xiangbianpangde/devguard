@@ -1,6 +1,4 @@
 
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -117,6 +115,7 @@ forbidden_modules = fastapi, sqlalchemy, django
 # user/service.py     from order.service import OrderService
 # order/service.py    from user.service import UserService   # A→B→A
 ```
+
 ✅ 提取公共接口到 `common/interfaces.py`，两侧都依赖抽象，解除直接互引。
 
 ### ❌ 跨层调用
@@ -126,6 +125,7 @@ forbidden_modules = fastapi, sqlalchemy, django
 def create_user(request):
     db.execute("INSERT INTO users ...")   # 表现层直接操作 DB
 ```
+
 ✅ 表现层 → 应用层 `UserService.register()` → 领域层 `User.create()` → 基础设施层 `repo.save()`。换 DB 只改基础设施层。
 
 > 密钥硬编码反模式见 [02](02-coding_代码编写规范.md)；「依赖黑洞 / 孤儿模块」属调用图分析，见 [08](08-code-understanding_代码理解与图谱规范.md)。

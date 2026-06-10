@@ -110,6 +110,20 @@ jobs:
       - name: check_code_understanding.py（V6.1 08 章节级 L1）
         run: python scripts/check_code_understanding.py
 
+      # V2.1 #40-#42：入口文件章节级 L1（STATUS / CLAUDE / 开发清单）
+      - name: check_status.py（V2.1 #40 STATUS 格式 L1）
+        run: python scripts/check_status.py
+
+      - name: check_claude.py（V2.1 #41 CLAUDE 结构 L1）
+        run: python scripts/check_claude.py
+
+      - name: check_plan.py（V2.1 #42 开发清单格式 L1 + 交叉校验）
+        run: python scripts/check_plan.py
+
+      # V2.1 #46: 收束节点产物检查（ADR + 收束报告）
+      - name: check_convergence_artifacts.py（V2.1 #46 收束产物检查）
+        run: python scripts/check_convergence_artifacts.py
+
   # -------------------------------------------------------------
   # 阶段 4：compliance（合规扫描）
   # -------------------------------------------------------------
@@ -129,6 +143,10 @@ jobs:
 
       - name: Run compliance scan
         run: python scripts/check_compliance.py
+
+      # V2.1 #44: 模板漂移检测（5 类入口文件章节存在性对比）
+      - name: check_template_drift.py（V2.1 #44 模板漂移检测）
+        run: python scripts/check_template_drift.py
 
   # -------------------------------------------------------------
   # 阶段 5：build（构建验证，依赖前 4 阶段）

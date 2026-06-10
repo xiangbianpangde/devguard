@@ -36,15 +36,21 @@ def parse_status(path: Path) -> list[dict]:
 
     边界条件：STATUS.md 可能含多个 markdown 表格（当前进度 + 收束历史 + 阻塞项等），
     此函数只取 '## 当前进度' 节后的第一个表格。
+
+    V2.1 #43 strict 模式：解析失败时明确 WARN（不再静默返回空列表兜底）。
+    调用方（render）应检查返回的 rows 是否非空，并用 substitute（fail-fast）。
     """
     if not path.exists():
+        print(f"WARN: STATUS.md ({path}) 不存在，仪表盘将无功能点数据", file=sys.stderr)
         return []
     rows: list[dict] = []
     in_progress_section = False
     in_table = False
+    found_any_section = False
     for line in path.read_text(encoding="utf-8").splitlines():
         # 跟踪是否在 ## 当前进度 节内
         if line.startswith("## "):
+            found_any_section = True
             in_progress_section = "当前进度" in line
             in_table = False  # 进入新节就重置表格状态
             continue
@@ -73,7 +79,42 @@ def parse_status(path: Path) -> list[dict]:
                     "date": cols[4] if len(cols) > 4 else "",
                 }
             )
+    if not rows:
+        if found_any_section:
+            print(
+                "WARN: STATUS.md 存在但「## 当前进度」节无表格或为空，仪表盘功能点表将无数据",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "WARN: STATUS.md 缺「## 当前进度」节，仪表盘功能点表将无数据",
+                file=sys.stderr,
+            )
     return rows
+
+
+def status_pre_check(path: Path) -> bool:
+    """V2.1 #43: STATUS.md 格式预检查（渲染前快速 sanity check）
+
+    返回 True = 格式基本合格；False = 有严重问题（但不会阻止渲染——只 WARN）。
+    """
+    if not path.exists():
+        print("WARN: STATUS.md 不存在，跳过预检查", file=sys.stderr)
+        return False
+    content = path.read_text(encoding="utf-8")
+    issues: list[str] = []
+    if "## 当前进度" not in content:
+        issues.append("缺「## 当前进度」节")
+    if "## 收束节点历史" not in content:
+        issues.append("缺「## 收束节点历史」节")
+    if "> 更新:" not in content and "> 更新：" not in content:
+        issues.append("缺「> 更新: YYYY-MM-DD」行（口径漂移风险）")
+    if issues:
+        print(
+            f"WARN: STATUS.md 格式预检查发现问题: {'; '.join(issues)}", file=sys.stderr
+        )
+        return False
+    return True
 
 
 def render_convention_rows(meta: dict) -> str:
@@ -126,9 +167,15 @@ def compute_progress(status_rows: list[dict]) -> tuple[int, int, int]:
 def render(
     meta_path: Path, status_path: Path, out_path: Path, l4_passed: int, l4_total: int
 ) -> None:
+    # V2.1 #43: STATUS 格式预检查（渲染前 sanity check，fail-soft/WARN）
+    status_pre_check(status_path)
     meta = load_meta(meta_path)
     status_rows = parse_status(status_path)
     done, total, pct = compute_progress(status_rows)
+    if total == 0:
+        print(
+            "WARN: STATUS.md 未解析出任何功能点行，仪表盘进度将显示 0%", file=sys.stderr
+        )
     red_line_total = sum(
         c.get("grade", {}).get("red_line", 0) for c in meta.get("conventions", [])
     )
@@ -143,7 +190,8 @@ def render(
     # 与 commit_time 不同：render_mtime 是 render 时的 mtime（不参与 drift check）
     # 但 render_mtime 也必须在 dashboard.html 落地 = 跟 commit_time 一样用环境变量传入
     render_mtime = os.environ.get("DASHBOARD_RENDER_MTIME", "build-time")
-    output = template.safe_substitute(
+    # V2.1 #43: safe_substitute → substitute（fail-fast——缺占位符不再静默吞）
+    output = template.substitute(
         project_name=meta.get("project", "Unknown"),
         render_date=commit_time,
         render_mtime=render_mtime,

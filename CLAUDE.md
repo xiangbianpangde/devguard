@@ -122,10 +122,12 @@ worklogs/ ──收束节点──→ worklogs/decisions/（ADR）
 
 ## 当前状态
 
-- **进度**：49/49 ✅（见 `STATUS.md`）
+- **进度**：46/46 ✅（35 原始 + 11 V2.1 流程强制化）→ 全部交付（见 `STATUS.md`）
 - **规范版本**：01-06 升至 **v2.0**，08 升至 **v3.0**（双图谱范式：CodeGraph + Understand-Anything）；`src/<维度>/` 配有对应的可运行落地配置
 - **ADR**：6 个（`worklogs/decisions/0001-0006`）
-- **收束节点**：v0.1–v1.5 共 14 个节点已执行；其中 **v0.1 已人审计签核**，v0.2–v1.5（13 个）人审计仍 ⏳ 待签核（见 `STATUS.md` 收束节点历史）
+- **收束节点**：v0.1–v2.1 共 15 个节点已执行；其中 **v0.1 已人审计签核**，v0.2–v2.1（14 个）人审计仍 ⏳ 待签核
+- **V2.1 流程强制化**：11 个功能点 #36-#46 全部交付。**pre-commit 钩子从 10 增至 13**（新增 4 个 commit-msg hook：worklog 存在性验证 #36、worklog↔STATUS 同步 #37、worklog 结构校验 #38、文件放置检查 #45），**CI 新增 5 个 check step**（STATUS/CLAUDE/开发清单 章节级 L1 + 模板漂移 + 收束产物），**L4 测试从 65 增至 68**（+test_status/test_claude/test_plan）
+- **遗留问题**：ai-workflow 测试 7 项既存失败（流程文档改名为 01-流程全景等 9 篇，旧测试未更新）；STATUS/开发清单功能点数口径差异（WARN 级，方案风险章节允许）
 
 ---
 

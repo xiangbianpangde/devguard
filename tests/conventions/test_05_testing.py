@@ -83,6 +83,9 @@ class TestTestingContracts:
                 "test_08_code_understanding",
                 "test_perf_baseline",  # V2.5: 性能基线
                 "test_meta_l1_check",  # V4.4: _meta.yaml l1_check 字段一致性
+                "test_status",  # V2.1 #40: STATUS.md 章节级 L1
+                "test_claude",  # V2.1 #41: CLAUDE.md 结构 L1
+                "test_plan",  # V2.1 #42: 开发清单格式 L1
             ]
         )
         assert existing == expected, (

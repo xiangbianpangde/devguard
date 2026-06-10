@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-08（V1.5 收尾 + V2.0.1 devguard dogfood：49 功能点 + final-report-template 沉淀 + 89 commits 全部 push）
+> 更新: 2026-06-11（V2.1 流程强制化：11 个功能点 #36-#46 全部交付 ✅）
 
 ## 当前进度
 
@@ -16,17 +16,23 @@
 | V1.4 收尾 | 17-contributing + CONTRIBUTING.md | ✅ | 2026-06-07 |
 | V1.5 收尾 | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML + STATUS 滞后修复 + worklog 断档补登 | ✅ | 2026-06-08 |
 | **V2.0.1 启动** | **devguard dogfood (V1.x 范式在自身闭环 8 次拦截 / 全部修复)** | **✅** | **2026-06-08** |
+| **V2.1 流程强制化** | **#36-#38 Phase1 汇报强制（commit-msg 三层拦截）** | **✅** | **2026-06-11** |
+| | **#39 Phase1 markdownlint 审计 + 分批启用** | **✅** | **2026-06-11** |
+| | **#40-#42 Phase2 入口文件 L1（STATUS/CLAUDE/开发清单 + L4 tests）** | **✅** | **2026-06-11** |
+| | **#43-#44 Phase3 渲染鲁棒性 + 模板漂移扩展** | **✅** | **2026-06-11** |
+| | **#45-#46 Phase4 文件放置 + 收束产物检查** | **✅** | **2026-06-11** |
 
 ## 累计数据
 
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
-- **10 pre-commit 钩子**（commit-msg / pre-commit 双层）
+- **13 pre-commit 钩子**（commit-msg 5 个 + pre-commit 8 个，双层；V2.1 #36-#38/#45 新增 4 个）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **65 L4 tests passed**（tests/conventions/）
-- **14 收束报告**（V0.1-V1.5 全部落盘）
+- **68 L4 tests passed**（tests/conventions/，V2.1 #40-#42 新增 10 个；剩余 7 个 ai-workflow 既存失败待 v2.2 修复）
+- **15 收束报告**（V0.1-V1.5 全部落盘）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **6 ADR 决策**（worklogs/decisions/）
-- **~50+ commits**（5/26 → 6/8 完整链可追）
+- **97 commits**（5/26 → 6/11 完整链可追）
+- **V2.1 新增脚本 11 个**（7 L1 checker + 4 commit-msg hook）
 
 ## 阻塞项
 
@@ -60,6 +66,7 @@
 | v1.3 | 2026-06-07 | V1.3.1-V1.3.3 (3 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 16-license + README 重写 |
 | v1.4 | 2026-06-07 | V1.4.1-V1.4.2 (2 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 17-contributing |
 | **v1.5** | **2026-06-08** | **V1.5.1 (1 件)** | **✅** | **✅ 65/65** | **✅ 0红线** | **⏳ 待签核** | **✅** | **final-report-template + 2 汇报** |
+| **v2.1** | **2026-06-11** | **#36-#46 (11 件)** | **✅** | **✅ 68/75 (7 既存)** | **✅ 0红线** | **⏳ 待签核** | **✅** | **AI-workflow 7 既存失败待修 / STATUS-开发清单 功能点数口径差异 (WARN)** |
 
 > **人审计签核说明**（2026-06-10 补）：v0.1 已签核（见 `docs/reports/人审计签核-v0.1.md`）；v0.2–v1.5 共 13 个节点为单人项目延后签核，目标 **2026-06-30** 前补齐。详见 `docs/reports/2026-06-10_强制性约束审查与修复/`。
 
@@ -125,3 +132,14 @@
 | 17-contributing 规范入 _meta.yaml + CONTRIBUTING.md | - | ✅ 已完成 | 2026-06-07 (V1.4) |
 | **final-report-template 沉淀**（高密度学术风 HTML 模板：11 Mermaid + 3 Tab + 5 进度条 + 2 数字滚动 + 1 模拟器） | - | **✅ 已完成** | **2026-06-08 (V1.5)** |
 | **V1.x 收尾汇报 HTML × 2**（原始版 + render.py 渲染版） | - | **✅ 已完成** | **2026-06-08 (V1.5)** |
+| #36 增强 check_worklog_ref.py（worklog 文件存在性验证） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #37 🆕 check_status_updated.py（worklog ↔ STATUS 同步钩子） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #38 🆕 check_worklog_structure.py（worklog 内容结构校验） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #39 markdownlint 规则审计 + 分批启用（MD001/MD012/MD031/MD047/MD058；MD022/MD032 延后） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #40 🆕 check_status.py（STATUS.md 章节级 L1）+ test_status.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #41 🆕 check_claude.py（CLAUDE.md 章节级 L1）+ test_claude.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #42 🆕 check_plan.py（开发清单.md 章节级 L1 + STATUS 交叉校验）+ test_plan.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #43 dashboard 渲染 strict 模式（safe_substitute→substitute + parse_status warn + status_pre_check） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #44 🆕 check_template_drift.py（5 类入口文件章节存在性对比） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #45 🆕 check_file_placement.py（新文件 vs FILE_GRAPH 决策树，commit-msg hook） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) |

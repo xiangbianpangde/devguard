@@ -51,3 +51,18 @@ repos:
         stages: [commit-msg]
         entry: python scripts/check_worklog_ref.py
         language: python
+      - id: commit-msg-status-updated
+        name: worklog change requires STATUS.md sync
+        stages: [commit-msg]
+        entry: python scripts/check_status_updated.py
+        language: python
+      - id: commit-msg-worklog-structure
+        name: worklog must have required sections
+        stages: [commit-msg]
+        entry: python scripts/check_worklog_structure.py
+        language: python
+      - id: commit-msg-file-placement
+        name: new files must follow FILE_GRAPH decision tree
+        stages: [commit-msg]
+        entry: python scripts/check_file_placement.py
+        language: python

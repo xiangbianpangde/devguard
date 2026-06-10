@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXCLUDE_DIRS = {"node_modules", ".git", "__pycache__"}
+EXCLUDE_DIRS = {"node_modules", ".git", "__pycache__", "历史文件"}
 EXCLUDE_FILES = {"dashboard.html.lock"}
 
 
