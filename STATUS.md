@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-11（V2.2 #47 + V2.3 #48/#50/阶段C补遗 ✅ 交付；#49 进行中；闸门已对 V2.3 生效）
+> 更新: 2026-06-11（V2.2 #47 + V2.3 #48/#49/#50/阶段C补遗 ✅ **V2.3 全部交付**；到达预设收束节点 #54，待人触发收束）
 
 ## 当前进度
 
@@ -29,21 +29,22 @@
 | **V2.3 阶段D** | **#48 统一 HTML 模板族 + 格式强制**（4 套模板（AgentHub 风格基准）+ check_html_artifact commit-msg 钩子 + --all CI 审计 + 8 L4） | **✅** | **2026-06-11** |
 | **V2.3 阶段E** | **#50 交流 agent + 决策对齐强制**（liaison 子代理（PGFGA 思维助产士 + GLM-5.1 迭代机制）+ check_decision_alignment 拦开工 + 7 L4） | **✅** | **2026-06-11** |
 | **V2.3 阶段C+** | **#52 补遗 check_doc_sync 四件套硬同步**（结构增删硬拦/值级 WARN + 8 L4；STATUS 残留 #52 旧行收口） | **✅** | **2026-06-11** |
-| **V2.3 在途** | **#49 基准约束脚手架**（V2.3 最后一件） | **⏳ 待开始** | **-** |
+| **V2.3 阶段E** | **#49 基准约束脚手架**（setup_scaffold 复制器：必带 24 文件/可选 +9，_meta 钩子节拼接 + 5 L4 + 仓外 E2E） | **✅** | **2026-06-11** |
+| **收束节点 #54** | **V2.3 批次全交付（#47-#54 + 阶段C 补遗），到达设计时预设收束节点——待人触发收束四阶段** | **⏳ 待人触发** | **-** |
 
 ## 累计数据
 
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **19 pre-commit 钩子**（commit-msg 11 个 + pre-commit 8 个，双层；V2.3 #51 exemption-log + #53 updated-tag + #52 convergence-gate + #48 html-artifact + #50 decision-alignment + 阶段C doc-sync）+ **1 个 Claude PostToolUse 钩子**（#53 编辑当下阻断）+ **1 个交流子代理**（#50 liaison）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **126 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5 + #52 test_convergence_gate 5 + #48 test_html_artifact 8 + #50 test_decision_alignment 7 + 阶段C test_doc_sync 8；旧记的 7 个 ai-workflow 既存失败现已不复现）
+- **131 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5 + #52 test_convergence_gate 5 + #48 test_html_artifact 8 + #50 test_decision_alignment 7 + 阶段C test_doc_sync 8 + #49 test_scaffold 5；旧记的 7 个 ai-workflow 既存失败现已不复现）
 - **159 个在范围文档 .md 全部带「更新」标签**（#54 回填 153 + 既有 6；排除 templates/worklogs/.github/CHANGELOG）
 - **15 收束报告**（V0.1-V1.5 全部落盘）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）+ **HTML 模板族 4 套**（#48：汇报/计划/实施设计/绘图素材库，AgentHub 风格令牌）
 - **6 ADR 决策**（worklogs/decisions/）
 - **97 commits**（5/26 → 6/11 完整链可追）
 - **V2.1 新增脚本 11 个**（7 L1 checker + 4 commit-msg hook）
-- **V2.3 新增脚本 8 个**（check_exemption_log / check_updated_tag / check_convergence_gate / check_html_artifact / check_decision_alignment / check_doc_sync commit-msg hook + hook_updated_tag_posttooluse PostToolUse 护栏 + backfill_updated_tag 回填工具）
+- **V2.3 新增脚本 9 个**（check_exemption_log / check_updated_tag / check_convergence_gate / check_html_artifact / check_decision_alignment / check_doc_sync commit-msg hook + hook_updated_tag_posttooluse PostToolUse 护栏 + backfill_updated_tag 回填工具 + setup_scaffold 脚手架复制器）
 
 ## 阻塞项
 
@@ -162,7 +163,7 @@
 | #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #47 ai-workflow 旧文件引用语义重映射 + 模板同步（conventions/01-08 + 双导航 26 处 + docs/templates/ 11 处死链语义重映射；模板 `docs/templates/devguard/scripts/check_ai_workflow.py` V1.0 旧 7 篇硬编码 → 新 9 篇；root _meta.yaml mem-workflow-001 target 重映射） | - | ✅ 已完成 | 2026-06-11 (V2.2) |
 | #48 统一 HTML 模板族 + 格式强制措施（汇报 8 要素 / 计划五段式 / 实施设计 8 节 / 绘图素材库 四套权威 HTML 模板（视觉基准 AgentHub dashboard）+ 登记 README-模板索引/FILE_GRAPH；check_html_artifact.py commit-msg 钩子 + --all CI 审计，doc-template 声明者硬拦、存量 WARN；8 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
-| #49 基准约束脚手架（可一键复制到新项目的最小约束基线：钩子 + CI + _meta.yaml + 模板的脚手架打包） | - | ⏳ 待开始 | - |
+| #49 基准约束脚手架（`scripts/setup_scaffold.py` 复制器：必带层 24 文件（live 钩子节拼接进模板 _meta + 7 通用钩子 + CI + 配置 + 7 文档模板 + 豁免种子）/ 可选层 +9（闸门/模板族/agent/护栏）+ `devguard/scaffold/README-脚手架使用.md` + 5 L4 + 仓外 E2E 验证） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #50 交流 agent + 对应强制措施（`.claude/agents/liaison.md` 子代理：PGFGA 思维助产士管线（三铁律/六步管线/心流档位）+ GLM-5.1 迭代机制（闭环自评/三级决策/防退化）；`check_decision_alignment.py` commit-msg 拦开工（提案缺 Owner 决策节硬拦；待拍板+新交付同提交硬拦）+ --all CI 审计 + 2 历史提案追溯登记 + 7 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #51 豁免登记强制化（meta/豁免清单.md 账 + check_exemption_log.py commit-msg 钩子：用 [skip-*] 必须登记+同步暂存账，否则拦截；--audit 审计；7 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #52 补遗：check_doc_sync.py 四件套硬同步（阶段C 拆出项回收：编号功能点行增/删须 STATUS↔开发清单 同步 + CLAUDE 同提交（增量比对，存量口径差不追溯）；值级改动仅 WARN；豁免 `[skip-docsync]` + 7 L4。原 #52 描述中 cron-self 监控属 mavis 运行时 L3 规则、断档防护已由 #36-#38 焊死，见 worklog） | - | ✅ 已完成 | 2026-06-11 (V2.3) |

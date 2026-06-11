@@ -29,6 +29,7 @@
 | `计划模板.html` | **HTML 模板族·计划**（五段式设计提案 + Owner 决策，`doc-template: plan`） | 设计提案 / 批次立项评审 | `docs/plan/design/...html` |
 | `实施设计模板.html` | **HTML 模板族·实施设计**（实现计划 8 节，`doc-template: impl-design`） | 设计文件夹 7 件套的 HTML 渲染件 | `docs/plan/design/{模块名}/实现计划.html` |
 | `绘图素材库模板.html` | **HTML 模板族·绘图素材库**（Mermaid 图型 / 组件 / 样式令牌 / 用法） | 写任何 HTML 产出物前取件 | 库文件本体（缺件先补库） |
+| `devguard/scaffold/` | **基准约束脚手架**（必带/可选两层；复制器 `scripts/setup_scaffold.py`） | 新项目初始化约束基线 | 新项目根（钩子+CI+_meta+模板） |
 
 ---
 

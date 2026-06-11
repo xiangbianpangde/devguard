@@ -75,7 +75,8 @@
 │       ├── 规范文档模板.md
 │       └── devguard/                   #     devguard 项目专属模板（fork 时整组复制）
 │           ├── html-report-template/   #       自动 dashboard 渲染（_meta.yaml + STATUS.md）
-│           └── final-report-template/  #       高密度学术风 HTML 报告（Mermaid+Tab+交互，V1.x 收尾定型）
+│           ├── final-report-template/  #       高密度学术风 HTML 报告（Mermaid+Tab+交互，V1.x 收尾定型）
+│           └── scaffold/               #       基准约束脚手架使用说明（#49；复制器 scripts/setup_scaffold.py）
 │
 ├── src/                              # 【示例代码】按规范维度分目录（非产品结构）
 │   ├── README-示例代码总览.md        #   组织方式说明（重要：见此文件）
@@ -95,6 +96,7 @@
 │   ├── check_*.py                    #   L1 章节级检查 + commit-msg 钩子（render_meta 投射进 .pre-commit-config）
 │   ├── hook_updated_tag_posttooluse.py #  Claude PostToolUse 护栏（#53 更新时间标签编辑当下阻断）
 │   ├── backfill_updated_tag.py       #   全仓文档「更新」标签回填工具（#54，git 末次修改日）
+│   ├── setup_scaffold.py             #   基准约束脚手架复制器（#49，必带/可选两层）
 │   └── 打开仪表盘.bat                 #   双击启动 dashboard
 │
 ├── meta/                             # 【元信息】描述仓库自身的文件
