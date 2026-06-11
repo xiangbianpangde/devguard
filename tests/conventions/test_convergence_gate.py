@@ -1,6 +1,6 @@
-"""L4 规范测试 — 收束硬闸门（V2.3 #52）
+"""L4 规范测试 — 收束硬闸门（V2.3 #52，节点驱动版）
 
-对照 scripts/check_convergence_gate.py：标记解析 + 未收束完成计数 + 闸门标记存在。
+对照 scripts/check_convergence_gate.py：标记解析（预设节点 + 已收束）+ 最大完成编号 + 闸门标记存在。
 """
 
 from __future__ import annotations
@@ -27,33 +27,32 @@ class TestMarker:
         mod = _load()
         parsed = mod.parse_marker(STATUS.read_text(encoding="utf-8"))
         assert parsed is not None, "STATUS.md 缺 convergence-gate 标记"
-        last_fp, threshold = parsed
-        assert last_fp >= 0 and threshold >= 1
+        nodes, last_fp = parsed
+        assert nodes, "预设节点列表不应为空"
+        assert last_fp >= 0
 
     def test_parse_marker(self):
         mod = _load()
-        marker = "x <!-- convergence-gate: last_converged_fp=46 threshold=3 -->"
-        assert mod.parse_marker(marker) == (46, 3)
+        marker = "x <!-- convergence-gate: nodes=46,54 last_converged_fp=46 -->"
+        assert mod.parse_marker(marker) == ([46, 54], 46)
         assert mod.parse_marker("no marker here") is None
 
 
-class TestUnconvergedCount:
-    def test_counts_done_beyond_baseline(self):
+class TestMaxDoneFp:
+    def test_picks_highest_done(self):
         mod = _load()
         plan = (
             "| # | 功能点 | 状态 |\n"
             "|---|------|------|\n"
-            "| 46 | a | ✅ 已完成 |\n"  # = baseline，不计
+            "| 46 | a | ✅ 已完成 |\n"
             "| 47 | b | ⏳ 待开始 |\n"  # 未完成，不计
-            "| 48 | c | ✅ 已完成 |\n"  # > baseline 且 ✅ → 计
-            "| 49 | d | ✅ 已完成 |\n"  # 计
+            "| 54 | c | ✅ 已完成 |\n"
         )
-        assert mod.unconverged_done(plan, 46) == 2
+        assert mod.max_done_fp(plan) == 54
 
-    def test_baseline_shift_releases(self):
+    def test_no_done_is_zero(self):
         mod = _load()
-        plan = "| 48 | c | ✅ |\n| 49 | d | ✅ |\n"
-        assert mod.unconverged_done(plan, 49) == 0  # 基线上调后归零
+        assert mod.max_done_fp("| 99 | x | ⏳ |\n") == 0
 
 
 class TestSkip:

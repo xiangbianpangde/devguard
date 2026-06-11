@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-check_convergence_gate.py — commit-msg 钩子：收束硬闸门（V2.3 #52）
+check_convergence_gate.py — commit-msg 钩子：收束硬闸门（V2.3 #52，节点驱动版）
 ============================================================
 依据：设计提案-约束与模板强化方案-v2.3 §3.3 阶段C + CLAUDE「收束节点（人触发）」。
-把"每 N 个功能点必须回头收束"从 AI 自律（软闸门）升级为提交时工具硬拦。
+
+**收束节点是设计阶段预先写定的里程碑，不是按完成数量的滚动阈值**（用户 2026-06-11 校正）。
+到达预设节点时人触发收束（组内会议 → 优化/降熵 → 设计下一阶段 → 继续）。
 
 机器可读标记（置于 STATUS.md）：
-    <!-- convergence-gate: last_converged_fp=46 threshold=3 -->
-  - last_converged_fp：上次收束节点覆盖到的最大功能点编号
-  - threshold：允许的"未收束已完成功能点"上限（默认 3）
+    <!-- convergence-gate: nodes=46,54 last_converged_fp=46 -->
+  - nodes：设计阶段预设的收束节点（在该功能点编号之后必须收束才能继续下一阶段）
+  - last_converged_fp：已执行收束覆盖到的最大功能点编号
 
 判定（commit-msg 钩子，argv[1] = commit_msg_file）：
   1. [skip-gate] → 放行（须在 meta/豁免清单.md 登记）
-  2. 标记缺失 / 数据不可读 → 放行 + WARN（fail-open，闸门未生效）
-  3. 计算 staged 与 HEAD 两版开发清单里"编号 > last_converged_fp 且状态 ✅"的功能点数；
-     仅当 **本次提交把该数推过阈值**（staged > threshold 且 staged > head）→ 拒提交。
-     —— 故非交付提交（不新增完成项）永不被拦，仓库不被冻结。
+  2. 标记缺失 / 数据不可读 → 放行 + WARN（fail-open）
+  3. next_node = 大于 last_converged_fp 的最小预设节点；无则放行（无待办收束节点）
+  4. 仅当**本次提交把"已交付最大功能点编号"推到越过 next_node**
+     （staged_max > next_node 且 staged_max > head_max）→ 拒提交。
+     —— 即：跨过预设收束节点去交付下一阶段的功能点会被拦；批次内交付不拦。
 
-释放闸门 = 人触发收束四阶段后，上调 STATUS.md 标记的 last_converged_fp + 收束历史加行。
+释放节点 = 人触发收束后，上调 STATUS.md 标记的 last_converged_fp（≥ next_node）。
 
 用法（pre-commit 框架调用）:
     python scripts/check_convergence_gate.py <commit_msg_file>
@@ -37,18 +40,24 @@ PLAN_REL = "docs/plan/开发清单.md"
 SKIP_MARKER = "[skip-gate]"
 
 MARKER = re.compile(
-    r"<!--\s*convergence-gate:\s*last_converged_fp=(\d+)\s+threshold=(\d+)\s*-->"
+    r"<!--\s*convergence-gate:\s*nodes=([\d,\s]*?)\s+last_converged_fp=(\d+)\s*-->"
 )
 
 
-def parse_marker(text: str) -> tuple[int, int] | None:
+def parse_marker(text: str) -> tuple[list[int], int] | None:
+    """解析收束闸门标记 → (预设节点列表, last_converged_fp)；无标记返回 None。"""
     m = MARKER.search(text)
-    return (int(m.group(1)), int(m.group(2))) if m else None
+    if not m:
+        return None
+    nodes = sorted(
+        int(x) for x in m.group(1).replace(" ", "").split(",") if x.strip().isdigit()
+    )
+    return nodes, int(m.group(2))
 
 
-def unconverged_done(plan_text: str, last_fp: int) -> int:
-    """开发清单里 编号 > last_fp 且状态含 ✅ 的功能点行数。"""
-    count = 0
+def max_done_fp(plan_text: str) -> int:
+    """开发清单里状态含 ✅ 的功能点的最大编号；无则 0。"""
+    best = 0
     for line in plan_text.splitlines():
         s = line.strip()
         if not s.startswith("|"):
@@ -57,11 +66,9 @@ def unconverged_done(plan_text: str, last_fp: int) -> int:
         if not cells:
             continue
         first = cells[0].strip("*")
-        if not first.isdigit():
-            continue
-        if int(first) > last_fp and any("✅" in c for c in cells):
-            count += 1
-    return count
+        if first.isdigit() and any("✅" in c for c in cells):
+            best = max(best, int(first))
+    return best
 
 
 def git_show(ref_path: str) -> str | None:
@@ -99,7 +106,13 @@ def main() -> int:
     if parsed is None:
         print("WARN 未找到收束闸门标记（convergence-gate），闸门未生效")
         return 0
-    last_fp, threshold = parsed
+    nodes, last_fp = parsed
+
+    pending = [n for n in nodes if n > last_fp]
+    if not pending:
+        print(f"OK 收束闸门通过（无待办收束节点；已收束至 #{last_fp}）")
+        return 0
+    next_node = min(pending)
 
     staged_plan = git_show(f":{PLAN_REL}")
     if staged_plan is None:
@@ -107,32 +120,29 @@ def main() -> int:
         staged_plan = pp.read_text(encoding="utf-8") if pp.exists() else ""
     head_plan = git_show(f"HEAD:{PLAN_REL}") or ""
 
-    staged_count = unconverged_done(staged_plan, last_fp)
-    head_count = unconverged_done(head_plan, last_fp)
+    staged_max = max_done_fp(staged_plan)
+    head_max = max_done_fp(head_plan)
 
-    if staged_count > threshold and staged_count > head_count:
+    if staged_max > next_node and staged_max > head_max:
         print("FAIL 收束硬闸门拦截：", file=sys.stderr)
         print(
-            f"  距上次收束（功能点 #{last_fp}）已完成 {staged_count} 个功能点，"
-            f"超过阈值 {threshold}",
+            f"  交付功能点 #{staged_max} 越过设计时收束节点 #{next_node}"
+            f"（已收束至 #{last_fp}）",
             file=sys.stderr,
         )
         print("", file=sys.stderr)
         print(
-            "  收束为人触发的四阶段（整理/测试/审计/验证）→ ADR + 收束报告；",
+            f"  须先在 #{next_node} 处收束（人触发：组内会议→优化降熵→设计下阶段）",
             file=sys.stderr,
         )
         print(
-            "  完成后上调 STATUS.md 的 last_converged_fp + 收束历史加行即释放。",
+            f"  收束后上调 STATUS.md 标记 last_converged_fp ≥ {next_node} 即释放。",
             file=sys.stderr,
         )
         print("  豁免: 末尾加 [skip-gate]（须登记 meta/豁免清单.md）", file=sys.stderr)
         return 1
 
-    print(
-        f"OK 收束闸门通过（未收束已完成 {staged_count} ≤ 阈值 {threshold}，"
-        f"基线 #{last_fp}）"
-    )
+    print(f"OK 收束闸门通过（已交付最大 #{staged_max} 未越过下一节点 #{next_node}）")
     return 0
 
 

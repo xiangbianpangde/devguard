@@ -417,7 +417,7 @@ pre_commit:
     source: local
     grade: red_line
     maps_to: 07-ai-workflow
-    description: "V2.3 #52 收束硬闸门：提交把'未收束已完成功能点数'推过阈值时拒提交（标记见 STATUS.md）；豁免 [skip-gate]"
+    description: "V2.3 #52 收束硬闸门（节点驱动）：提交把'已交付最大功能点'推到越过 STATUS.md 预设收束节点时拒提交；豁免 [skip-gate]"
     stages: [commit-msg]
     entry: python scripts/check_convergence_gate.py
     language: python

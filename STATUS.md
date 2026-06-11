@@ -57,8 +57,8 @@
 
 ## 收束节点历史
 
-<!-- convergence-gate: last_converged_fp=46 threshold=3 -->
-> **收束闸门**（V2.3 #52）：`last_converged_fp` = 上次收束覆盖到的最大功能点编号；`threshold` = 允许的未收束已完成功能点上限。`check_convergence_gate.py` 在提交把该数推过阈值时拦截。人触发收束后上调本标记即释放。
+<!-- convergence-gate: nodes=46,54 last_converged_fp=46 -->
+> **收束闸门**（V2.3 #52，节点驱动）：`nodes` = **设计阶段预设**的收束节点（在该功能点之后须收束才能进入下一阶段，非按数量阈值）；`last_converged_fp` = 已收束覆盖到的最大编号。`check_convergence_gate.py` 在提交把"已交付最大功能点"推到越过下一预设节点时拦截。人触发收束后上调 `last_converged_fp` 即释放。当前预设：#46（v2.1，已收束）、#54（V2.3 批次末，待收束）。
 
 | 节点 | 日期 | 功能点范围 | 整理 | 测试 | AI审计 | 人审计 | 验证 | 遗留问题 |
 |------|------|-----------|------|------|--------|--------|------|---------|
@@ -165,4 +165,4 @@
 | #52 长程任务流程强制规范操作（长程任务的 cron self 监控 / 收束闸门 / 断档防护等流程从自律升级为工具强制） | - | ⏳ 待开始 | - |
 | #53 「更新时间」标签强制化（补全 CLAUDE/README 缺失标签 + check_updated_tag.py commit-msg 硬拦 + hook_updated_tag_posttooluse.py PostToolUse 阻断 + .claude/settings.json + 4 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #54 更新标签全仓泛化（钩子范围 6→全仓 159 在范围 .md；backfill_updated_tag.py 回填 153 文件取 git 末次修改日；排除 templates/worklogs/.github/CHANGELOG；全仓 markdownlint 通过） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
-| #52 收束硬闸门（check_convergence_gate.py commit-msg 钩子 + STATUS 机器标记 last_converged_fp/threshold；交付提交把未收束完成数推过阈值时拒提交，staged vs HEAD 比对不冻结非交付提交；豁免 [skip-gate]；5 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
+| #52 收束硬闸门（节点驱动）（check_convergence_gate.py commit-msg 钩子 + STATUS 机器标记 nodes（设计时预设节点）/last_converged_fp；交付把已交付最大功能点推到越过下一预设节点时拒提交，staged vs HEAD 比对不冻结非交付提交；豁免 [skip-gate]；5 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
