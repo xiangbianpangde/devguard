@@ -76,3 +76,8 @@ repos:
         stages: [commit-msg]
         entry: python scripts/check_updated_tag.py
         language: python
+      - id: commit-msg-convergence-gate
+        name: convergence gate blocks over-threshold delivery
+        stages: [commit-msg]
+        entry: python scripts/check_convergence_gate.py
+        language: python

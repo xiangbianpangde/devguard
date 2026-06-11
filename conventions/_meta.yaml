@@ -72,6 +72,7 @@ conventions:
         - scripts/check_file_placement.py
         - scripts/check_exemption_log.py
         - scripts/check_updated_tag.py
+        - scripts/check_convergence_gate.py
     l1_check: pre-commit + commitlint
     l1_check_doc: https://pre-commit.com/
     l3_route: 任务类型=提交 → 必读本篇
@@ -409,6 +410,16 @@ pre_commit:
     description: "V2.3 #53/#54 更新时间标签强制化：staged 在范围文档 .md（全仓减 templates/worklogs/.github/CHANGELOG）须含 `> 更新:` 且日期为今天；豁免 [skip-updated]"
     stages: [commit-msg]
     entry: python scripts/check_updated_tag.py
+    language: python
+
+  - id: commit-msg-convergence-gate
+    name: convergence gate blocks over-threshold delivery
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "V2.3 #52 收束硬闸门：提交把'未收束已完成功能点数'推过阈值时拒提交（标记见 STATUS.md）；豁免 [skip-gate]"
+    stages: [commit-msg]
+    entry: python scripts/check_convergence_gate.py
     language: python
 
 # ============================================================
