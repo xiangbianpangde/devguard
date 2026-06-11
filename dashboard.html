@@ -52,7 +52,7 @@
   <div class="card-grid">
     <div class="card">
       <span class="num">0%</span>
-      <span class="label">总进度（0 / 15 功能点）</span>
+      <span class="label">总进度（0 / 25 功能点）</span>
       <div class="progress-bar"><div class="fill" style="width: 0%"></div></div>
     </div>
     <div class="card">
@@ -64,7 +64,7 @@
       <span class="label">红线总数（8 篇规范的 §一红线之和）</span>
     </div>
     <div class="card">
-      <span class="num">68 / 75</span>
+      <span class="num">131 / 131</span>
       <span class="label">L4 规范测试（tests/conventions/）</span>
     </div>
   </div>
@@ -88,11 +88,11 @@
       <tr><td><code>03-git</code> Git 协作规范</td><td>5</td><td>0</td><td>0</td><td><code>pre-commit + commitlint</code></td><td>任务类型=提交 → 必读本篇</td></tr>
       <tr><td><code>04-api</code> API 设计规范</td><td>7</td><td>0</td><td>0</td><td><code>spectral</code></td><td>任务类型=接口设计 → 必读本篇</td></tr>
       <tr><td><code>05-testing</code> 测试规范</td><td>4</td><td>0</td><td>0</td><td><code>pytest --cov-fail-under</code></td><td>任务类型=实现 → 必读本篇</td></tr>
-      <tr><td><code>06-documentation</code> 文档规范</td><td>5</td><td>0</td><td>0</td><td><code>markdownlint-cli + .markdownlint.json</code></td><td>任务类型=写文档 → 必读本篇</td></tr>
-      <tr><td><code>07-ai-workflow</code> AI 协作开发流程</td><td>0</td><td>0</td><td>7</td><td><code>check_ai_workflow.py + check_claude.py（V5.2 章节级 L1 + CLAUDE 结构）</code></td><td>AI 任务路由必读</td></tr>
+      <tr><td><code>06-documentation</code> 文档规范</td><td>5</td><td>0</td><td>0</td><td><code>markdownlint-cli + .markdownlint.json + check_doc_sync.py（V2.3 四件套硬同步）</code></td><td>任务类型=写文档 → 必读本篇</td></tr>
+      <tr><td><code>07-ai-workflow</code> AI 协作开发流程</td><td>0</td><td>0</td><td>7</td><td><code>check_ai_workflow.py + check_claude.py + check_decision_alignment.py（章节级 L1 + CLAUDE 结构 + V2.3</code></td><td>AI 任务路由必读</td></tr>
       <tr><td><code>08-code-understanding</code> 代码理解与图谱规范</td><td>0</td><td>0</td><td>0</td><td><code>check_code_understanding.py（V5.3 章节级 L1）</code></td><td>任务类型=图谱生成 → 必读本篇</td></tr>
       <tr><td><code>09-dashboard-gen</code> 仪表盘自动生成规范</td><td>0</td><td>0</td><td>0</td><td><code>render_meta.py + render.py + check_status.py（仪表盘模板 + 渲染 + STATUS L1）</code></td><td>任务类型=仪表盘渲染 → 必读本篇</td></tr>
-      <tr><td><code>10-templates-reporting</code> 模板与汇报规范</td><td>0</td><td>0</td><td>0</td><td><code>模板 + reports/ 目录 + check_plan.py + 模板漂移检测（V7.1 章节级 L1 + 开发清单格式）</code></td><td>任务类型=模板/汇报 → 必读本篇</td></tr>
+      <tr><td><code>10-templates-reporting</code> 模板与汇报规范</td><td>0</td><td>0</td><td>0</td><td><code>模板 + reports/ 目录 + check_plan.py + 模板漂移检测 + HTML 模板族结构校验（V7.1 章节级 L1 + 开发清单格式 + V2.3</code></td><td>任务类型=模板/汇报 → 必读本篇</td></tr>
       <tr><td><code>11-readme</code> README 规范</td><td>0</td><td>0</td><td>0</td><td><code>README.md 存在（V9.2 章节级 L1）</code></td><td>任务类型=项目入口 → 必读本篇</td></tr>
       <tr><td><code>12-codeowners</code> CODEOWNERS 规范</td><td>0</td><td>0</td><td>0</td><td><code>CODEOWNERS 文件存在（V1.1 章节级 L1）</code></td><td>任务类型=PR 审查 → 必读本篇</td></tr>
       <tr><td><code>13-changelog</code> CHANGELOG 规范</td><td>0</td><td>0</td><td>0</td><td><code>CHANGELOG.md 存在（V1.1 章节级 L1）</code></td><td>任务类型=发布 → 必读本篇</td></tr>
@@ -131,6 +131,16 @@
       <tr><td></td><td>**#40-#42 Phase2 入口文件 L1（STATUS/CLAUDE/开发清单 + L4 tests）**</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
       <tr><td></td><td>**#43-#44 Phase3 渲染鲁棒性 + 模板漂移扩展**</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
       <tr><td></td><td>**#45-#46 Phase4 文件放置 + 收束产物检查**</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.2 交付**</td><td>**#47 ai-workflow 旧文件引用语义重映射 + 模板同步**（详见 worklogs/2026-06-11_v2.2-fp47-remapping.md）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段A**</td><td>**#51 豁免登记强制化**（meta/豁免清单 + check_exemption_log commit-msg 钩子 + 7 L4，#52/#53 硬拦截前置）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段B**</td><td>**#53 更新时间标签强制化**（check_updated_tag commit-msg 硬拦 + PostToolUse 阻断；三层组合样板）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段B+**</td><td>**#54 更新标签全仓泛化**（钩子范围 6→全仓 159 在范围 .md + 回填 153 文件（git 末次修改日）+ 排除 templates/worklogs/.github/CHANGELOG + backfill 脚本）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段C**</td><td>**#52 收束硬闸门**（check_convergence_gate commit-msg 钩子 + STATUS 机器标记 + 5 L4；软闸门→铁闸门）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段D**</td><td>**#48 统一 HTML 模板族 + 格式强制**（4 套模板（AgentHub 风格基准）+ check_html_artifact commit-msg 钩子 + --all CI 审计 + 8 L4）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段E**</td><td>**#50 交流 agent + 决策对齐强制**（liaison 子代理（PGFGA 思维助产士 + GLM-5.1 迭代机制）+ check_decision_alignment 拦开工 + 7 L4）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段C+**</td><td>**#52 补遗 check_doc_sync 四件套硬同步**（结构增删硬拦/值级 WARN + 8 L4；STATUS 残留 #52 旧行收口）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**V2.3 阶段E**</td><td>**#49 基准约束脚手架**（setup_scaffold 复制器：必带 24 文件/可选 +9，_meta 钩子节拼接 + 5 L4 + 仓外 E2E）</td><td class="">**✅**</td><td>**2026-06-11**</td><td></td></tr>
+      <tr><td>**收束节点 #54**</td><td>**V2.3 批次全交付（#47-#54 + 阶段C 补遗），到达设计时预设收束节点——待人触发收束四阶段**</td><td class="">**⏳ 待人触发**</td><td>**-**</td><td></td></tr>
     </tbody>
   </table>
 

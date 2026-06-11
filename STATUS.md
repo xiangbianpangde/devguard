@@ -36,13 +36,13 @@
 
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **19 pre-commit 钩子**（commit-msg 11 个 + pre-commit 8 个，双层；V2.3 #51 exemption-log + #53 updated-tag + #52 convergence-gate + #48 html-artifact + #50 decision-alignment + 阶段C doc-sync）+ **1 个 Claude PostToolUse 钩子**（#53 编辑当下阻断）+ **1 个交流子代理**（#50 liaison）
-- **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
+- **5 阶段 CI**（lint / test / l4-conventions / compliance / build；compliance 含 V2.3 #48 html-artifact + #50 decision-alignment 审计 step）
 - **131 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5 + #52 test_convergence_gate 5 + #48 test_html_artifact 8 + #50 test_decision_alignment 7 + 阶段C test_doc_sync 8 + #49 test_scaffold 5；旧记的 7 个 ai-workflow 既存失败现已不复现）
 - **159 个在范围文档 .md 全部带「更新」标签**（#54 回填 153 + 既有 6；排除 templates/worklogs/.github/CHANGELOG）
 - **15 收束报告**（V0.1-V1.5 全部落盘）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）+ **HTML 模板族 4 套**（#48：汇报/计划/实施设计/绘图素材库，AgentHub 风格令牌）
 - **6 ADR 决策**（worklogs/decisions/）
-- **97 commits**（5/26 → 6/11 完整链可追）
+- **112 commits**（5/26 → 6/11 完整链可追）
 - **V2.1 新增脚本 11 个**（7 L1 checker + 4 commit-msg hook）
 - **V2.3 新增脚本 9 个**（check_exemption_log / check_updated_tag / check_convergence_gate / check_html_artifact / check_decision_alignment / check_doc_sync commit-msg hook + hook_updated_tag_posttooluse PostToolUse 护栏 + backfill_updated_tag 回填工具 + setup_scaffold 脚手架复制器）
 
