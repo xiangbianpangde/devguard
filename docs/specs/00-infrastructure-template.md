@@ -2,6 +2,7 @@
 
 > 对应规划中各个基础设施文件的创建与验证标准。
 > 本文档泛化适用于 STATUS.md / CLAUDE.md / dashboard.html / plan / worklog 等文件的创建检查。
+> 更新: 2026-05-30
 
 ---
 

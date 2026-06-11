@@ -90,6 +90,7 @@
 │   ├── start_server.py               #   本地预览服务器（dashboard 入口）
 │   ├── check_*.py                    #   L1 章节级检查 + commit-msg 钩子（render_meta 投射进 .pre-commit-config）
 │   ├── hook_updated_tag_posttooluse.py #  Claude PostToolUse 护栏（#53 更新时间标签编辑当下阻断）
+│   ├── backfill_updated_tag.py       #   全仓文档「更新」标签回填工具（#54，git 末次修改日）
 │   └── 打开仪表盘.bat                 #   双击启动 dashboard
 │
 ├── meta/                             # 【元信息】描述仓库自身的文件

@@ -406,7 +406,7 @@ pre_commit:
     source: local
     grade: red_line
     maps_to: 06-documentation
-    description: "V2.3 #53 更新时间标签强制化：staged 受管入口文件必须含 `> 更新:` 标签且日期为今天；豁免 [skip-updated]"
+    description: "V2.3 #53/#54 更新时间标签强制化：staged 在范围文档 .md（全仓减 templates/worklogs/.github/CHANGELOG）须含 `> 更新:` 且日期为今天；豁免 [skip-updated]"
     stages: [commit-msg]
     entry: python scripts/check_updated_tag.py
     language: python

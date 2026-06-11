@@ -71,7 +71,7 @@ def main() -> int:
     except Exception:
         return 0
 
-    if rel not in core.MANAGED:
+    if not core.in_scope(rel):
         return 0
 
     abs_path = REPO_ROOT / rel

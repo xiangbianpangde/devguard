@@ -2,6 +2,7 @@
 
 > **👤 人类参考** — 演示"规范怎么落地成代码"。AI Agent 请读 `CLAUDE.md` 了解项目全貌。
 > 对应 BDD 规格：`docs/specs/08-examples.md`
+> 更新: 2026-05-30
 
 ---
 

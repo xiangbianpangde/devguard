@@ -2,6 +2,7 @@
 
 > **👤 人类参考** | 对应规范：`conventions/01-architecture_架构设计规范.md`
 > 技术栈：Python 3.12+ | 运行：`python main.py`
+> 更新: 2026-05-30
 
 ## 目录结构
 

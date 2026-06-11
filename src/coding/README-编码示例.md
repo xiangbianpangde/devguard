@@ -2,6 +2,7 @@
 
 > **👤 人类参考** | 对应规范：`conventions/02-coding_代码编写规范.md`
 > 运行：`python error_handling_demo.py` / `python security_demo.py`
+> 更新: 2026-05-30
 
 ## 示例列表
 

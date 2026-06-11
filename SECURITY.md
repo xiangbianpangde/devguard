@@ -2,6 +2,7 @@
 
 > V1.1.2 新建
 > 维护者: 袁 (xiangbianpangde) | 创建: 2026-06-07
+> 更新: 2026-06-07
 
 ## Supported Versions
 

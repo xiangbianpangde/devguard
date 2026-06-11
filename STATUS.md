@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-11（V2.3 阶段A/B：#51 豁免登记 + #53 更新时间标签 ✅ 交付；#48-#50/#52 待开始）
+> 更新: 2026-06-11（V2.3：#51 豁免登记 + #53/#54 更新时间标签（全仓 159 文档回填）✅ 交付；#48-#50/#52 待开始）
 
 ## 当前进度
 
@@ -23,7 +23,8 @@
 | | **#45-#46 Phase4 文件放置 + 收束产物检查** | **✅** | **2026-06-11** |
 | **V2.2 启动** | **#47 ai-workflow 旧文件引用语义重映射 + 模板同步**（详见 worklogs/2026-06-11_v2.2-fp47-planning.md） | **⏳ 待开始** | **-** |
 | **V2.3 阶段A** | **#51 豁免登记强制化**（meta/豁免清单 + check_exemption_log commit-msg 钩子 + 7 L4，#52/#53 硬拦截前置） | **✅** | **2026-06-11** |
-| **V2.3 阶段B** | **#53 更新时间标签强制化**（check_updated_tag commit-msg 硬拦 + PostToolUse 阻断 + 4 L4；三层组合样板） | **✅** | **2026-06-11** |
+| **V2.3 阶段B** | **#53 更新时间标签强制化**（check_updated_tag commit-msg 硬拦 + PostToolUse 阻断；三层组合样板） | **✅** | **2026-06-11** |
+| **V2.3 阶段B+** | **#54 更新标签全仓泛化**（钩子范围 6→全仓 159 在范围 .md + 回填 153 文件（git 末次修改日）+ 排除 templates/worklogs/.github/CHANGELOG + backfill 脚本） | **✅** | **2026-06-11** |
 | **V2.3 在途** | **#48-#50/#52 约束与模板强化**（HTML 模板族+格式强制 / 基准脚手架 / 交流 agent / 长程流程硬闸门） | **⏳ 待开始** | **-** |
 
 ## 累计数据
@@ -31,13 +32,14 @@
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **15 pre-commit 钩子**（commit-msg 7 个 + pre-commit 8 个，双层；V2.3 #51 exemption-log + #53 updated-tag）+ **1 个 Claude PostToolUse 钩子**（#53 编辑当下阻断）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **97 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53 test_updated_tag 4；旧记的 7 个 ai-workflow 既存失败现已不复现）
+- **98 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5；旧记的 7 个 ai-workflow 既存失败现已不复现）
+- **159 个在范围文档 .md 全部带「更新」标签**（#54 回填 153 + 既有 6；排除 templates/worklogs/.github/CHANGELOG）
 - **15 收束报告**（V0.1-V1.5 全部落盘）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **6 ADR 决策**（worklogs/decisions/）
 - **97 commits**（5/26 → 6/11 完整链可追）
 - **V2.1 新增脚本 11 个**（7 L1 checker + 4 commit-msg hook）
-- **V2.3 新增脚本 3 个**（check_exemption_log.py / check_updated_tag.py commit-msg hook + hook_updated_tag_posttooluse.py PostToolUse 护栏）
+- **V2.3 新增脚本 4 个**（check_exemption_log.py / check_updated_tag.py commit-msg hook + hook_updated_tag_posttooluse.py PostToolUse 护栏 + backfill_updated_tag.py 回填工具）
 
 ## 阻塞项
 
@@ -158,3 +160,4 @@
 | #51 豁免登记强制化（meta/豁免清单.md 账 + check_exemption_log.py commit-msg 钩子：用 [skip-*] 必须登记+同步暂存账，否则拦截；--audit 审计；7 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #52 长程任务流程强制规范操作（长程任务的 cron self 监控 / 收束闸门 / 断档防护等流程从自律升级为工具强制） | - | ⏳ 待开始 | - |
 | #53 「更新时间」标签强制化（补全 CLAUDE/README 缺失标签 + check_updated_tag.py commit-msg 硬拦 + hook_updated_tag_posttooluse.py PostToolUse 阻断 + .claude/settings.json + 4 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
+| #54 更新标签全仓泛化（钩子范围 6→全仓 159 在范围 .md；backfill_updated_tag.py 回填 153 文件取 git 末次修改日；排除 templates/worklogs/.github/CHANGELOG；全仓 markdownlint 通过） | - | ✅ 已完成 | 2026-06-11 (V2.3) |

@@ -2,6 +2,7 @@
 
 > devguard 模块设计文档 · v1.0 · 2026-06-10
 > 配套文档：[简报.md](简报.md) · [设计.md](设计.md) · [实现计划.md](实现计划.md) · [阅读笔记.md](阅读笔记.md) · [deliverable.md](deliverable.md)
+> 更新: 2026-06-11
 
 ---
 

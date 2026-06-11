@@ -1,5 +1,7 @@
 # CHANGELOG
 
+> 更新: 2026-05-26
+
 所有值得注意的变更记录于此。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ## [1.2.0] - 2026-05-20

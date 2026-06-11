@@ -1,6 +1,8 @@
-"""L4 规范测试 — 「更新时间」标签强制化（V2.3 #53）
+"""L4 规范测试 — 「更新时间」标签强制化（V2.3 #53 + #54 全仓泛化）
 
-对照 scripts/check_updated_tag.py：受管文件均携带「更新」标签 + 钩子逻辑正确。
+对照 scripts/check_updated_tag.py：
+- 受管范围（全仓文档 .md 减排除项）判定正确
+- 所有在范围 .md 都已携带「更新」标签
 """
 
 from __future__ import annotations
@@ -21,19 +23,55 @@ def _load_checker():
     return mod
 
 
-class TestManagedFilesTagged:
-    def test_all_managed_files_exist(self):
-        mod = _load_checker()
-        for rel in mod.MANAGED:
-            assert (REPO_ROOT / rel).exists(), f"受管文件不存在: {rel}"
+def _tracked_md() -> list[str]:
+    out = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "ls-files", "*.md"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        cwd=REPO_ROOT,
+        check=True,
+    ).stdout
+    return [ln.strip() for ln in out.splitlines() if ln.strip()]
 
-    def test_all_managed_files_have_update_tag(self):
-        """每个受管文件都必须携带 `> 更新: YYYY-MM-DD` 标签。"""
+
+class TestScopeLogic:
+    def test_in_scope_includes_docs(self):
         mod = _load_checker()
-        for rel in mod.MANAGED:
+        for rel in (
+            "STATUS.md",
+            "CLAUDE.md",
+            "conventions/01-architecture_架构设计规范.md",
+            "docs/specs/01-architecture.md",
+        ):
+            assert mod.in_scope(rel), f"{rel} 应在受管范围"
+
+    def test_in_scope_excludes_templates_worklogs_changelog_github(self):
+        mod = _load_checker()
+        for rel in (
+            "docs/templates/worklog模板.md",
+            "worklogs/2026-06-11_x.md",
+            "CHANGELOG.md",
+            ".github/pull_request_template.md",
+            "scripts/x.py",
+        ):
+            assert not mod.in_scope(rel), f"{rel} 不应在受管范围"
+
+
+class TestAllInScopeTagged:
+    def test_every_in_scope_md_has_update_tag(self):
+        """全仓在范围 .md 必须都已携带「更新」标签（#54 回填后的不变量）。"""
+        mod = _load_checker()
+        missing = []
+        for rel in _tracked_md():
+            if not mod.in_scope(rel):
+                continue
             content = (REPO_ROOT / rel).read_text(encoding="utf-8")
-            date = mod.extract_update_date(content)
-            assert date is not None, f"{rel} 缺「更新」标签"
+            if mod.extract_update_date(content) is None:
+                missing.append(rel)
+        assert (
+            not missing
+        ), f"{len(missing)} 个在范围 .md 缺「更新」标签: {missing[:10]}"
 
 
 class TestCheckerLogic:

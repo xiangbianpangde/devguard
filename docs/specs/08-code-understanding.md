@@ -1,6 +1,7 @@
 # BDD 规格: 代码理解与图谱规范
 
 > 对应 `08-code-understanding_代码理解与图谱规范.md`（v3.0：双图谱——CodeGraph 给 AI + Understand-Anything 给人）
+> 更新: 2026-05-30
 
 ---
 
