@@ -122,12 +122,13 @@ worklogs/ ──收束节点──→ worklogs/decisions/（ADR）
 
 ## 当前状态
 
-- **进度**：46/46 ✅（35 原始 + 11 V2.1 流程强制化）→ 全部交付（见 `STATUS.md`）
+- **进度**：46/46 ✅（35 原始 + 11 V2.1 流程强制化）全部交付；**V2.3 进行中**：#51 豁免登记强制化 ✅（#48-#50/#52-#53 待开始，见 `docs/plan/design/设计提案-约束与模板强化方案-v2.3.md`）
 - **规范版本**：01-06 升至 **v2.0**，08 升至 **v3.0**（双图谱范式：CodeGraph + Understand-Anything）；`src/<维度>/` 配有对应的可运行落地配置
 - **ADR**：6 个（`worklogs/decisions/0001-0006`）
 - **收束节点**：v0.1–v2.1 共 15 个节点已执行；其中 **v0.1 已人审计签核**，v0.2–v2.1（14 个）人审计仍 ⏳ 待签核
 - **V2.1 流程强制化**：11 个功能点 #36-#46 全部交付。**pre-commit 钩子从 10 增至 13**（新增 4 个 commit-msg hook：worklog 存在性验证 #36、worklog↔STATUS 同步 #37、worklog 结构校验 #38、文件放置检查 #45），**CI 新增 5 个 check step**（STATUS/CLAUDE/开发清单 章节级 L1 + 模板漂移 + 收束产物），**L4 测试从 65 增至 68**（+test_status/test_claude/test_plan）
-- **遗留问题**：ai-workflow 测试 7 项既存失败（流程文档改名为 01-流程全景等 9 篇，旧测试未更新）；STATUS/开发清单功能点数口径差异（WARN 级，方案风险章节允许）
+- **V2.3 约束与模板强化（进行中）**：#51 豁免登记强制化交付——`meta/豁免清单.md` 账 + `check_exemption_log.py` commit-msg 钩子（用 `[skip-*]` 必须登记并同步暂存账，否则拦截；本钩子不可豁免）+ `--audit`。**pre-commit 钩子从 13 增至 14**（commit-msg 6 个），**L4 测试 93 passed**（+test_exemption_log 7 个）
+- **遗留问题**：`render_meta.py --check` 的 convention-grade 对 09-17 非 md 衍展规范（LICENSE/CODEOWNERS 等）无法注入分级表（独立技术债，#51 未触及）；STATUS/开发清单功能点数口径差异（WARN 级，方案风险章节允许）
 
 ---
 

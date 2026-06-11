@@ -66,3 +66,8 @@ repos:
         stages: [commit-msg]
         entry: python scripts/check_file_placement.py
         language: python
+      - id: commit-msg-exemption-log
+        name: skip markers must be registered in exemption log
+        stages: [commit-msg]
+        entry: python scripts/check_exemption_log.py
+        language: python

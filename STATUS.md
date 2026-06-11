@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-11（V2.1 流程强制化：11 个功能点 #36-#46 全部交付 ✅）
+> 更新: 2026-06-11（V2.3 阶段A：#51 豁免登记强制化 ✅ 交付；#48-#50/#52-#53 待开始）
 
 ## 当前进度
 
@@ -22,18 +22,21 @@
 | | **#43-#44 Phase3 渲染鲁棒性 + 模板漂移扩展** | **✅** | **2026-06-11** |
 | | **#45-#46 Phase4 文件放置 + 收束产物检查** | **✅** | **2026-06-11** |
 | **V2.2 启动** | **#47 ai-workflow 旧文件引用语义重映射 + 模板同步**（详见 worklogs/2026-06-11_v2.2-fp47-planning.md） | **⏳ 待开始** | **-** |
+| **V2.3 阶段A** | **#51 豁免登记强制化**（meta/豁免清单 + check_exemption_log commit-msg 钩子 + 7 L4，#52/#53 硬拦截前置） | **✅** | **2026-06-11** |
+| **V2.3 在途** | **#48-#50/#52-#53 约束与模板强化**（HTML 模板族+格式强制 / 基准脚手架 / 交流 agent / 长程流程 / 更新时间标签） | **⏳ 待开始** | **-** |
 
 ## 累计数据
 
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
-- **13 pre-commit 钩子**（commit-msg 5 个 + pre-commit 8 个，双层；V2.1 #36-#38/#45 新增 4 个）
+- **14 pre-commit 钩子**（commit-msg 6 个 + pre-commit 8 个，双层；V2.3 #51 新增 commit-msg-exemption-log）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **68 L4 tests passed**（tests/conventions/，V2.1 #40-#42 新增 10 个；剩余 7 个 ai-workflow 既存失败待 v2.2 修复）
+- **93 L4 tests passed**（tests/conventions/，V2.3 #51 新增 test_exemption_log 7 个；旧记的 7 个 ai-workflow 既存失败现已不复现）
 - **15 收束报告**（V0.1-V1.5 全部落盘）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **6 ADR 决策**（worklogs/decisions/）
 - **97 commits**（5/26 → 6/11 完整链可追）
 - **V2.1 新增脚本 11 个**（7 L1 checker + 4 commit-msg hook）
+- **V2.3 新增脚本 1 个**（check_exemption_log.py，commit-msg hook + --audit 模式）
 
 ## 阻塞项
 
@@ -148,3 +151,9 @@
 | #45 🆕 check_file_placement.py（新文件 vs FILE_GRAPH 决策树，commit-msg hook） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #47 ai-workflow 旧文件引用语义重映射 + 模板同步（conventions/01-08 + docs/templates/ 12+ 处死链语义重映射；模板 `docs/templates/devguard/scripts/check_ai_workflow.py` V1.0 旧 7 篇硬编码 → 新 9 篇） | - | ⏳ 待开始 | - |
+| #48 统一 HTML 模板族 + 格式强制措施（汇报 / 计划 / 实施设计 / 绘图素材库 四套权威 HTML 模板沉淀进 docs/templates/ + 登记 README-模板索引/FILE_GRAPH；并为这些产出物建章节/结构校验钩子，对标 #40-#42 章节级 L1） | - | ⏳ 待开始 | - |
+| #49 基准约束脚手架（可一键复制到新项目的最小约束基线：钩子 + CI + _meta.yaml + 模板的脚手架打包） | - | ⏳ 待开始 | - |
+| #50 交流 agent + 对应强制措施（需求对齐 / 决策澄清的协作 agent 定义 + 其落地的强制措施） | - | ⏳ 待开始 | - |
+| #51 豁免登记强制化（meta/豁免清单.md 账 + check_exemption_log.py commit-msg 钩子：用 [skip-*] 必须登记+同步暂存账，否则拦截；--audit 审计；7 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
+| #52 长程任务流程强制规范操作（长程任务的 cron self 监控 / 收束闸门 / 断档防护等流程从自律升级为工具强制） | - | ⏳ 待开始 | - |
+| #53 「更新时间」标签强制化（部分文件缺「更新」标签 → 补全；有标签的文件提交时强制刷新「更新时间」） | - | ⏳ 待开始 | - |
