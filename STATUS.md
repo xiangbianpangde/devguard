@@ -21,6 +21,7 @@
 | | **#40-#42 Phase2 入口文件 L1（STATUS/CLAUDE/开发清单 + L4 tests）** | **✅** | **2026-06-11** |
 | | **#43-#44 Phase3 渲染鲁棒性 + 模板漂移扩展** | **✅** | **2026-06-11** |
 | | **#45-#46 Phase4 文件放置 + 收束产物检查** | **✅** | **2026-06-11** |
+| **V2.2 启动** | **#47 ai-workflow 旧文件引用语义重映射 + 模板同步**（详见 worklogs/2026-06-11_v2.2-fp47-planning.md） | **⏳ 待开始** | **-** |
 
 ## 累计数据
 
@@ -146,3 +147,4 @@
 | #44 🆕 check_template_drift.py（5 类入口文件章节存在性对比） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #45 🆕 check_file_placement.py（新文件 vs FILE_GRAPH 决策树，commit-msg hook） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #47 ai-workflow 旧文件引用语义重映射 + 模板同步（conventions/01-08 + docs/templates/ 12+ 处死链语义重映射；模板 `docs/templates/devguard/scripts/check_ai_workflow.py` V1.0 旧 7 篇硬编码 → 新 9 篇） | - | ⏳ 待开始 | - |
