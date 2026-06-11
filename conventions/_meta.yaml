@@ -127,7 +127,8 @@ conventions:
       l1_check_path:
         - scripts/check_ai_workflow.py
         - scripts/check_claude.py
-    l1_check: check_ai_workflow.py + check_claude.py（V5.2 章节级 L1 + CLAUDE 结构）
+        - scripts/check_decision_alignment.py
+    l1_check: check_ai_workflow.py + check_claude.py + check_decision_alignment.py（章节级 L1 + CLAUDE 结构 + V2.3 #50 决策对齐）
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
@@ -431,6 +432,16 @@ pre_commit:
     description: "V2.3 #48 HTML 产出物结构校验：staged 受查 html（reports/plan-design/templates）带 doc-template 声明的须满足类型契约（8要素/五段式/8节/素材库4区）；untyped 仅 WARN；豁免 [skip-html]"
     stages: [commit-msg]
     entry: python scripts/check_html_artifact.py
+    language: python
+
+  - id: commit-msg-decision-alignment
+    name: undecided owner decisions block delivery
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "V2.3 #50 决策对齐强制：staged 设计提案须含「Owner 决策」节；提案仍有「待拍板」时同一提交不得交付功能点（拦开工）；豁免 [skip-align]"
+    stages: [commit-msg]
+    entry: python scripts/check_decision_alignment.py
     language: python
 
 # ============================================================

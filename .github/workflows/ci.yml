@@ -152,6 +152,10 @@ jobs:
       - name: check_html_artifact.py --all（V2.3 #48 HTML 模板族结构审计）
         run: python scripts/check_html_artifact.py --all
 
+      # V2.3 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
+      - name: check_decision_alignment.py --all（V2.3 #50 决策对齐审计）
+        run: python scripts/check_decision_alignment.py --all
+
   # -------------------------------------------------------------
   # 阶段 5：build（构建验证，依赖前 4 阶段）
   # -------------------------------------------------------------

@@ -91,6 +91,7 @@ class TestTestingContracts:
                 "test_updated_tag",  # V2.3 #53: 更新时间标签强制化
                 "test_convergence_gate",  # V2.3 #52: 收束硬闸门
                 "test_html_artifact",  # V2.3 #48: HTML 产出物结构校验
+                "test_decision_alignment",  # V2.3 #50: 决策对齐拦开工
             ]
         )
         assert existing == expected, (

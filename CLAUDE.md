@@ -2,7 +2,7 @@
 
 > **⚠️ 仅供 AI Agent 读取**，新会话自动加载。人类请读 `README.md`。
 > 每次功能点完成后更新本文件。新增文件前先查 `meta/FILE_GRAPH.md`。
-> 更新: 2026-06-11（V2.2 #47 + V2.3 #48 HTML 模板族交付；#49/#50 进行中）
+> 更新: 2026-06-11（V2.2 #47 + V2.3 #48/#50 交付；#49 + 阶段C 补遗进行中）
 
 ---
 
@@ -68,7 +68,7 @@ worklogs/ ──收束节点──→ worklogs/decisions/（ADR）
 
 启动一项工作前，按此顺序对齐：
 
-1. **先对齐需求** — 模糊任务先用 `plan-mode` / `prompt-optimizer` skill 整理，或直接问关键决策点。
+1. **先对齐需求** — 模糊任务 / 多方案取舍 / 大改动面先用**交流 agent**（`.claude/agents/liaison.md`：选项引导 + Owner 决策点清单，AI 不替人拍板）；设计提案须含「Owner 决策」节，**仍有「待拍板」时禁止交付功能点**（`check_decision_alignment.py` 硬拦，豁免 `[skip-align]` 须登记）。
 2. **先想好再行动** — 任务有歧义 / 多方案 / 改动面大时，先列方案让用户拍板再动代码。
 3. **创建团队完成 status 内的任务** — 任务跨 3+ 独立轨道 / 需要独立验证 / 跨工具时，`mavis-team` 编排；单步骤低复杂度任务自己干。
 4. **长程 `mavis-team` plan 必须设 `cron self` 监控** — 计划超过 30 分钟或跨 daemon 生命周期时，owner 必须设 self-reminder 防止 daemon 崩溃无人接管。
@@ -123,7 +123,7 @@ worklogs/ ──收束节点──→ worklogs/decisions/（ADR）
 
 ## 当前状态
 
-- **进度**：46/46 ✅（35 原始 + 11 V2.1 流程强制化）全部交付；**V2.2 #47 旧引用语义重映射 ✅**；**V2.3 进行中**：#51 豁免登记 + #53/#54 更新时间标签 + #52 收束硬闸门 + **#48 HTML 模板族**（4 套模板 + check_html_artifact，视觉基准 AgentHub）✅（#49/#50 进行中，见 `docs/plan/design/设计提案-约束与模板强化方案-v2.3.md`）
+- **进度**：46/46 ✅（35 原始 + 11 V2.1 流程强制化）全部交付；**V2.2 #47 旧引用语义重映射 ✅**；**V2.3 进行中**：#51 豁免登记 + #53/#54 更新时间标签 + #52 收束硬闸门 + **#48 HTML 模板族**（4 套模板 + check_html_artifact，视觉基准 AgentHub）+ **#50 交流 agent**（liaison 子代理 + check_decision_alignment 拦开工）✅（#49 + 阶段C 补遗进行中，见 `docs/plan/design/设计提案-约束与模板强化方案-v2.3.md`）
 - **规范版本**：01-06 升至 **v2.0**，08 升至 **v3.0**（双图谱范式：CodeGraph + Understand-Anything）；`src/<维度>/` 配有对应的可运行落地配置
 - **ADR**：6 个（`worklogs/decisions/0001-0006`）
 - **收束节点**：v0.1–v2.1 共 15 个节点已执行；其中 **v0.1 已人审计签核**，v0.2–v2.1（14 个）人审计仍 ⏳ 待签核

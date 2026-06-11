@@ -107,7 +107,9 @@
 ├── dashboard.html                    # 顶层：可视化进度面板
 ├── .gitignore                        # 顶层：忽略规则
 └── .claude/                          # 顶层：Claude Code 会话配置
-    └── settings.json                 #   PostToolUse 钩子注册（#53 更新时间标签编辑当下阻断）
+    ├── settings.json                 #   PostToolUse 钩子注册（#53 更新时间标签编辑当下阻断）
+    └── agents/                       #   自定义子代理定义（V2.3 #50）
+        └── liaison.md                #     交流 agent：需求对齐/决策澄清（产出 Owner 决策点清单，不替人拍板）
 ```
 
 ---

@@ -86,3 +86,8 @@ repos:
         stages: [commit-msg]
         entry: python scripts/check_html_artifact.py
         language: python
+      - id: commit-msg-decision-alignment
+        name: undecided owner decisions block delivery
+        stages: [commit-msg]
+        entry: python scripts/check_decision_alignment.py
+        language: python
