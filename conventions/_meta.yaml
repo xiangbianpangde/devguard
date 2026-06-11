@@ -143,7 +143,7 @@ conventions:
 
   - id: 09-dashboard-gen
     title: 仪表盘自动生成规范
-    file: conventions/ai-workflow_AI协作开发流程/07-汇报.md
+    file: conventions/ai-workflow_AI协作开发流程/08-汇报收束.md
     grade:
       red_line: 0
       warning: 0
@@ -158,7 +158,7 @@ conventions:
 
   - id: 10-templates-reporting
     title: 模板与汇报规范
-    file: conventions/ai-workflow_AI协作开发流程/07-汇报.md
+    file: conventions/ai-workflow_AI协作开发流程/08-汇报收束.md
     grade:
       red_line: 0
       warning: 0

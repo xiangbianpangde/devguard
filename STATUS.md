@@ -84,43 +84,46 @@
 
 ## 详细功能点列表（V0.x-V1.5）
 
+> **口径**：行尾带 fp 标签（`fp` HTML 注释）的行 = 与 `开发清单.md` 对齐的 **46 个编号功能点**（#1–#46）。
+> 表中另含 **11 行 V0.6–V1.5「衍展规范」**（09-dashboard…17-contributing + final-report-template + 汇报HTML×2）——这些在 STATUS 留档但从未进开发清单，**未打标、不计入 46**。`check_plan.py` 只数 fp 标签做跨文件一致性校验。
+
 | 功能点 | BDD | 状态 | 完成日期 |
 |--------|-----|------|---------|
-| 架构设计规范 (01) | specs/01-architecture.md | ✅ 已完成 | - |
-| 代码编写规范 (02) | specs/02-coding.md | ✅ 已完成 | - |
-| Git 协作规范 (03) | specs/03-git.md | ✅ 已完成 | - |
-| API 设计规范 (04) | specs/04-api.md | ✅ 已完成 | - |
-| 测试规范 (05) | specs/05-testing.md | ✅ 已完成 | - |
-| 文档规范 (06) | specs/06-documentation.md | ✅ 已完成 | - |
-| AI 协作开发流程 (07) | specs/07-ai-workflow.md | ✅ 已完成 | - |
-| 项目基础设施搭建 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-05-26 |
-| 统一模板 + BDD 规格 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-05-26 |
-| 01-架构 模板改造 | specs/01-architecture.md | ✅ 已完成 | 2026-05-26 |
-| 02-代码 模板改造 | specs/02-coding.md | ✅ 已完成 | 2026-05-26 |
-| 03-Git 模板改造 | specs/03-git.md | ✅ 已完成 | 2026-05-26 |
-| 04-API 模板改造 | specs/04-api.md | ✅ 已完成 | 2026-05-26 |
-| 05-测试 模板改造 | specs/05-testing.md | ✅ 已完成 | 2026-05-26 |
-| 06-文档 模板改造 | specs/06-documentation.md | ✅ 已完成 | 2026-05-26 |
-| 示例代码库 | specs/08-examples.md | ✅ 已完成 | 2026-05-26 |
-| 仪表盘自动生成 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-05-26 |
-| 基础设施修正（审查修复） | - | ✅ 已完成 | 2026-05-26 |
-| 二轮审查修复（全量复查） | - | ✅ 已完成 | 2026-05-26 |
-| 文件图谱 + 仪表盘优化 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-05-26 |
-| 统一模板规约 + 汇报模板 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-26 |
-| 5处现有规范增强（图谱v2第一步） | specs/01-06-07 | ✅ 已完成 | 2026-05-27 |
-| 第08号规范初稿（图谱v2第二步） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-27 |
-| BDD规格：现有规范增强 + 08规范 | specs/01-08 | ✅ 已完成 | 2026-05-27 |
-| 示例代码：src/code-understanding/ | - | ✅ 已完成 | 2026-05-27 |
-| 交叉引用更新：FILE_GRAPH + README + CLAUDE | - | ✅ 已完成 | 2026-05-27 |
-| 文件夹重整：提取模板+补齐AI模板+消除重叠 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
-| 合并 plan/ + design/ → docs/plan/ | - | ✅ 已完成 | 2026-05-27 |
-| decisions 移入 worklog + 约束节点决策总结规则 | - | ✅ 已完成 | 2026-05-27 |
-| CLAUDE.md ↔ README 角色分离（13 个 README 更新） | - | ✅ 已完成 | 2026-05-27 |
-| 汇报体系纳入 ai-workflow（新建 07-汇报.md + 流程集成） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
-| 汇报与收束定义修正（CLAUDE/06/07 三文件对齐） | - | ✅ 已完成 | 2026-05-27 |
-| ai-workflow 流程修订（角色/收束闸门/可观测/档位）+ README 命名规范化 + 收束术语统一 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-05-27 |
-| 规范正文 v2.0 重构（01-06/08 细化挂接+红线自动检测+去重+图谱收拢）+ 7 份 BDD realign + src 落地配置(5) + CLAUDE 三件套(根/模板/导航) + 汇报定义澄清(功能点级内联不落盘，9 处文档对齐) | specs/01-08 | ✅ 已完成 | 2026-05-27 |
-| 第08号规范 v3.0 重构（双图谱范式：CodeGraph + Understand-Anything 替代图数据库+Cypher+Mermaid） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-28 |
+| 架构设计规范 (01) | specs/01-architecture.md | ✅ 已完成 | - <!-- fp --> |
+| 代码编写规范 (02) | specs/02-coding.md | ✅ 已完成 | - <!-- fp --> |
+| Git 协作规范 (03) | specs/03-git.md | ✅ 已完成 | - <!-- fp --> |
+| API 设计规范 (04) | specs/04-api.md | ✅ 已完成 | - <!-- fp --> |
+| 测试规范 (05) | specs/05-testing.md | ✅ 已完成 | - <!-- fp --> |
+| 文档规范 (06) | specs/06-documentation.md | ✅ 已完成 | - <!-- fp --> |
+| AI 协作开发流程 (07) | specs/07-ai-workflow.md | ✅ 已完成 | - <!-- fp --> |
+| 项目基础设施搭建 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 统一模板 + BDD 规格 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 01-架构 模板改造 | specs/01-architecture.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 02-代码 模板改造 | specs/02-coding.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 03-Git 模板改造 | specs/03-git.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 04-API 模板改造 | specs/04-api.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 05-测试 模板改造 | specs/05-testing.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 06-文档 模板改造 | specs/06-documentation.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 示例代码库 | specs/08-examples.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 仪表盘自动生成 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 基础设施修正（审查修复） | - | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 二轮审查修复（全量复查） | - | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 文件图谱 + 仪表盘优化 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 统一模板规约 + 汇报模板 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-26 <!-- fp --> |
+| 5处现有规范增强（图谱v2第一步） | specs/01-06-07 | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 第08号规范初稿（图谱v2第二步） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| BDD规格：现有规范增强 + 08规范 | specs/01-08 | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 示例代码：src/code-understanding/ | - | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 交叉引用更新：FILE_GRAPH + README + CLAUDE | - | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 文件夹重整：提取模板+补齐AI模板+消除重叠 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 合并 plan/ + design/ → docs/plan/ | - | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| decisions 移入 worklog + 约束节点决策总结规则 | - | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| CLAUDE.md ↔ README 角色分离（13 个 README 更新） | - | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 汇报体系纳入 ai-workflow（新建 07-汇报.md + 流程集成） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 汇报与收束定义修正（CLAUDE/06/07 三文件对齐） | - | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| ai-workflow 流程修订（角色/收束闸门/可观测/档位）+ README 命名规范化 + 收束术语统一 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 规范正文 v2.0 重构（01-06/08 细化挂接+红线自动检测+去重+图谱收拢）+ 7 份 BDD realign + src 落地配置(5) + CLAUDE 三件套(根/模板/导航) + 汇报定义澄清(功能点级内联不落盘，9 处文档对齐) | specs/01-08 | ✅ 已完成 | 2026-05-27 <!-- fp --> |
+| 第08号规范 v3.0 重构（双图谱范式：CodeGraph + Understand-Anything 替代图数据库+Cypher+Mermaid） | specs/08-code-understanding.md | ✅ 已完成 | 2026-05-28 <!-- fp --> |
 | 09-dashboard-gen 规范入 _meta.yaml + dashboard.html 自动渲染 | specs/09-dashboard-gen.md | ✅ 已完成 | 2026-06-07 (V0.6) |
 | 10-templates-reporting 规范入 _meta.yaml + 模板规约 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-06-07 (V0.7) |
 | 11-readme 规范入 _meta.yaml + README 双件套分离 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-06-07 (V0.9) |
@@ -132,14 +135,14 @@
 | 17-contributing 规范入 _meta.yaml + CONTRIBUTING.md | - | ✅ 已完成 | 2026-06-07 (V1.4) |
 | **final-report-template 沉淀**（高密度学术风 HTML 模板：11 Mermaid + 3 Tab + 5 进度条 + 2 数字滚动 + 1 模拟器） | - | **✅ 已完成** | **2026-06-08 (V1.5)** |
 | **V1.x 收尾汇报 HTML × 2**（原始版 + render.py 渲染版） | - | **✅ 已完成** | **2026-06-08 (V1.5)** |
-| #36 增强 check_worklog_ref.py（worklog 文件存在性验证） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #37 🆕 check_status_updated.py（worklog ↔ STATUS 同步钩子） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #38 🆕 check_worklog_structure.py（worklog 内容结构校验） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #39 markdownlint 规则审计 + 分批启用（MD001/MD012/MD031/MD047/MD058；MD022/MD032 延后） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #40 🆕 check_status.py（STATUS.md 章节级 L1）+ test_status.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #41 🆕 check_claude.py（CLAUDE.md 章节级 L1）+ test_claude.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #42 🆕 check_plan.py（开发清单.md 章节级 L1 + STATUS 交叉校验）+ test_plan.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #43 dashboard 渲染 strict 模式（safe_substitute→substitute + parse_status warn + status_pre_check） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #44 🆕 check_template_drift.py（5 类入口文件章节存在性对比） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #45 🆕 check_file_placement.py（新文件 vs FILE_GRAPH 决策树，commit-msg hook） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
-| #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) |
+| #36 增强 check_worklog_ref.py（worklog 文件存在性验证） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #37 🆕 check_status_updated.py（worklog ↔ STATUS 同步钩子） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #38 🆕 check_worklog_structure.py（worklog 内容结构校验） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #39 markdownlint 规则审计 + 分批启用（MD001/MD012/MD031/MD047/MD058；MD022/MD032 延后） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #40 🆕 check_status.py（STATUS.md 章节级 L1）+ test_status.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #41 🆕 check_claude.py（CLAUDE.md 章节级 L1）+ test_claude.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #42 🆕 check_plan.py（开发清单.md 章节级 L1 + STATUS 交叉校验）+ test_plan.py L4 | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #43 dashboard 渲染 strict 模式（safe_substitute→substitute + parse_status warn + status_pre_check） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #44 🆕 check_template_drift.py（5 类入口文件章节存在性对比） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #45 🆕 check_file_placement.py（新文件 vs FILE_GRAPH 决策树，commit-msg hook） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
+| #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |

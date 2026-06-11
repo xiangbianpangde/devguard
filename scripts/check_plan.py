@@ -9,8 +9,11 @@ check_plan.py — 开发清单.md 格式 L1 + 交叉校验钩子（V2.1 #42）
   a. `## 功能点列表` 节存在且有表格（硬拦）
   b. 该表列数 ≥ 7（#/功能点/BDD规格/状态/预估轮次/依赖/完成日期）（硬拦）
   c. 所有功能点行（首列为整数）含合法状态符号 {✅,🔄,⏳,🚫}（硬拦）
-  d. 开发清单功能点总数 与 STATUS.md 详细功能点列表行数一致（软提示 / WARN）
-     —— 方案"风险"章节要求跨文件一致性先豁免历史差异、只警告不拦截。
+  d. 跨文件功能点口径一致：开发清单 与 STATUS.md 的 `<!-- fp -->` 标签数一致（软提示 / WARN）
+     —— 口径统一方案：两边的「编号功能点」逐行打 `<!-- fp -->` 标签，本检查只数标签，
+        不再拿"整数首列行 vs 全部数据行"两种口径硬比（那会因 STATUS 含 11 行 V0.6–V1.5
+        衍展规范而恒不相等）。STATUS 详细列表里未打标的衍展行不计入功能点数。
+        方案"风险"章节：跨文件不一致先警告不拦截。
 
 退出码: 0 = 结构通过（可能含 WARN）；1 = 结构不通过
 
@@ -30,6 +33,7 @@ STATUS_FILE = REPO_ROOT / "STATUS.md"
 
 LEGAL_STATUS = {"✅", "🔄", "⏳", "🚫"}
 INT_CELL = re.compile(r"^\*{0,2}\d+\*{0,2}$")  # 1 / 22 / **36**
+FP_TAG = re.compile(r"<!--\s*fp\s*-->")  # 功能点统一计数标签
 
 
 def split_row(line: str) -> list[str]:
@@ -66,33 +70,11 @@ def header_after(lines: list[str], heading_kw: str) -> list[str]:
     return []
 
 
-def status_detail_row_count() -> int | None:
-    """STATUS.md『详细功能点列表』节的数据行数（功能点行）。"""
-    if not STATUS_FILE.exists():
+def fp_tag_count(path: Path) -> int | None:
+    """文件中 `<!-- fp -->` 功能点标签的数量（统一口径计数）。"""
+    if not path.exists():
         return None
-    lines = STATUS_FILE.read_text(encoding="utf-8").splitlines()
-    in_section = False
-    seen_sep = False
-    count = 0
-    for line in lines:
-        if line.startswith("## "):
-            if in_section:
-                break
-            in_section = "详细功能点列表" in line
-            seen_sep = False
-            continue
-        if not in_section or not is_table_row(line):
-            continue
-        s = line.strip()
-        if "---" in s and not seen_sep:
-            seen_sep = True
-            continue
-        if seen_sep:
-            # 跳过表头行（首列 == 功能点）
-            cells = split_row(line)
-            if cells and cells[0] != "功能点":
-                count += 1
-    return count
+    return len(FP_TAG.findall(path.read_text(encoding="utf-8")))
 
 
 def main() -> int:
@@ -121,15 +103,19 @@ def main() -> int:
                 f"功能点行 #{r[0]} 缺合法状态符号 {sorted(LEGAL_STATUS)}：{r[:4]}"
             )
 
-    # d. 与 STATUS.md 交叉计数（WARN）
-    plan_count = len(fp_rows)
-    status_count = status_detail_row_count()
-    if status_count is None:
-        warnings.append("STATUS.md 不存在，跳过交叉计数")
-    elif plan_count != status_count:
+    # d. 与 STATUS.md 跨文件口径一致：比 `<!-- fp -->` 标签数（WARN）
+    plan_tags = fp_tag_count(PLAN_FILE)
+    status_tags = fp_tag_count(STATUS_FILE)
+    if status_tags is None:
+        warnings.append("STATUS.md 不存在，跳过功能点标签交叉计数")
+    elif plan_tags == 0:
         warnings.append(
-            f"开发清单功能点数({plan_count}) ≠ STATUS 详细列表行数({status_count})"
-            f"——历史差异请人工核对（方案风险章节：跨文件不一致先警告不拦截）"
+            "开发清单未发现 `<!-- fp -->` 功能点标签——口径统一方案要求逐功能点行打标"
+        )
+    elif plan_tags != status_tags:
+        warnings.append(
+            f"功能点标签数不一致：开发清单({plan_tags}) ≠ STATUS 详细列表({status_tags})"
+            f"——请确认两边「编号功能点」均已打 `<!-- fp -->`（衍展行不打标）"
         )
 
     for w in warnings:
@@ -143,7 +129,8 @@ def main() -> int:
 
     print(
         f"OK 开发清单.md 格式 L1 验证通过"
-        f"（功能点列表 {len(header)} 列，{plan_count} 个功能点行）"
+        f"（功能点列表 {len(header)} 列，{len(fp_rows)} 个功能点行，"
+        f"{plan_tags} 个 fp 标签 ↔ STATUS {status_tags}）"
     )
     return 0
 

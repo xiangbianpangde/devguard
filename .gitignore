@@ -11,6 +11,9 @@ Thumbs.db
 # Dashboard auto-refresh artifacts
 dashboard.html.lock
 
+# 设计文档渲染用的本地 Mermaid（3.3MB，克隆仓不需要）
+docs/plan/design/_mermaid.min.js
+
 # Temp files
 *.tmp
 *.bak

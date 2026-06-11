@@ -3,7 +3,7 @@
 """
 check_status_updated.py — commit-msg 钩子：worklog ↔ STATUS.md 同步拦截
 ============================================================
-依据：ai-workflow 07-汇报「每功能点完成 → 更新 worklog + STATUS（必做）」
+依据：ai-workflow 08-汇报收束「每功能点完成 → 更新 worklog + STATUS（必做）」
       + 流程强制化方案 #37（汇报流程强制化 Phase 1）
 
 判定逻辑：
@@ -105,7 +105,7 @@ def main() -> int:
         print("FAIL: 本次提交修改了 worklog，但 STATUS.md 未同步更新", file=sys.stderr)
         print("", file=sys.stderr)
         print(
-            "  ai-workflow 07-汇报：每功能点完成 → 更新 worklog + STATUS（必做）",
+            "  ai-workflow 08-汇报收束：每功能点完成 → 更新 worklog + STATUS（必做）",
             file=sys.stderr,
         )
         print("  修复: 更新 STATUS.md 并 `git add STATUS.md`", file=sys.stderr)

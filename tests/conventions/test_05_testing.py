@@ -86,6 +86,7 @@ class TestTestingContracts:
                 "test_status",  # V2.1 #40: STATUS.md 章节级 L1
                 "test_claude",  # V2.1 #41: CLAUDE.md 结构 L1
                 "test_plan",  # V2.1 #42: 开发清单格式 L1
+                "test_file_placement",  # V2.1 #45 强化: 文件放置规则 L1
             ]
         )
         assert existing == expected, (
