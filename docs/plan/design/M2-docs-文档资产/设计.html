@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2 文档资产 · 现状设计 — devguard V2.0.1</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#F5F0E4',
+          primaryTextColor: '#1F1D17',
+          primaryBorderColor: '#8B3A1F',
+          lineColor: '#5A5447',
+          secondaryColor: '#E8E1D2',
+          tertiaryColor: '#FAF7F0',
+          fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+          fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+        sequence: { useMaxWidth: true, diagramMarginX: 20 },
+        pie: { useMaxWidth: true },
+        gantt: { useMaxWidth: true }
+      });
+    }
+
+    // —— Tab 切换 ——
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // —— 进度条动画 ——
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    // —— 数字滚动 ——
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+
+    // —— 锚点激活态 ——
+    var navLinks = document.querySelectorAll('aside nav a');
+    var sections = document.querySelectorAll('main section[id]');
+    window.addEventListener('scroll', function(){
+      var y = window.scrollY + 120;
+      sections.forEach(function(sec){
+        if (sec.offsetTop <= y && (sec.offsetTop + sec.offsetHeight) > y) {
+          navLinks.forEach(function(a){
+            a.classList.toggle('active', a.getAttribute('href') === '#' + sec.id);
+          });
+        }
+      });
+    });
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       /* deep crimson */
+    --brand-2:#A85032;
+    --accent:#2F5061;      /* teal */
+    --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px;line-height:1.6}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{content:"";width:18px;height:1.5px;background:var(--accent)}
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;background:rgba(139,58,31,.12);color:var(--brand)}
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar.armed .fill{width:var(--w)}
+  .anim-bar .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .anim-bar .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .anim-bar .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);
+    background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;
+    font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;
+    transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);
+    z-index:100;
+  }
+  .tip .tipbox::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1F1D17;
+  }
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ 左侧导航 ============ -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">档</div>
+      <div>
+        <b>M2 文档资产</b>
+        <span>devguard v2.0.1</span>
+      </div>
+    </div>
+    <div class="meta">5 子模块<br>14 模板 · 12 BDD<br>14 收束报告<br>3 HTML 最终报告</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 模块定位</a>
+      <a href="#s2"><span class="n">02</span> 5 子模块</a>
+      <a href="#s3"><span class="n">03</span> 模板真源</a>
+      <a href="#s4"><span class="n">04</span> BDD 互检</a>
+      <a href="#s5"><span class="n">05</span> 计划链</a>
+      <a href="#s6"><span class="n">06</span> 汇报三档</a>
+      <div class="grp">关系与验收</div>
+      <a href="#s7"><span class="n">07</span> 依赖关系</a>
+      <a href="#s8"><span class="n">08</span> 边界降级</a>
+      <a href="#s9"><span class="n">09</span> 验收标准</a>
+      <a href="#s10"><span class="n">10</span> Verdict</a>
+    </nav>
+  </aside>
+
+  <!-- ============ 主内容 ============ -->
+  <main class="main">
+
+    <!-- ====================== HERO ====================== -->
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">M2 已交付</span>
+        <span class="b-pill inf">5 子模块</span>
+        <span class="b-pill inf">14 模板</span>
+        <span class="b-pill inf">12 BDD</span>
+        <span class="b-pill inf">14 收束报告</span>
+        <span class="b-pill br">V2.0.1</span>
+      </div>
+      <h1>M2 文档资产 · 现状设计</h1>
+      <p class="sub">devguard 项目所有"文档型"内容的归属与流转 —— 模板、BDD、计划、汇报、调研 五子模块，模板真源策略，BDD 与规范互检，汇报三档分层。</p>
+      <div class="meta-row">
+        <span>版本 v1.0 · 2026-06-10</span>
+        <span>•</span>
+        <span>周期 V0.x 起步 → V2.0.1</span>
+        <span>•</span>
+        <span>5 子模块</span>
+        <span>•</span>
+        <span>工作区 已交付</span>
+      </div>
+    </section>
+
+    <!-- ====================== 目录 ====================== -->
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>模块定位</b><span style="font-size:11px;color:var(--txt-faint)">5 子模块职责清晰</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>5 子模块</b><span style="font-size:11px;color:var(--txt-faint)">templates / specs / plan / reports / research</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>模板真源</b><span style="font-size:11px;color:var(--txt-faint)">docs/templates/ 唯一权威</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>BDD 互检</b><span style="font-size:11px;color:var(--txt-faint)">conventions ↔ specs</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>计划 → 状态</b><span style="font-size:11px;color:var(--txt-faint)">开发清单 → STATUS → dashboard</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>汇报三档</b><span style="font-size:11px;color:var(--txt-faint)">功能点 / 收束 / 阶段</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>依赖关系</b><span style="font-size:11px;color:var(--txt-faint)">M1→M2→M5/M7</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>边界降级</b><span style="font-size:11px;color:var(--txt-faint)">4 红线拦截</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>验收标准</b><span style="font-size:11px;color:var(--txt-faint)">5 维全检</span></div></a>
+    </div>
+
+    <!-- ====================== 摘要 KPI ====================== -->
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="5">0</span></div>
+        <div class="lbl">子模块数</div>
+        <div class="sub">templates / specs / plan / reports / research</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="14">0</span></div>
+        <div class="lbl">通用模板</div>
+        <div class="sub">docs/templates/ 真源 + devguard 子目录</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="12">0</span></div>
+        <div class="lbl">BDD 规格</div>
+        <div class="sub">00-10 编号连续，01-08 一对一互检</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="14">0</span></div>
+        <div class="lbl">收束报告</div>
+        <div class="sub">v0.1 → v1.5 全部齐全</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="49">0</span></div>
+        <div class="lbl">功能点总数</div>
+        <div class="sub">49/49 全部交付</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="3">0</span></div>
+        <div class="lbl">HTML 最终报告</div>
+        <div class="sub">V1.x / V1.5+V2.0 / merged</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="6">0</span></div>
+        <div class="lbl">ADR 数量</div>
+        <div class="sub">worklogs/decisions/0001-0006</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="1">0</span></div>
+        <div class="lbl">人审签核</div>
+        <div class="sub">v0.1 已签核（v0.2-v1.5 待签）</div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- ====================== §1 模块定位 ====================== -->
+    <section id="s1">
+      <div class="sec-head">
+        <div class="tag">01 · 模块定位</div>
+        <h2>它是什么 · 不是什么</h2>
+        <p>devguard 项目的文档资产仓库。除 conventions/ 规范正文外，所有"文档型"内容统一在 docs/ 下管理 —— 模板可复制、BDD 可验收、计划可追溯、汇报有据、调研有依。</p>
+      </div>
+
+      <div class="vs">
+        <div class="vs-col old">
+          <h4>是 · 文档资产</h4>
+          <ul style="margin:0 0 0 18px;font-size:12.4px;color:var(--txt-dim);line-height:1.9">
+            <li>模板 — 让新项目能复制</li>
+            <li>BDD — 让规范有验收</li>
+            <li>计划 — 让功能点有依据</li>
+            <li>汇报 — 让进展可追溯</li>
+            <li>调研 — 让决策有依据</li>
+          </ul>
+        </div>
+        <div class="vs-mid">⇄</div>
+        <div class="vs-col new">
+          <h4>不是 · 别处归属</h4>
+          <ul style="margin:0 0 0 18px;font-size:12.4px;color:var(--txt-dim);line-height:1.9">
+            <li>规范正文 → <span class="mono">conventions/</span>（M1）</li>
+            <li>工作日志 → <span class="mono">worklogs/</span>（M5）</li>
+            <li>元信息 → <span class="mono">meta/</span>（M6）</li>
+            <li>状态数据源 → <span class="mono">STATUS.md</span>（M7）</li>
+            <li>示例代码 → <span class="mono">src/&lt;维度&gt;/</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note info">
+        <div class="ico">i</div>
+        <div><b>核心边界</b>：docs/ 只管"文档型资产"。代码示例、钩子脚本、规范正文统统不在此域。M2 与 M1 互为镜像 —— M1 定规矩，M2 给 BDD。</div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §2 5 子模块 ====================== -->
+    <section id="s2">
+      <div class="sec-head">
+        <div class="tag">02 · 五子模块</div>
+        <h2>5 个目录 · 5 种职责</h2>
+        <p>5 个子模块各司其职：templates 是"复制的源头"，specs 是"规范的验收"，plan 是"项目的路线"，reports 是"过程的印记"，research 是"决策的依据"。</p>
+      </div>
+
+      <div class="grid g5">
+        <div class="card brand">
+          <h4>templates/</h4>
+          <p style="font-size:11.5px;line-height:1.6">模板权威源。14 通用模板 + devguard 子目录打包，fork 项目时整组复制。</p>
+          <div class="chip-row">
+            <span class="chip br">14 模板</span>
+            <span class="chip">devguard/</span>
+          </div>
+        </div>
+        <div class="card hl">
+          <h4>specs/</h4>
+          <p style="font-size:11.5px;line-height:1.6">BDD 规格。00-10 共 12 份，与 conventions 01-08 一对一互检。</p>
+          <div class="chip-row">
+            <span class="chip b">12 BDD</span>
+            <span class="chip">Given/When/Then</span>
+          </div>
+        </div>
+        <div class="card gold">
+          <h4>plan/</h4>
+          <p style="font-size:11.5px;line-height:1.6">项目计划。背景.md + 开发清单.md + design/ 子目录，加行同步 STATUS.md。</p>
+          <div class="chip-row">
+            <span class="chip gl">49 功能点</span>
+            <span class="chip">design/</span>
+          </div>
+        </div>
+        <div class="card hl">
+          <h4>reports/</h4>
+          <p style="font-size:11.5px;line-height:1.6">汇报与收束。14 收束报告 + INDEX + V1.x HTML 最终汇报。</p>
+          <div class="chip-row">
+            <span class="chip b">14 收束</span>
+            <span class="chip">3 HTML</span>
+          </div>
+        </div>
+        <div class="card brand">
+          <h4>research/</h4>
+          <p style="font-size:11.5px;line-height:1.6">调研。开发规范调研 + 图谱工具调研 N1-N6，决策前置依据。</p>
+          <div class="chip-row">
+            <span class="chip br">N1-N6</span>
+            <span class="chip">08 v3.0</span>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>子模块占比可视化</h3>
+      <div class="mermaid-wrap">
+        <div class="cap">图 2-1 · 五子模块的"职责半径"分布</div>
+        <div class="mermaid">
+pie showData
+  title 五子模块的资产数量分布
+  "templates 14 模板" : 14
+  "specs 12 BDD" : 12
+  "plan 49 功能点" : 49
+  "reports 14 收束 + 3 HTML" : 17
+  "research 调研产出" : 8
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>5 子模块的 5 个最关键文件</h3>
+      <div class="tabs" style="margin-top:0">
+        <div class="tb active" data-tab="t-tpl">templates</div>
+        <div class="tb" data-tab="t-spec">specs</div>
+        <div class="tb" data-tab="t-plan">plan</div>
+        <div class="tb" data-tab="t-rep">reports</div>
+        <div class="tb" data-tab="t-res">research</div>
+      </div>
+      <div class="tab-pane active" data-pane="t-tpl">
+        <div class="card hl">
+          <h4>docs/templates/README-模板索引.md</h4>
+          <p style="font-size:12px;line-height:1.7">14 个模板的"门户"。包含：模板清单、占位符说明、版本同步状态。L1 检测从此文件行数下手。</p>
+        </div>
+        <div class="card brand" style="margin-top:8px">
+          <h4>docs/templates/devguard/final-report-template/</h4>
+          <p style="font-size:12px;line-height:1.7">V1.5 沉淀的"高密度学术风 HTML"模板：template.html + render.py + example-data.json + README.md + demo.html 五件套。</p>
+        </div>
+      </div>
+      <div class="tab-pane" data-pane="t-spec">
+        <div class="card hl">
+          <h4>docs/specs/01-architecture.md</h4>
+          <p style="font-size:12px;line-height:1.7">01 规范架构的 BDD 镜像。改 conventions/01-architecture.md 必须同步改此文件 —— PR-09 红线。</p>
+        </div>
+        <div class="card brand" style="margin-top:8px">
+          <h4>docs/specs/10-templates-reporting.md</h4>
+          <p style="font-size:12px;line-height:1.7">10 规范"模板与汇报"的 BDD —— 校验"模板三件套"：实际模板 + 索引登记 + 与规范版本同步。</p>
+        </div>
+      </div>
+      <div class="tab-pane" data-pane="t-plan">
+        <div class="card hl">
+          <h4>docs/plan/开发清单.md</h4>
+          <p style="font-size:12px;line-height:1.7">49 个功能点的"事实表"。每行 = 编号 + 名称 + 状态 + BDD 引用 + 依赖。加行必同步 STATUS.md。</p>
+        </div>
+        <div class="card brand" style="margin-top:8px">
+          <h4>docs/plan/design/</h4>
+          <p style="font-size:12px;line-height:1.7">复杂功能设计文档归档。M1-im-chat-v2.0-参考模板/ 是子目录多文件设计文档的范本。</p>
+        </div>
+      </div>
+      <div class="tab-pane" data-pane="t-rep">
+        <div class="card hl">
+          <h4>docs/reports/INDEX.md</h4>
+          <p style="font-size:12px;line-height:1.7">14 份收束报告 + 阶段汇报 + HTML 最终报告的统一索引。新报告落盘必须登记此文件。</p>
+        </div>
+        <div class="card brand" style="margin-top:8px">
+          <h4>docs/reports/收束报告-v0.1.md</h4>
+          <p style="font-size:12px;line-height:1.7">唯一一份人审签核通过的收束报告（含人审计签核-v0.1.md），是 06 流程四阶段执行的样板。</p>
+        </div>
+      </div>
+      <div class="tab-pane" data-pane="t-res">
+        <div class="card hl">
+          <h4>docs/research/开发规范调研.md</h4>
+          <p style="font-size:12px;line-height:1.7">V0.x 起步阶段调研"六条最佳实践"，是 ADR 0001/0002 的事实依据。</p>
+        </div>
+        <div class="card brand" style="margin-top:8px">
+          <h4>docs/research/图谱与代码理解工具调研-output/</h4>
+          <p style="font-size:12px;line-height:1.7">N1-N6 多级深度研究，08 规范 v3.0 双图谱方案（CodeGraph + Understand-Anything）的直接来源。</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §3 模板真源 ====================== -->
+    <section id="s3">
+      <div class="sec-head">
+        <div class="tag">03 · 模板真源策略</div>
+        <h2>真源 = docs/templates/</h2>
+        <p>devguard 的"可复制"特性靠 templates 落地。所有模板集中在 docs/templates/，devguard 子目录承载"fork 整套规范时整组打包"。</p>
+      </div>
+
+      <h3><span class="dot"></span>两层结构</h3>
+      <div class="grid g2">
+        <div class="card hl">
+          <h4>外层 · 通用模板</h4>
+          <p style="font-size:12.3px;line-height:1.7">14 个跨项目可复用的模板：BDD / CLAUDE / README / STATUS / worklog / 汇报 / 收束 / 审计 等。任何项目都能拿来用。</p>
+          <div class="chip-row"><span class="chip b">14 模板</span><span class="chip">跨项目</span></div>
+        </div>
+        <div class="card brand">
+          <h4>内层 · devguard/ 子目录</h4>
+          <p style="font-size:12.3px;line-height:1.7">fork 整套 devguard 规范时整组复制：conventions 模板、scripts 渲染脚本、src 示例、html-report-template、final-report-template。</p>
+          <div class="chip-row"><span class="chip br">devguard/</span><span class="chip">打包复制</span></div>
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>复制场景矩阵</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>复制场景</th><th>复制源</th><th>目标</th><th>频率</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>新项目用 devguard 整套</td><td class="mono" style="font-size:11.5px">docs/templates/devguard/</td><td>新项目根目录</td><td><span class="b-pill ok">低</span></td></tr>
+            <tr><td>单独用某个模板（如 BDD）</td><td class="mono" style="font-size:11.5px">docs/templates/BDD规格模板.md</td><td>新项目 docs/specs/</td><td><span class="b-pill inf">中</span></td></tr>
+            <tr><td>仪表盘报告渲染</td><td class="mono" style="font-size:11.5px">docs/templates/devguard/html-report-template/</td><td>新项目根</td><td><span class="b-pill inf">中</span></td></tr>
+            <tr><td>V1.x 学术风总结</td><td class="mono" style="font-size:11.5px">docs/templates/devguard/final-report-template/</td><td>新项目报告目录</td><td><span class="b-pill br">低</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="dot"></span>10 规范约束的"模板三件套"</h3>
+      <div class="mermaid-wrap">
+        <div class="cap">图 3-1 · 每个模板必须三件齐全</div>
+        <div class="mermaid">
+flowchart LR
+  T["<b>实际模板文件</b><br/>docs/templates/&lt;类型&gt;模板.md"]
+  R["<b>索引登记</b><br/>README-模板索引.md 写入"]
+  S["<b>版本同步</b><br/>与对应规范版本一致"]
+  CI{{"<b>CI 检测</b><br/>10 规范 L1 check"}}
+  T --> R --> S
+  S --> CI
+  CI -- 失败 --> BLOCK["<b>红线</b><br/>PR 拦截"]
+  CI -- 通过 --> OK["<b>OK</b><br/>可合入"]
+  style T fill:#E8E1D2,stroke:#8B3A1F
+  style R fill:#FAF7F0,stroke:#2F5061
+  style S fill:#FAF7F0,stroke:#A87A2E
+  style CI fill:#FCF6EE,stroke:#8B3A1F
+  style BLOCK fill:#EFD5CD,stroke:#9C3A2E,color:#9C3A2E
+  style OK fill:#DDE9D5,stroke:#3F6B3D,color:#3F6B3D
+        </div>
+      </div>
+
+      <div class="note warn">
+        <div class="ico">!</div>
+        <div><b>三件套缺一不可</b>：模板文件存在但没在索引登记 = 10 规范 L1 失败；登记了但没和对应规范版本同步 = 内容漂移；索引和文件都在但内容过期 = 失真。</div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §4 BDD 互检 ====================== -->
+    <section id="s4">
+      <div class="sec-head">
+        <div class="tag">04 · BDD 互检</div>
+        <h2>conventions ↔ specs · 一对一</h2>
+        <p>改规范必同步改 BDD —— PR-09 红线。CI compliance 阶段自动 check 互检一致性。BDD 中"Given/When/Then"必须可对应到 src/&lt;维度&gt;/ 示例代码。</p>
+      </div>
+
+      <h3><span class="dot"></span>互检拓扑</h3>
+      <div class="mermaid-wrap">
+        <div class="cap">图 4-1 · conventions 与 specs 的双向互检</div>
+        <div class="mermaid">
+flowchart TB
+  subgraph C["conventions/ 规范正文"]
+    C1["01-architecture.md"]
+    C2["02-coding.md"]
+    C3["03-git.md"]
+    C4["04-api.md"]
+    C5["05-testing.md"]
+    C6["06-documentation.md"]
+    C7["07-ai-workflow.md"]
+    C8["08-code-understanding.md"]
+  end
+  subgraph S["docs/specs/ BDD 镜像"]
+    S1["01-architecture.md"]
+    S2["02-coding.md"]
+    S3["03-git.md"]
+    S4["04-api.md"]
+    S5["05-testing.md"]
+    S6["06-documentation.md"]
+    S7["07-ai-workflow.md"]
+    S8["08-code-understanding.md"]
+  end
+  C1 <-. 一对一互检 .-> S1
+  C2 <-. 一对一互检 .-> S2
+  C3 <-. 一对一互检 .-> S3
+  C4 <-. 一对一互检 .-> S4
+  C5 <-. 一对一互检 .-> S5
+  C6 <-. 一对一互检 .-> S6
+  C7 <-. 一对一互检 .-> S7
+  C8 <-. 一对一互检 .-> S8
+  S0["00-infrastructure-template.md<br/>基础设施 BDD · 项目级"]
+  S9["09-dashboard-gen.md"]
+  S10["10-templates-reporting.md"]
+  S8e["08-examples.md<br/>08 兄弟"]
+  CI["CI compliance 阶段<br/>互检一致性检查"]
+  S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & S9 & S10 --> CI
+  style CI fill:#FCF6EE,stroke:#8B3A1F
+  style S0 fill:#F4F2EC,stroke:#9A9385
+  style S8e fill:#F4F2EC,stroke:#9A9385
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>关键约束</h3>
+      <div class="grid g3">
+        <div class="card brand">
+          <h4>约束 1</h4>
+          <p style="font-size:12px;line-height:1.7">conventions/NN-*.md 改动 → 同名 BDD 必须同 PR 修改。改一处不改另一处 = PR-09 红线。</p>
+        </div>
+        <div class="card hl">
+          <h4>约束 2</h4>
+          <p style="font-size:12px;line-height:1.7">BDD 中"Given/When/Then" 必须可对应到 src/&lt;维度&gt;/ 示例代码 —— 验收要能跑得起来。</p>
+        </div>
+        <div class="card gold">
+          <h4>约束 3</h4>
+          <p style="font-size:12px;line-height:1.7">specs/00 是基础设施 BDD，不属于 conventions（项目级）。specs/08 双图谱 + 08-examples 是兄弟结构。</p>
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>BDD 互检触发次数（红线拦截）</h3>
+      <div class="bar-row">
+        <div class="lbl">BDD 与规范不同步</div>
+        <div class="bar"><div class="anim-bar"><div class="fill brand" style="--w:88%"></div></div></div>
+        <div class="val">~10+</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">模板与规范不同步</div>
+        <div class="bar"><div class="anim-bar"><div class="fill gold" style="--w:42%"></div></div></div>
+        <div class="val">~5</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">收束报告缺失</div>
+        <div class="bar"><div class="anim-bar"><div class="fill good" style="--w:2%"></div></div></div>
+        <div class="val">0</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">计划与状态漂移</div>
+        <div class="bar"><div class="anim-bar"><div class="fill" style="--w:25%"></div></div></div>
+        <div class="val">~3</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">markdownlint 红线</div>
+        <div class="bar"><div class="anim-bar"><div class="fill good" style="--w:0%"></div></div></div>
+        <div class="val">~5→0</div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §5 计划链 ====================== -->
+    <section id="s5">
+      <div class="sec-head">
+        <div class="tag">05 · 计划 → 状态 → 仪表盘</div>
+        <h2>数据驱动的可视化链路</h2>
+        <p>开发清单.md 是"事实表"，STATUS.md 是"实时数据源"，dashboard.html 是"可视化呈现"。三者一脉相承，AI 写新功能点必同步两个地方。</p>
+      </div>
+
+      <h3><span class="dot"></span>链路拓扑</h3>
+      <div class="mermaid-wrap">
+        <div class="cap">图 5-1 · 计划 → 状态 → 仪表盘 的数据流</div>
+        <div class="mermaid">
+flowchart LR
+  H["<b>人</b><br/>写新功能点"]
+  P["<b>docs/plan/开发清单.md</b><br/>事实表：编号+名称+BDD+依赖"]
+  S["<b>STATUS.md</b><br/>实时数据源"]
+  D["<b>dashboard.html</b><br/>可视化"]
+  W["<b>worklog</b><br/>过程印记"]
+  C["<b>收束节点</b><br/>每 3 功能点"]
+  R["<b>收束报告</b><br/>docs/reports/"]
+  H -- 加行 --> P
+  P -- 同步 --> S
+  S -- 解析 --> D
+  P -- 每个完成 --> W
+  W -- 到收束点 --> C
+  C -- 产出 --> R
+  R -- 沉淀到 --> IDX["<b>INDEX.md</b>"]
+  style H fill:#FAF7F0,stroke:#5A5447
+  style P fill:#E8E1D2,stroke:#8B3A1F
+  style S fill:#FCF6EE,stroke:#8B3A1F
+  style D fill:#FAF7F0,stroke:#2F5061
+  style W fill:#FAF7F0,stroke:#5A5447
+  style C fill:#F0E2C5,stroke:#B07F22
+  style R fill:#DDE9D5,stroke:#3F6B3D
+  style IDX fill:#DDE9D5,stroke:#3F6B3D
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>链路健康度仪表盘</h3>
+      <div class="grid g3">
+        <div class="gauge">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="32" fill="none" stroke="#ECEAE2" stroke-width="8"/>
+            <circle cx="40" cy="40" r="32" fill="none" stroke="#8B3A1F" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="0" transform="rotate(-90 40 40)" stroke-linecap="round"/>
+            <text x="40" y="46" text-anchor="middle" font-family="serif" font-size="20" font-weight="700" fill="#1F1D17">100%</text>
+          </svg>
+          <div class="text"><b>49/49</b><span>功能点完成率</span></div>
+        </div>
+        <div class="gauge">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="32" fill="none" stroke="#ECEAE2" stroke-width="8"/>
+            <circle cx="40" cy="40" r="32" fill="none" stroke="#2F5061" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="0" transform="rotate(-90 40 40)" stroke-linecap="round"/>
+            <text x="40" y="46" text-anchor="middle" font-family="serif" font-size="20" font-weight="700" fill="#1F1D17">100%</text>
+          </svg>
+          <div class="text"><b>同步</b><span>开发清单 ↔ STATUS</span></div>
+        </div>
+        <div class="gauge">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="32" fill="none" stroke="#ECEAE2" stroke-width="8"/>
+            <circle cx="40" cy="40" r="32" fill="none" stroke="#A87A2E" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="0" transform="rotate(-90 40 40)" stroke-linecap="round"/>
+            <text x="40" y="46" text-anchor="middle" font-family="serif" font-size="20" font-weight="700" fill="#1F1D17">14/14</text>
+          </svg>
+          <div class="text"><b>齐全</b><span>收束报告 v0.1-v1.5</span></div>
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>链路关键节点</h3>
+      <div class="tl">
+        <div class="tl-item">
+          <h5>人写新功能点 <span class="ver">SOURCE</span></h5>
+          <p>每个新功能点先在 docs/plan/开发清单.md 加行，定义编号、名称、BDD 引用、依赖。</p>
+        </div>
+        <div class="tl-item">
+          <h5>同步两个地方 <span class="ver">SYNC</span></h5>
+          <p>开发清单.md 加行 → STATUS.md 同步 + 进度数字 + dashboard.html 自动重新渲染。</p>
+        </div>
+        <div class="tl-item">
+          <h5>功能点开发 <span class="ver">ITER</span></h5>
+          <p>扫描仓库 → 实现(TDD 自检) → 可观测验证 → 审查 diff → 人确认 → 更新记录 → commit。</p>
+        </div>
+        <div class="tl-item">
+          <h5>到收束节点 <span class="ver">GATE</span></h5>
+          <p>默认每 3 功能点一个收束节点。人触发后，AI 到闸门拦截，AI 不替人做收束。</p>
+        </div>
+        <div class="tl-item">
+          <h5>产出收束报告 <span class="ver">OUTPUT</span></h5>
+          <p>收束报告-vX.Y.md 落盘 docs/reports/，同步登记 INDEX.md，沉淀 ADR 到 worklogs/decisions/。</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §6 汇报三档 ====================== -->
+    <section id="s6">
+      <div class="sec-head">
+        <div class="tag">06 · 汇报体系</div>
+        <h2>三档分层 · 不积压</h2>
+        <p>汇报分四档但**功能点级不落盘** —— AI 必做的是 worklog + STATUS，对话内联即可。收束级和阶段级才落盘 docs/reports/。V1.x 收尾另出 HTML 最终报告。</p>
+      </div>
+
+      <h3><span class="dot"></span>四档汇报对比</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>档次</th><th>触发条件</th><th>落盘</th><th>模板</th><th>频度</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>功能点级</b></td>
+              <td>每个功能点完成</td>
+              <td><span class="b-pill no">❌ 对话内联</span></td>
+              <td>无</td>
+              <td>49 次</td>
+            </tr>
+            <tr>
+              <td><b>收束级</b></td>
+              <td>预设收束节点（每 3 功能点）</td>
+              <td><span class="b-pill ok">✅ 收束报告-vX.Y.md</span></td>
+              <td>收束报告模板.md</td>
+              <td>14 次</td>
+            </tr>
+            <tr>
+              <td><b>阶段级</b></td>
+              <td>跨多收束节点的总览</td>
+              <td><span class="b-pill ok">✅ 阶段汇报-&lt;主题&gt;.md</span></td>
+              <td>汇报模板.md</td>
+              <td>按需</td>
+            </tr>
+            <tr>
+              <td><b>最终成果</b></td>
+              <td>大版本收尾（V1.x → V2.0）</td>
+              <td><span class="b-pill br">✅ HTML 高密度学术风</span></td>
+              <td>final-report-template/</td>
+              <td>3 份</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="dot"></span>为何"功能点级不落盘"</h3>
+      <div class="vs">
+        <div class="vs-col old">
+          <h4>如果落盘</h4>
+          <ul style="margin:0 0 0 18px;font-size:12.4px;color:var(--txt-dim);line-height:1.9">
+            <li>49 份"功能点汇报"会污染 reports/</li>
+            <li>INDEX.md 失去价值（量太大）</li>
+            <li>查找真正重要的"收束报告"变难</li>
+            <li>AI 写汇报时间占比过高</li>
+          </ul>
+        </div>
+        <div class="vs-mid">⇄</div>
+        <div class="vs-col new">
+          <h4>实际做法</h4>
+          <ul style="margin:0 0 0 18px;font-size:12.4px;color:var(--txt-dim);line-height:1.9">
+            <li>功能点完成 → 更新 worklog + STATUS.md</li>
+            <li>AI 在对话内联汇报（不落盘）</li>
+            <li>收束时四阶段整理 → 落盘收束报告</li>
+            <li>阶段总览 → 阶段汇报（按需）</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>收束报告落盘情况（v0.1 → v1.5）</h3>
+      <div class="bar-row">
+        <div class="lbl">v0.1（已人审签核）</div>
+        <div class="bar"><div class="anim-bar"><div class="fill good" style="--w:100%"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">v0.2 ~ v0.9（8 份）</div>
+        <div class="bar"><div class="anim-bar"><div class="fill" style="--w:100%"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">v1.0 ~ v1.4（5 份）</div>
+        <div class="bar"><div class="anim-bar"><div class="fill brand" style="--w:100%"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">v1.5（V1.x 收尾）</div>
+        <div class="bar"><div class="anim-bar"><div class="fill gold" style="--w:100%"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">人审签核（v0.2-v1.5）</div>
+        <div class="bar"><div class="anim-bar"><div class="fill" style="--w:7%"></div></div></div>
+        <div class="val">1/14</div>
+      </div>
+
+      <h3><span class="dot"></span>3 份 HTML 最终报告</h3>
+      <div class="grid g3">
+        <div class="card brand">
+          <h4>V1x_final_report</h4>
+          <p style="font-size:11.5px;line-height:1.7">原始带数据版。V1.x 全周期（49 功能点 + 14 收束 + 17 规范）的总体汇报。</p>
+          <div class="chip-row"><span class="chip br">1786 行参考</span></div>
+        </div>
+        <div class="card hl">
+          <h4>V1x_final_report_demo</h4>
+          <p style="font-size:11.5px;line-height:1.7">render.py 渲染版。用 final-report-template/template.html + example-data.json 跑出的实例。</p>
+          <div class="chip-row"><span class="chip b">模板驱动</span></div>
+        </div>
+        <div class="card gold">
+          <h4>V1.5_V2.0_merged</h4>
+          <p style="font-size:11.5px;line-height:1.7">V1.5 / V2.0 合并版。2134 行，覆盖 V1.5 收尾 + V2.0 双轨制启动的完整节点。</p>
+          <div class="chip-row"><span class="chip gl">2134 行</span></div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §7 依赖关系 ====================== -->
+    <section id="s7">
+      <div class="sec-head">
+        <div class="tag">07 · 依赖关系</div>
+        <h2>M2 在 devguard 生态中的位置</h2>
+        <p>M2 文档资产依赖 M1 conventions 定义"规范"概念，被 M5 worklogs（收束节点产出）和 M7 STATUS.md 依赖；同时 devguard/ 子目录承担"导出"角色。</p>
+      </div>
+
+      <h3><span class="dot"></span>M2 的上下游</h3>
+      <div class="mermaid-wrap">
+        <div class="cap">图 7-1 · M2 文档资产与 devguard 其他模块的关系</div>
+        <div class="mermaid">
+flowchart LR
+  M1["<b>M1 conventions</b><br/>规范正文<br/>01-08 v2.0 / v3.0"]
+  M2["<b>M2 docs</b><br/>文档资产<br/>5 子模块"]
+  M3["<b>M3 src</b><br/>示例代码<br/>src/&lt;维度&gt;/"]
+  M5["<b>M5 worklogs</b><br/>工作日志<br/>worklogs/"]
+  M6["<b>M6 meta</b><br/>元信息<br/>meta/"]
+  M7["<b>M7 STATUS</b><br/>数据源"]
+  NEW["<b>新项目</b><br/>fork devguard"]
+  M1 -- "定义规范" --> M2
+  M1 -- "示例代码" --> M3
+  M2 -- "BDD 互检" --> M1
+  M2 -- "模板真源" --> NEW
+  M3 -- "Given/When/Then<br/>对应示例" --> M2
+  M5 -- "收束节点产出" --> M2
+  M6 -- "FILE_GRAPH.md<br/>归类决策" --> M2
+  M2 -- "开发清单.md<br/>数据源" --> M7
+  M7 -- "进度可视化" --> DASH["<b>dashboard.html</b>"]
+  style M2 fill:#FCF6EE,stroke:#8B3A1F,stroke-width:2px
+  style M1 fill:#E8E1D2,stroke:#8B3A1F
+  style M5 fill:#FAF7F0,stroke:#2F5061
+  style M7 fill:#FAF7F0,stroke:#2F5061
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>关系四象限</h3>
+      <div class="grid g2">
+        <div class="card brand">
+          <h4>↑ 依赖上游</h4>
+          <p style="font-size:12.3px;line-height:1.7">M2 依赖 M1 的"规范"概念 —— 没有规范就没有 BDD，BDD 是规范的镜像验收。</p>
+        </div>
+        <div class="card hl">
+          <h4>↓ 被依赖</h4>
+          <p style="font-size:12.3px;line-height:1.7">M5 worklogs 的收束节点产出 → 落盘 M2 reports/；M7 STATUS.md 读 M2 plan/开发清单.md。</p>
+        </div>
+        <div class="card gold">
+          <h4>→ 导出</h4>
+          <p style="font-size:12.3px;line-height:1.7">M2 templates/devguard/ → 新项目根目录。fork 整套规范时整组复制。</p>
+        </div>
+        <div class="card hl">
+          <h4>← 引用</h4>
+          <p style="font-size:12.3px;line-height:1.7">M3 src/&lt;维度&gt;/ 的示例代码被 M2 BDD 引用（Given/When/Then 可对应）。</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §8 边界降级 ====================== -->
+    <section id="s8">
+      <div class="sec-head">
+        <div class="tag">08 · 边界与降级</div>
+        <h2>4 红线 · 4 降级</h2>
+        <p>M2 4 类边界场景对应 4 类降级行为。CI compliance 失败、收束节点拦截、L1 检测失败 —— AI 必拦截，人必确认。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card brand">
+          <h4>场景 1 · 改规范没改 BDD</h4>
+          <p style="font-size:12.3px;line-height:1.7">conventions/NN-*.md 改了但 docs/specs/NN-*.md 没同步。</p>
+          <div class="note crit" style="margin:8px 0 0">
+            <div class="ico">↓</div>
+            <div><b>CI compliance 失败 + PR-09 红线</b>，PR 被拦截，必须同 PR 改 BDD 才能合入。</div>
+          </div>
+        </div>
+        <div class="card gold">
+          <h4>场景 2 · 收束节点未产报告</h4>
+          <p style="font-size:12.3px;line-height:1.7">到预设收束节点但 docs/reports/ 没产出 vX.Y 收束报告。</p>
+          <div class="note crit" style="margin:8px 0 0">
+            <div class="ico">↓</div>
+            <div><b>AI 拒绝开始下一功能点</b>（hardgate 硬闸门），必须人触发收束后才能继续。</div>
+          </div>
+        </div>
+        <div class="card hl">
+          <h4>场景 3 · 模板改但 devguard 子目录没同步</h4>
+          <p style="font-size:12.3px;line-height:1.7">改了 docs/templates/&lt;类型&gt;.md 但没同步 docs/templates/devguard/conventions/。</p>
+          <div class="note crit" style="margin:8px 0 0">
+            <div class="ico">↓</div>
+            <div><b>10 规范 L1 检测失败</b>，模板三件套不齐，CI 拦截。</div>
+          </div>
+        </div>
+        <div class="card">
+          <h4>场景 4 · 调研报告无人读</h4>
+          <p style="font-size:12.3px;line-height:1.7">docs/research/ 下的调研产物没人读。</p>
+          <div class="note info" style="margin:8px 0 0">
+            <div class="ico">↓</div>
+            <div><b>不强制</b>，但决策必须能追溯到调研依据（可引用路径）。</div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="dot"></span>明确"不做"的边界</h3>
+      <div class="grid g3">
+        <div class="card" style="border-left:3px solid var(--bad)">
+          <h4>不做 · 功能点级汇报落盘</h4>
+          <p style="font-size:12px">49 份功能点汇报会污染 reports/，INDEX 失效。改为对话内联 + worklog + STATUS.md。</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--bad)">
+          <h4>不做 · 模板放 src/ 或根目录</h4>
+          <p style="font-size:12px">模板必须集中在 docs/templates/。散落各处的模板 = 失真与重复维护。</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--bad)">
+          <h4>不做 · BDD 编号跳跃</h4>
+          <p style="font-size:12px">00-10 编号必须连续，缺号要有说明（如 specs/08 双图谱 + 08-examples 兄弟结构）。</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §9 验收标准 ====================== -->
+    <section id="s9">
+      <div class="sec-head">
+        <div class="tag">09 · 验收标准</div>
+        <h2>5 维全检 · 全过即交付</h2>
+        <p>M2 验收分 5 维：模板完整性、BDD 互检、计划同步、收束报告、HTML 渲染。每维都有明确通过标准。</p>
+      </div>
+
+      <h3><span class="dot"></span>5 维验收矩阵</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>维度</th><th>验收方式</th><th>通过标准</th><th>状态</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>模板完整性</b></td>
+              <td>人工检阅 README-模板索引.md</td>
+              <td>14+ 模板全部登记</td>
+              <td><span class="b-pill ok">✅</span></td>
+            </tr>
+            <tr>
+              <td><b>BDD 互检</b></td>
+              <td>CI compliance</td>
+              <td>conventions ↔ specs 一对一</td>
+              <td><span class="b-pill ok">✅</span></td>
+            </tr>
+            <tr>
+              <td><b>计划同步</b></td>
+              <td>开发清单.md 与 STATUS.md 比对</td>
+              <td>行数一致</td>
+              <td><span class="b-pill ok">✅</span></td>
+            </tr>
+            <tr>
+              <td><b>收束报告</b></td>
+              <td>INDEX.md 列表</td>
+              <td>14 份齐全（v0.1-v1.5）</td>
+              <td><span class="b-pill ok">✅</span></td>
+            </tr>
+            <tr>
+              <td><b>HTML 渲染</b></td>
+              <td>final-report-template/render.py</td>
+              <td>V1.x final 报告渲染成功</td>
+              <td><span class="b-pill ok">✅</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="dot"></span>5 维验收进度</h3>
+      <div class="bar-row">
+        <div class="lbl">模板完整性</div>
+        <div class="bar"><div class="anim-bar"><div class="fill good" style="--w:100%"></div></div></div>
+        <div class="val">14/14</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">BDD 互检</div>
+        <div class="bar"><div class="anim-bar"><div class="fill good" style="--w:100%"></div></div></div>
+        <div class="val">12/12</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">计划同步</div>
+        <div class="bar"><div class="anim-bar"><div class="fill good" style="--w:100%"></div></div></div>
+        <div class="val">49/49</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">收束报告</div>
+        <div class="bar"><div class="anim-bar"><div class="fill brand" style="--w:100%"></div></div></div>
+        <div class="val">14/14</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">HTML 渲染</div>
+        <div class="bar"><div class="anim-bar"><div class="fill gold" style="--w:100%"></div></div></div>
+        <div class="val">3/3</div>
+      </div>
+
+      <h3><span class="dot"></span>可点击的细节</h3>
+      <details class="hook">
+        <summary>模板真源策略的具体执行</summary>
+        <div class="body">每个模板在 docs/templates/&lt;类型&gt;模板.md 落地的同时，必须在 README-模板索引.md 登记入口。占位符使用 &lt;项目名&gt; / &lt;日期&gt; 等显式尖括号，render.py 在 fork 时一次性替换。</div>
+      </details>
+      <details class="hook">
+        <summary>BDD 互检的 CI 触发时机</summary>
+        <div class="body">PR 提交时 CI 跑 compliance 阶段：解析 conventions/01-08 标题 → 解析 docs/specs/01-08 标题 → 双向 diff → 任意一端缺号 = 失败。</div>
+      </details>
+      <details class="hook">
+        <summary>final-report-template 的 41 占位符</summary>
+        <div class="body">分 8 类：基础 4（标题/副标题/日期/项目名）+ 周期 4（起止/版本/作者/状态）+ KPI 8×3（数值+标签+副）+ 健康度 5×2。render.py 兼容 {KEY} 和 {{KEY}} 两种 JSON key 风格。</div>
+      </details>
+      <details class="hook">
+        <summary>人审计签核为何只有 v0.1</summary>
+        <div class="body">v0.1 是首个收束节点，已走完四阶段（整理→测试→审计→验证）+ 人审签核。v0.2-v1.5 仍 ⏳ 待签 —— 待人审逐份签核。AI 不替人做签核。</div>
+      </details>
+      <details class="hook">
+        <summary>research 双命名变体问题</summary>
+        <div class="body">tree/N1-代码知识图谱构建方法.md 和 tree/N1-代码知识图谱的构建方法.md 是调研过程的命名变体（"构建方法" vs "的构建方法"）。V2.0+ 计划去重合并为单一命名。</div>
+      </details>
+    </section>
+
+    <hr class="div">
+
+    <!-- ====================== §10 Verdict ====================== -->
+    <section id="s10">
+      <div class="sec-head">
+        <div class="tag">10 · VERDICT</div>
+        <h2>最终判定</h2>
+      </div>
+
+      <div class="verdict">
+        <div class="lbl">M2 VERDICT · 2026-06-10</div>
+        <h4>5 子模块就位 · 模板真源生效 · BDD 互检闭环 · 汇报三档分明</h4>
+        <p style="font-size:13px;color:var(--txt-dim);line-height:1.8;margin-bottom:8px">M2 文档资产已完整交付：5 子模块各司其职，templates 14 模板 + devguard 子目录承担"可复制"角色，specs 12 BDD 与 conventions 01-08 一对一互检，plan→STATUS→dashboard 链路数据驱动，reports 14 收束 + 阶段汇报 + 3 HTML 最终报告分层清晰，research N1-N6 支撑 08 v3.0 双图谱决策。功能点级不落盘的硬约束保护 reports/ 不被污染。V0.x→V2.0.1 的演进路径（参见 实现计划.html）证明 M2 具备承载 V2.0+ 治理类规范（10 规范）和双图谱方案（08 v3.0）的能力。</p>
+        <p style="font-size:12px;color:var(--txt-dim);line-height:1.7"><b>唯一遗留</b>：v0.2-v1.5 收束报告的 13 份人审签核仍 ⏳ 待签。AI 不替人做签核 —— 流程上必须由人逐份确认。</p>
+      </div>
+
+      <h3 style="margin-top:24px"><span class="dot"></span>本设计文档的引用清单</h3>
+      <div class="grid g2">
+        <div class="card hl">
+          <h4>上游</h4>
+          <ul style="margin:0 0 0 18px;font-size:12.4px;color:var(--txt-dim);line-height:1.9">
+            <li>conventions/01-08（M1 规范）</li>
+            <li>CLAUDE.md（项目 AI 上下文）</li>
+            <li>STATUS.md（进度数据源）</li>
+            <li>meta/FILE_GRAPH.md（归类决策）</li>
+          </ul>
+        </div>
+        <div class="card brand">
+          <h4>下游</h4>
+          <ul style="margin:0 0 0 18px;font-size:12.4px;color:var(--txt-dim);line-height:1.9">
+            <li>worklogs/（过程印记）</li>
+            <li>worklogs/decisions/（ADR 沉淀）</li>
+            <li>新项目（fork 整组 devguard/）</li>
+            <li>dashboard.html（可视化呈现）</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 style="margin-top:24px"><span class="dot"></span>设计标签云</h3>
+      <div class="tag-cloud">
+        <span class="tag-item">5 子模块</span>
+        <span class="tag-item">templates 真源</span>
+        <span class="tag-item">devguard 子目录</span>
+        <span class="tag-item">BDD 互检</span>
+        <span class="tag-item">PR-09 红线</span>
+        <span class="tag-item">10 规范</span>
+        <span class="tag-item">三件套</span>
+        <span class="tag-item">计划同步</span>
+        <span class="tag-item">仪表盘</span>
+        <span class="tag-item">收束硬闸门</span>
+        <span class="tag-item">功能点级不落盘</span>
+        <span class="tag-item">收束级</span>
+        <span class="tag-item">阶段级</span>
+        <span class="tag-item">HTML 最终报告</span>
+        <span class="tag-item">final-report-template</span>
+        <span class="tag-item">V1.5 沉淀</span>
+        <span class="tag-item">N1-N6 调研</span>
+        <span class="tag-item">08 v3.0 双图谱</span>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

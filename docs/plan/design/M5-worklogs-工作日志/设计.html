@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M5 工作日志 · 现状设计</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true },
+      timeline: { useMaxWidth: true }
+    });
+    }
+
+    // Tab 切换
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // 进度条动画
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    // 数字滚动
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  });
+
+  // 左侧锚点 active 切换
+  function syncActive(){
+    var links = document.querySelectorAll('nav a');
+    var hash = (location.hash || '#hero').replace('#','');
+    links.forEach(function(a){
+      var k = a.getAttribute('href').replace('#','');
+      a.classList.toggle('active', k === hash);
+    });
+  }
+  window.addEventListener('hashchange', syncActive);
+  window.addEventListener('load', syncActive);
+
+  // 模拟器：commit-msg 拦截演示
+  function simCommit(mode){
+    var steps = document.querySelectorAll('#simCommit .sim-step');
+    var i = 0;
+    steps.forEach(function(s){s.classList.remove('run','fail');s.querySelector('.glyph').textContent='○'});
+    var failAt = -1;
+    if (mode === 'bad-no-ref') failAt = 6;
+    if (mode === 'bad-type') failAt = 5;
+    if (mode === 'skip') failAt = -1;
+    function runOne(){
+      if (i >= steps.length){
+        var fm = document.getElementById('simCommitFinal');
+        if (fm) {
+          if (mode === 'good' || mode === 'skip') fm.textContent = '✓ commit 接受，worklog 已落档';
+          else fm.textContent = '✗ 拦截成功，commit 被拒（见红字步骤）';
+        }
+        return;
+      }
+      var s = steps[i];
+      if (i === failAt){
+        s.classList.add('fail');
+        s.querySelector('.glyph').textContent = '✗';
+      } else {
+        s.classList.add('run');
+        s.querySelector('.glyph').textContent = '✓';
+      }
+      i++;
+      setTimeout(runOne, 260);
+    }
+    runOne();
+  }
+  function simResetCommit(){
+    document.querySelectorAll('#simCommit .sim-step').forEach(function(s){
+      s.classList.remove('run','fail');
+      s.querySelector('.glyph').textContent='○';
+    });
+    var fm = document.getElementById('simCommitFinal');
+    if (fm) fm.textContent = '点击上方按钮选择一种 commit 场景';
+  }
+
+  // 命名校验演示
+  function checkName(){
+    var input = document.getElementById('nameInput').value.trim();
+    var out = document.getElementById('nameResult');
+    var pat = /^\d{4}-\d{2}-\d{2}_[一-龥\w\-]+\.md$/;
+    if (!input) { out.innerHTML = '<span style="color:var(--txt-faint)">输入文件名查看校验结果</span>'; return; }
+    if (pat.test(input)) {
+      out.innerHTML = '<span style="color:var(--good);font-weight:700">✓ 命名合规</span> — 匹配 YYYY-MM-DD_&lt;描述&gt;.md 格式';
+    } else {
+      out.innerHTML = '<span style="color:var(--bad);font-weight:700">✗ 命名不合规</span> — 需以日期开头、_ 分隔、.md 结尾、中文/数字/字母/连字符主体';
+    }
+  }
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       --brand-2:#A85032;
+    --accent:#2F5061;      --accent-2:#3F6A82;
+    --gold:#A87A2E;        --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px;line-height:1.7}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .code-block .err{color:#E07A6A;font-weight:700;background:rgba(224,122,106,.15);padding:1px 4px;border-radius:3px}
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tabs .tb .badge{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;background:rgba(139,58,31,.12);color:var(--brand)}
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+  details.adr{margin:8px 0;padding:11px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);transition:.18s}
+  details.adr:hover{border-color:var(--brand)}
+  details.adr[open]{background:var(--panel-2);border-color:var(--brand)}
+  details.adr summary{font-size:13px;font-weight:700;color:var(--txt);list-style:none;display:flex;align-items:center;gap:10px;cursor:pointer}
+  details.adr summary::before{content:"▸";font-size:11px;color:var(--brand);transition:transform .2s;display:inline-block;width:14px;font-family:var(--serif)}
+  details.adr[open] summary::before{transform:rotate(90deg)}
+  details.adr .body{margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:12.4px;color:var(--txt-dim);line-height:1.7}
+  details.adr .body h5{font-size:12.5px;font-weight:700;color:var(--brand);margin:10px 0 4px;font-family:var(--sans)}
+  details.adr .body p{font-size:12.3px;margin-bottom:6px}
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line);font-family:var(--mono)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-family:var(--sans);font-weight:600}
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{content:"";width:18px;height:1.5px;background:var(--accent)}
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1)}
+  .anim-bar .fill::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shimmer 2.4s linear infinite}
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);z-index:100}
+  .tip .tipbox::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1F1D17}
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);margin:14px 0}
+  .sim h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .sim h4 .ind{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(63,107,61,.2);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(63,107,61,.2)}50%{box-shadow:0 0 0 6px rgba(63,107,61,.05)}}
+  .sim .sim-step{padding:7px 11px;background:var(--bg-soft);border:1px solid var(--line-soft);border-radius:7px;margin:5px 0;font-family:var(--mono);font-size:11.5px;color:var(--txt-dim);display:flex;align-items:center;gap:8px;transition:.3s}
+  .sim .sim-step.run{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:600}
+  .sim .sim-step.fail{background:#EFD5CD;border-color:#C89589;color:var(--bad);font-weight:600}
+  .sim .sim-step .glyph{width:16px;text-align:center;flex:0 0 auto;font-weight:700}
+  .sim .btn-row{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .sim button{padding:5px 12px;font-size:11.5px;background:var(--panel);border:1px solid var(--line);border-radius:5px;cursor:pointer;font-family:var(--mono);transition:.18s;color:var(--txt-dim)}
+  .sim button:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .sim button.danger:hover{background:var(--bad);border-color:var(--bad)}
+  .sim button.good:hover{background:var(--good);border-color:var(--good)}
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+  .name-check{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow);margin:12px 0}
+  .name-check input{width:100%;padding:8px 12px;font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-radius:6px;background:var(--bg-soft);color:var(--txt);margin-top:6px}
+  .name-check input:focus{outline:none;border-color:var(--brand);background:#FFF}
+  .name-check .res{margin-top:8px;padding:7px 11px;border-radius:6px;background:var(--bg-soft);font-size:12px;font-family:var(--mono);border:1px solid var(--line-soft)}
+  .three-stream{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
+  .three-stream .card-stream{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow);position:relative}
+  .three-stream .card-stream::before{content:"";position:absolute;top:0;left:14px;width:24px;height:3px;background:var(--brand);border-radius:0 0 3px 3px}
+  .three-stream .card-stream.acc::before{background:var(--accent)}
+  .three-stream .card-stream.gld::before{background:var(--gold)}
+  .three-stream h4{margin:4px 0 6px;font-family:var(--serif);font-size:14.5px}
+  .three-stream p{font-size:12.2px}
+  .freq{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
+  .freq .day{padding:8px 6px;background:var(--panel);border:1px solid var(--line);border-radius:7px;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--txt-dim);box-shadow:var(--shadow)}
+  .freq .day b{font-size:18px;font-family:var(--serif);color:var(--brand);display:block;line-height:1.2}
+  .freq .day.zero b{color:var(--txt-faint)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M5</div>
+      <div>
+        <b>工作日志模块</b>
+        <span>WORKLOG · DESIGN</span>
+      </div>
+    </div>
+    <div class="meta">31 worklog<br>6 ADR<br>红线 6 (commit-msg)<br>命名规约：YYYY-MM-DD</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 模块定位</a>
+      <a href="#s2"><span class="n">02</span> 目录结构</a>
+      <a href="#s3"><span class="n">03</span> 命名规约</a>
+      <a href="#s4"><span class="n">04</span> 内容五段式</a>
+      <a href="#s5"><span class="n">05</span> ADR 设计</a>
+      <a href="#s6"><span class="n">06</span> commit-msg 红线</a>
+      <a href="#s7"><span class="n">07</span> 与汇报关系</a>
+      <div class="grp">关键证据</div>
+      <a href="#s8"><span class="n">08</span> 生命周期</a>
+      <a href="#s9"><span class="n">09</span> 耦合矩阵</a>
+      <a href="#s10"><span class="n">10</span> 边界与降级</a>
+      <a href="#s11"><span class="n">11</span> 验收标准</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">M5 设计稿</span>
+        <span class="b-pill inf">31 worklog</span>
+        <span class="b-pill inf">6 ADR</span>
+        <span class="b-pill inf">红线 6</span>
+        <span class="b-pill br">过程证据库</span>
+        <span class="b-pill br">v1.0 · 2026-06-10</span>
+      </div>
+      <h1>M5 工作日志模块 · 现状设计</h1>
+      <p class="sub">worklogs/ 是 devguard 的<b>过程证据库</b>——沉淀每个功能点的"做了什么、验证了什么、做了什么决策、踩了什么坑、给下一位留什么"。本稿定义命名规约、五段式骨架、ADR 升格规则、commit-msg 强制引用机制、及与汇报体系的关系。</p>
+      <div class="meta-row">
+        <span>版本 v1.0</span>
+        <span>·</span>
+        <span>2026-06-10</span>
+        <span>·</span>
+        <span>6 维度规范第 8 号（文档）的子模块</span>
+        <span>·</span>
+        <span>作用域：worklogs/ + worklogs/decisions/</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>模块定位</b><span style="font-size:11px;color:var(--txt-faint)">是什么 / 不是什么</span></div></a>
+      <a href="#s3"><div class="ix">02</div><div><b>命名规约</b><span style="font-size:11px;color:var(--txt-faint)">YYYY-MM-DD_&lt;描述&gt;.md</span></div></a>
+      <a href="#s4"><div class="ix">03</div><div><b>五段式骨架</b><span style="font-size:11px;color:var(--txt-faint)">必填 2 + 可选 3</span></div></a>
+      <a href="#s5"><div class="ix">04</div><div><b>6 份 ADR</b><span style="font-size:11px;color:var(--txt-faint)">0001-0006 逐个展开</span></div></a>
+      <a href="#s6"><div class="ix">05</div><div><b>commit-msg 红线</b><span style="font-size:11px;color:var(--txt-faint)">强制引用 worklog</span></div></a>
+      <a href="#s7"><div class="ix">06</div><div><b>汇报关系</b><span style="font-size:11px;color:var(--txt-faint)">worklog ≠ 报告 ≠ ADR</span></div></a>
+      <a href="#s8"><div class="ix">07</div><div><b>生命周期</b><span style="font-size:11px;color:var(--txt-faint)">FP → WL → 收束 → ADR</span></div></a>
+      <a href="#s9"><div class="ix">08</div><div><b>耦合矩阵</b><span style="font-size:11px;color:var(--txt-faint)">9 项外部依赖</span></div></a>
+      <a href="#s11"><div class="ix">09</div><div><b>验收标准</b><span style="font-size:11px;color:var(--txt-faint)">9 维度可勾选</span></div></a>
+    </div>
+
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="31">0</span></div>
+        <div class="lbl">worklog 累计份数</div>
+        <div class="sub">2026-05-26 → 06-10</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="6">0</span></div>
+        <div class="lbl">ADR 决策记录</div>
+        <div class="sub">worklogs/decisions/</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="2">0</span></div>
+        <div class="lbl">必填段数</div>
+        <div class="sub">做了什么 + 验证结果</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="3">0</span></div>
+        <div class="lbl">可选段数</div>
+        <div class="sub">决策 / 问题 / 交接</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="1">0</span></div>
+        <div class="lbl">commit 拦截钩子</div>
+        <div class="sub">check_worklog_ref.py</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="4">0</span></div>
+        <div class="lbl">产出物落点</div>
+        <div class="sub">worklog / STATUS / 报告 / ADR</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="5">0</span><span style="font-size:18px;color:var(--txt-faint);margin-left:2px">段</span></div>
+        <div class="lbl">worklog 模板骨架</div>
+        <div class="sub">来自 docs/templates/worklog模板</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="9">0</span></div>
+        <div class="lbl">耦合模块数</div>
+        <div class="sub">见 §九 耦合矩阵</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">worklog 健康度 · 6 维仪表</h3>
+    <div class="grid g6">
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">命名合规</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">必填段齐</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">commit 引用</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">全量命中</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">ADR 路径</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">6/6</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">断档补登</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">1 次</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">仪表盘</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">同步</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>本模块定位</b>：worklog ≠ 收束报告 ≠ ADR ≠ CHANGELOG ≠ wiki。<b>worklog = 过程证据</b>，给后续开发者 / AI / 审计看；<b>粒度细、频度高</b>，是 devguard 可追溯时间轴的最小单元。
+      </div>
+    </div>
+
+    <section id="s1" class="sec-head" style="margin-top:50px">
+      <div class="tag">01 · 模块定位</div>
+      <h2>worklogs/ —— devguard 的过程证据库</h2>
+      <p class="lead">worklog 不是孤立的"日志文件"，而是 <b>AI 协作 + 人类回顾的时间轴</b>。它回答四个核心问题：</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>"为什么这个决策当时这样做？"</h4>
+        <p>决策记录在 worklog「关键决策」段 → 经收束节点审阅 → 必要时升格为 ADR。可上溯"why + when + what context"。</p>
+        <div class="chip-row">
+          <span class="chip b">why + when + context</span>
+          <span class="chip b">可上溯</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>"上周做了什么？"</h4>
+        <p>worklog 日流按 ISO 日期排序 → 配合 STATUS.md 索引 → dashboard 实时可视化。一眼看出本周 / 本月 / 收束周期内产出。</p>
+        <div class="chip-row">
+          <span class="chip br">日流 + 索引</span>
+          <span class="chip br">dashboard 实时</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>"commit 都在改什么？"</h4>
+        <p>commit-msg 强制引用 worklog → <code>git log --grep</code> 即可一键回溯。哪一次提交属于哪一份 worklog，零歧义。</p>
+        <div class="chip-row">
+          <span class="chip gl">commit ↔ worklog</span>
+          <span class="chip gl">零歧义</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>"这个架构决策从哪来？"</h4>
+        <p>ADR 升格自 worklog（ADR 0006 决策：仅收束节点产出）。worklog → decisions 完整还原决策链；ADR 编号 = 历史，禁动。</p>
+        <div class="chip-row">
+          <span class="chip">worklog → ADR</span>
+          <span class="chip">编号即历史</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>它不是什么 · 边界澄清</h3>
+    <div class="three-stream">
+      <div class="card-stream">
+        <h4 style="color:var(--bad)">✗ 不是汇报库</h4>
+        <p>收束报告才落 <code>docs/reports/</code>。worklog 是"开发过程"，不是"对外汇报"。</p>
+      </div>
+      <div class="card-stream acc">
+        <h4 style="color:var(--bad)">✗ 不是 changelog</h4>
+        <p><code>CHANGELOG.md</code> 给最终用户看；worklog 给后续开发者 / AI / 审计看。</p>
+      </div>
+      <div class="card-stream gld">
+        <h4 style="color:var(--bad)">✗ 不是会议纪要</h4>
+        <p>worklog 关注代码 / 配置 / 规范变更；会议讨论不在此。</p>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>关键区分</b>：worklog = 过程证据（细粒度、高频度），收束报告 = 阶段性总结（中粒度、低频度），ADR = 架构决策（粗粒度、最频次低）。<b>三者粒度递增、频度递减</b>，互相不可替代。
+      </div>
+    </div>
+
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · 目录结构</div>
+      <h2>worklogs/ 当前结构（31 份 + 6 份 ADR）</h2>
+    </section>
+
+    <h3>按日期分布的工作日志密度</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">2026-05-26 是 V0.x 起步日，单日 8 份峰值；06-08 是 V1.5 收束集中产出日</p>
+    <div class="freq">
+      <div class="day"><b>8</b>05-26<br><span style="color:var(--brand)">V0.x 起步</span></div>
+      <div class="day"><b>9</b>05-27<br><span style="color:var(--brand)">V0.x 扩展</span></div>
+      <div class="day"><b>1</b>05-28<br><span style="color:var(--accent)">v3.0 重构</span></div>
+      <div class="day zero"><b>0</b>05-29<br><span style="color:var(--txt-faint)">静默</span></div>
+      <div class="day zero"><b>0</b>06-01<br><span style="color:var(--txt-faint)">静默</span></div>
+      <div class="day"><b>2</b>06-07<br><span style="color:var(--gold)">V0.6-V1.4</span></div>
+      <div class="day"><b>8</b>06-08<br><span style="color:var(--good)">V1.5 收束</span></div>
+    </div>
+    <div class="freq" style="grid-template-columns:repeat(3,1fr);margin-top:6px">
+      <div class="day"><b>1</b>06-09<br><span style="color:var(--gold)">V2.0 重写</span></div>
+      <div class="day"><b>3</b>06-10<br><span style="color:var(--good)">V2.0.1 收尾</span></div>
+      <div class="day" style="background:var(--brand);color:#fff"><b>31</b>合计</div>
+    </div>
+
+    <h3>目录树可视化（缩略）</h3>
+    <div class="diagram"><span class="br">worklogs/</span>
+├── <span class="hl">2026-05-26</span>_基础设施搭建.md            <span class="cm">← V0.x 起步：仓库初始化</span>
+├── <span class="hl">2026-05-26</span>_基础设施修正.md
+├── <span class="hl">2026-05-26</span>_02-06模板改造.md
+├── <span class="hl">2026-05-26</span>_模板化改造.md
+├── <span class="hl">2026-05-26</span>_模板规约与汇报模板.md
+├── <span class="hl">2026-05-26</span>_二轮审查修复.md
+├── <span class="hl">2026-05-26</span>_文件图谱与仪表盘优化.md
+├── <span class="hl">2026-05-26</span>_示例代码与仪表盘.md
+├── <span class="hl">2026-05-27</span>_CLAUDE与README角色分离.md
+├── <span class="hl">2026-05-27</span>_decisions移入worklog与约束节点决策规则.md  <span class="gl">← ADR 0006 雏形</span>
+├── <span class="hl">2026-05-27</span>_ai-workflow流程修订与README命名规范化.md
+├── <span class="hl">2026-05-27</span>_汇报体系纳入工作流.md
+├── <span class="hl">2026-05-27</span>_汇报与收束定义修正.md
+├── <span class="hl">2026-05-27</span>_文件夹重整与plan-design合并.md
+├── <span class="hl">2026-05-27</span>_规范正文v2重构.md
+├── <span class="hl">2026-05-27</span>_图谱与代码理解规范v2实施.md
+├── <span class="hl">2026-05-28</span>_08规范v3.0双图谱重构.md
+├── <span class="hl">2026-06-07</span>_完成剩余任务.md
+├── <span class="hl">2026-06-07</span>_添加markdownlint.md
+├── <span class="hl">2026-06-08</span>_v15-backfill-v02-v14-worklogs.md  <span class="br">← 断档补登（V0.2-V1.4）</span>
+├── <span class="hl">2026-06-08</span>_v15-closeout-status-fix.md
+├── <span class="hl">2026-06-08</span>_v15-final-report-template.md
+├── <span class="hl">2026-06-08</span>_v15-section3-collapsible-table.md
+├── <span class="hl">2026-06-08</span>_v15-section3-hook-text-table-collapsed.md
+├── <span class="hl">2026-06-08</span>_v15-section3-table-to-charts.md
+├── <span class="hl">2026-06-08</span>_v15-v20-final-report.md
+├── <span class="hl">2026-06-08</span>_v20-devguard-dogfood.md
+├── <span class="hl">2026-06-09</span>_ai-workflow-v2-rewrite.md
+├── <span class="hl">2026-06-10</span>_claude-hud-setup.md
+└── <span class="hl">2026-06-10</span>_强制性约束审查与修复.md
+│
+└── <span class="br">decisions/</span>                       <span class="cm"># ADR 落点（ADR 0006 决定移入）</span>
+    ├── <span class="gl">0001-规范体系结构.md</span>
+    ├── <span class="gl">0002-六维度划分.md</span>
+    ├── <span class="gl">0003-AI协作流程独立成文.md</span>
+    ├── <span class="gl">0004-规范移入conventions目录.md</span>
+    ├── <span class="gl">0005-长文件拆文件夹.md</span>
+    └── <span class="br">0006-约束节点决策总结.md</span>  <span class="br">← "仅收束节点产出"</span></div>
+
+    <h3>目录结构 · Mermaid 关系图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · worklogs/ 与外部模块的引用关系 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    subgraph WL["worklogs/ 31 份"]
+        W1["05-26 × 8<br/>V0.x 起步"]
+        W2["05-27 × 9<br/>V0.x 扩展"]
+        W3["05-28 × 1<br/>v3.0 重构"]
+        W4["06-07 × 2<br/>收尾"]
+        W5["06-08 × 8<br/>V1.5 收束"]
+        W6["06-09 × 1<br/>V2.0"]
+        W7["06-10 × 2<br/>V2.0.1"]
+    end
+    subgraph DEC["worklogs/decisions/"]
+        A1["0001<br/>规范体系"]
+        A2["0002<br/>六维度"]
+        A3["0003<br/>AI 独立"]
+        A4["0004<br/>conventions 移入"]
+        A5["0005<br/>长文件拆"]
+        A6["0006<br/>仅收束产出"]
+    end
+    W1 -.-> A1
+    W2 -.-> A2
+    W3 -.-> A3
+    W3 -.-> A4
+    W3 -.-> A5
+    W2 -.-> A6
+
+    WL -- "commit-msg 强制引用" --> CM[git commit]
+    CM -- "check_worklog_ref.py" --> R{"拦截?"}
+    R -- "未引用 ✗" --> BLOCK[拒绝]
+    R -- "已引用 ✓" --> OK[接受]
+
+    A6 -- "约束" --> WL
+    A6 -- "约束" --> DEC
+
+    classDef brandNode fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    classDef accNode fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef okNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef errNode fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17
+    class W1,W2,W3,W4,W5,W6,W7,A1,A2,A3,A4,A5,A6 brandNode
+    class CM,OK accNode
+    class BLOCK errNode
+    class R okNode
+      </div>
+    </div>
+
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · 命名规约（强制）</div>
+      <h2>YYYY-MM-DD_&lt;描述&gt;.md —— 5 段规则</h2>
+    </section>
+
+    <div class="code-block"><span class="cm"># worklog 文件名格式（强制）</span>
+worklogs/<span class="kw">YYYY-MM-DD</span>_<span class="str">&lt;简短描述&gt;</span>.md
+
+<span class="cm"># 示例</span>
+worklogs/2026-05-27_规范正文v2重构.md
+worklogs/2026-06-08_v15-section3-table-to-charts.md
+worklogs/2026-06-08_v15-backfill-v02-v14-worklogs.md
+worklogs/2026-06-09_ai-workflow-v2-rewrite.md</div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:170px">段</th><th style="width:60px">必填</th><th>规约</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>YYYY-MM-DD</code></td><td><span class="b-pill ok">✓</span></td><td>ISO 8601 日期；同日多份用下划线后缀（如 <code>_二轮审查修复</code>）</td></tr>
+          <tr><td><code>&lt;描述&gt;</code></td><td><span class="b-pill ok">✓</span></td><td>中文为主、kebab-case 英文为辅；动词 / 对象 / 范围清晰</td></tr>
+          <tr><td><code>.md</code></td><td><span class="b-pill ok">✓</span></td><td>UTF-8 / LF 行尾（与全仓库一致）</td></tr>
+          <tr><td>收束节点前缀</td><td><span class="b-pill inf">可选</span></td><td><code>v&lt;X&gt;-&lt;收束主题&gt;</code>（如 <code>v15-section3-table-to-charts</code>）</td></tr>
+          <tr><td>断档补登前缀</td><td><span class="b-pill inf">可选</span></td><td><code>v&lt;X&gt;-backfill-&lt;范围&gt;</code>（如 <code>v15-backfill-v02-v14-worklogs</code>）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>命名校验交互器</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">输入文件名，实时验证是否符合规约（正则：<code>^\d{4}-\d{2}-\d{2}_[一-龥\w\-]+\.md$</code>）</p>
+    <div class="name-check">
+      <label style="font-size:11.5px;font-family:var(--mono);color:var(--accent)">worklog 文件名</label>
+      <input id="nameInput" type="text" placeholder="如：2026-06-10_示例文件名.md" oninput="checkName()">
+      <div class="res" id="nameResult"><span style="color:var(--txt-faint)">输入文件名查看校验结果</span></div>
+    </div>
+
+    <h3>commit-msg 引用的对应（4 种合法形式）</h3>
+    <div class="code-block"><span class="cm"># 1. 完整路径</span>
+git commit -m "feat(xxx): 实现功能（详见 <span class="str">worklogs/2026-05-27_规范正文v2重构.md</span>）"
+
+<span class="cm"># 2. 相对路径</span>
+git commit -m "feat(xxx): 实现功能（详见 <span class="str">../worklogs/2026-05-27_规范正文v2重构.md</span>）"
+
+<span class="cm"># 3. 文件名裸引用</span>
+git commit -m "feat(xxx): 实现功能（详见 <span class="str">2026-05-27_规范正文v2重构.md</span>）"
+
+<span class="cm"># 4. Markdown 链接</span>
+git commit -m "feat(xxx): 实现功能（[<span class="str">worklog</span>](<span class="str">worklogs/2026-05-27_规范正文v2重构.md</span>)）"</div>
+
+    <h3>豁免标记</h3>
+    <div class="note warn">
+      <span class="ico">!</span>
+      <div>
+        <b>commit message 末尾加 <code>[skip-worklog]</code></b> 标记可绕过检测。仅用于：① 收束节点批量提交（一次 commit 含多个 worklog 引用）② 紧急 hotfix（先修复再补 worklog）③ 文档 / 元数据纯修改（如 <code>FILE_GRAPH.md</code> 决策树调整）。<br>
+        <b>审计</b>：<code>git log --grep="[skip-worklog]"</code> 列出所有豁免 → 人触发复盘（滥用人触发复盘）。
+      </div>
+    </div>
+
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 内容五段式（来自模板）</div>
+      <h2>必填 2 段 + 可选 3 段 —— 不可缺段</h2>
+    </section>
+
+    <div class="code-block"><span class="cm"># 工作日志：{简短标题}</span>
+
+<span class="kw">&gt; 日期</span>: YYYY-MM-DD
+<span class="kw">&gt; 功能点</span>: #{编号} {功能点名称}
+<span class="kw">&gt; 关联 BDD</span>: {docs/specs/NN-xxx.md，无则写 -}
+
+## 做了什么                          <span class="str"># 必填</span>
+{本轮改了什么、为什么。可分小节列条目}
+
+## 验证结果                          <span class="str"># 必填</span>
+<span class="cm">&lt;!-- 客观证据：测试通过数 / 手动验证 / 截图 / dashboard --&gt;</span>
+{...}
+
+## 关键决策                          <span class="cm"># 可选</span>
+| 决策 | 原因 | 影响 |
+|------|------|------|
+| {决策} | {...} | {...} |
+
+## 遇到的问题                        <span class="cm"># 可选</span>
+- {问题}：{解决方法}
+
+## 给下一位的交接                    <span class="cm"># 可选</span>
+<span class="kw">&gt;</span> {下一步该做什么 / 哪里容易踩坑 / 临时约定}</div>
+
+    <h3>五段式 · Tab 详解</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">点击切换看每段的必填理由、典型内容、缺失后果</p>
+
+    <div>
+      <div class="tabs">
+        <div class="tb active" data-tab="p1"><span class="badge">必填</span>① 做了什么</div>
+        <div class="tb" data-tab="p2"><span class="badge">必填</span>② 验证结果</div>
+        <div class="tb" data-tab="p3"><span class="badge">可选</span>③ 关键决策</div>
+        <div class="tb" data-tab="p4"><span class="badge">可选</span>④ 遇到的问题</div>
+        <div class="tb" data-tab="p5"><span class="badge">可选</span>⑤ 给下一位的交接</div>
+      </div>
+
+      <div class="tab-pane active" data-pane="p1">
+        <div class="card hl">
+          <h4>① 做了什么（必填）</h4>
+          <p style="margin-bottom:8px"><b>理由</b>：这是 worklog 的核心——本轮改了什么、为什么改。后续追溯时，开发者第一眼看的就是这段。</p>
+          <p style="margin-bottom:8px"><b>典型内容</b>：分小节列条目；说明改动的文件 / 配置 / 规范；指出与上次 worklog 的差异。</p>
+          <p style="margin-bottom:0"><b>缺失后果</b>：无工具拦（建议审查时人工检查），但下游"交接"段、"决策"段无法形成完整证据链。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="p2">
+        <div class="card hl">
+          <h4>② 验证结果（必填）</h4>
+          <p style="margin-bottom:8px"><b>理由</b>：避免"自证"陷阱。commit 中说的"实现了功能"必须有客观证据：测试通过数、手动验证、截图、dashboard 截图。</p>
+          <p style="margin-bottom:8px"><b>典型内容</b>：<code>pytest 8 passed</code>、<code>curl POST /api/v1/users → 201</code>、dashboard 截图链接、浏览器实拍。</p>
+          <p style="margin-bottom:0"><b>缺失后果</b>：无工具拦（建议审查时人工检查），但违反项目级"质量验证原则"——demo 视频 / 录屏不充当合格证据。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="p3">
+        <div class="card gold">
+          <h4>③ 关键决策（可选）</h4>
+          <p style="margin-bottom:8px"><b>理由</b>：记录"为什么这样做而不那样做"。日常技术取舍（不升格为 ADR）留此即可——比即时写 ADR 更轻量。</p>
+          <p style="margin-bottom:8px"><b>典型内容</b>：三列表格（决策 / 原因 / 影响）；影响"跨批次 / 架构方向"才升格为 ADR。</p>
+          <p style="margin-bottom:0"><b>缺失后果</b>：不影响功能点完成度；但"为什么这样做"会在 3 个月后失忆。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="p4">
+        <div class="card">
+          <h4>④ 遇到的问题（可选）</h4>
+          <p style="margin-bottom:8px"><b>理由</b>：失败比成功更有教学价值。"我在这卡了 2 小时、原因是 X、解决是 Y"是知识沉淀的核心。</p>
+          <p style="margin-bottom:8px"><b>典型内容</b>：<code>- 问题描述：解决方法</code> 列表；附错误信息片段。</p>
+          <p style="margin-bottom:0"><b>缺失后果</b>：踩过的坑会被后人再踩一次。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="p5">
+        <div class="card">
+          <h4>⑤ 给下一位的交接（可选）</h4>
+          <p style="margin-bottom:8px"><b>理由</b>：worklog 是"时间序列的"，下一位接手时第一眼看的段落。临时约定 / 容易踩的坑 / 还未完成的部分都列在此。</p>
+          <p style="margin-bottom:8px"><b>典型内容</b>：引用 blockquote 突出"下一步该做什么"；列 TODO 项。</p>
+          <p style="margin-bottom:0"><b>缺失后果</b>：下一位开发者 / AI 需重新摸索，浪费起步时间。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>与模板严格对齐</b>：五段式骨架与 <code>docs/templates/worklog模板.md</code> 一一对应。必填段（"做了什么" + "验证结果"）不可缺；可选段（决策 / 问题 / 交接）按需增删。<b>不要私自加新段</b>（如加"参考资料"会破坏模板与人工审阅的对应关系）。
+      </div>
+    </div>
+
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · ADR 设计</div>
+      <h2>worklogs/decisions/ —— 6 份 ADR + "仅收束节点产出"</h2>
+      <p>ADR = Architecture Decision Record。本模块共 6 份（0001-0006），每份采用统一 4 段式骨架（背景 / 决策 / 理由 / 后果）。</p>
+    </section>
+
+    <h3>ADR 文件格式</h3>
+    <div class="code-block"><span class="cm"># ADR NNNN: {简短标题}</span>
+
+<span class="kw">&gt; 日期</span>: YYYY-MM-DD
+<span class="kw">&gt; 状态</span>: 已采纳 | 已拒绝 | 已替代
+
+## 背景
+{为什么需要做这个决策}
+
+## 决策
+{具体选了什么}
+
+## 理由
+{为什么选这个}
+
+## 后果
+### 操作变更
+### 文件变更
+### 历史 ADR    <span class="cm"># （仅迁移类）</span></div>
+
+    <h3>ADR 0001-0006 关键决策 · Mermaid 时间线</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · ADR 关键决策时间线 (mermaid timeline)</div>
+      <div class="mermaid">
+timeline
+    title ADR 0001-0006 关键决策时间线（2026-05-26 → 05-28）
+    2026-05-26 : V0.x 起步 : 仓库初始化 + 6 维度规范雏形
+    2026-05-27 : ADR 0001 : 规范体系结构（conventions 雏形）
+    2026-05-27 : ADR 0002 : 六维度划分（01-06 编号定形）
+    2026-05-27 : ADR 0003 : AI 协作流程独立成文（ai-workflow_*/ 创立）
+    2026-05-27 : ADR 0004 : 规范移入 conventions 目录（目录结构稳定）
+    2026-05-27 : ADR 0005 : 长文件拆文件夹（&gt; 300 行拆目录）
+    2026-05-28 : ADR 0006 : 仅收束节点产出 ADR（worklog / ADR 单文档流）
+      </div>
+    </div>
+
+    <h3>6 份 ADR 列表（按编号）</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:60px">#</th><th>标题</th><th>决策</th><th>影响</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num"><span class="b-pill br">0001</span></td><td><b>规范体系结构</b></td><td>6 维度开发规范 + 治理规范的分层</td><td>conventions 雏形</td></tr>
+          <tr><td class="num"><span class="b-pill br">0002</span></td><td><b>六维度划分</b></td><td>架构 / 代码 / Git / API / 测试 / 文档 为核心</td><td>01-06 编号定形</td></tr>
+          <tr><td class="num"><span class="b-pill br">0003</span></td><td><b>AI 协作流程独立成文</b></td><td>AI 协作 ≠ 规范本身，独立目录</td><td><code>ai-workflow_*/</code> 创立</td></tr>
+          <tr><td class="num"><span class="b-pill br">0004</span></td><td><b>规范移入 conventions 目录</b></td><td>规范从根目录移入 <code>conventions/</code></td><td>目录结构稳定</td></tr>
+          <tr><td class="num"><span class="b-pill br">0005</span></td><td><b>长文件拆文件夹</b></td><td>单文件 &gt; 300 行必须拆目录</td><td>ai-workflow 10 篇拆分基础</td></tr>
+          <tr><td class="num"><span class="b-pill ok">0006</span></td><td><b>仅在约束节点通过 worklog 整理并进行决策总结</b></td><td>ADR 仅收束节点产出</td><td>worklog / ADR 单文档流</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>逐个展开 · 点击查看</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">6 份 ADR 的背景 / 决策 / 理由 / 后果 全部展开</p>
+
+    <details class="adr" open>
+      <summary>ADR 0001 · 规范体系结构 <span class="b-pill br">2026-05-27</span></summary>
+      <div class="body">
+        <h5>背景</h5>
+        <p>项目初期（V0.x）规范散落根目录，缺少体系化分层。需要建立"开发规范 + 治理规范"的双层结构。</p>
+        <h5>决策</h5>
+        <p>采用 <b>6 维度开发规范</b>（架构 / 代码 / Git / API / 测试 / 文档）+ <b>治理规范</b>（安全 / 支持 / 许可证 / 贡献 / 仪表盘 ...）的分层结构。</p>
+        <h5>理由</h5>
+        <p>分层让"开发期规范"与"项目治理规范"职责清晰；6 维度对应开发流程的关键节点。</p>
+        <h5>后果</h5>
+        <p>conventions 雏形建立；后续 0002-0005 在此基础上继续细化。</p>
+      </div>
+    </details>
+
+    <details class="adr">
+      <summary>ADR 0002 · 六维度划分 <span class="b-pill br">2026-05-27</span></summary>
+      <div class="body">
+        <h5>背景</h5>
+        <p>6 维度是哪 6 个？需要明确边界，避免"维度数量漂移"。</p>
+        <h5>决策</h5>
+        <p>核心 6 维度 = <b>架构 / 代码 / Git / API / 测试 / 文档</b>（编号 01-06），治理类（09-17）另起编号。</p>
+        <h5>理由</h5>
+        <p>这 6 个维度对应开发流程的关键节点（设计 → 实现 → 提交 → 接口 → TDD → 文档），是公认的开发实践切分。</p>
+        <h5>后果</h5>
+        <p>01-06 编号定形；后续所有规范都依此编号规则。</p>
+      </div>
+    </details>
+
+    <details class="adr">
+      <summary>ADR 0003 · AI 协作流程独立成文 <span class="b-pill br">2026-05-27</span></summary>
+      <div class="body">
+        <h5>背景</h5>
+        <p>原 07-ai-workflow 规范只是"开发规范"中的一条，但 AI 协作流程有 <b>自身的完整生命周期</b>（调研 → 计划 → 迭代 → 收束），与开发规范不同。</p>
+        <h5>决策</h5>
+        <p>AI 协作流程独立成文，单独目录 <code>conventions/ai-workflow_*/</code>，编号 07 留给"传统 AI 协作原则"，<b>独立流程本身占据目录级地位</b>。</p>
+        <h5>理由</h5>
+        <p>AI 协作流程迭代频繁（V1.x → V2.0 → V2.0.1），独立目录便于版本化；与 01-06 规范解耦。</p>
+        <h5>后果</h5>
+        <p><code>ai-workflow_*/</code> 创立；7 篇流程文档（01-07）独立维护。</p>
+      </div>
+    </details>
+
+    <details class="adr">
+      <summary>ADR 0004 · 规范移入 conventions 目录 <span class="b-pill br">2026-05-27</span></summary>
+      <div class="body">
+        <h5>背景</h5>
+        <p>规范起初散落根目录（<code>/01-architecture.md</code>、<code>/02-coding.md</code> ...），与项目代码混杂，新人无法快速定位。</p>
+        <h5>决策</h5>
+        <p>规范从根目录整体移入 <code>conventions/</code>，根目录只保留 <code>README.md</code>（人类入口） + <code>CLAUDE.md</code>（AI 入口）。</p>
+        <h5>理由</h5>
+        <p>集中存放 + 角色分离（人 / AI 双入口）让导航成本降到最低。</p>
+        <h5>后果</h5>
+        <p>目录结构稳定；CLAUDE.md 与 README.md 成为双入口。</p>
+      </div>
+    </details>
+
+    <details class="adr">
+      <summary>ADR 0005 · 长文件拆文件夹 <span class="b-pill br">2026-05-27</span></summary>
+      <div class="body">
+        <h5>背景</h5>
+        <p>ai-workflow 流程最初单文件 ~1200 行，跨 AI 协作全部步骤（调研 → 计划 → 迭代 → 收束），导航、编辑、review 全部不便。</p>
+        <h5>决策</h5>
+        <p>单文件 &gt; <b>300 行</b>必须拆目录（"长文件"判定标准）；ai-workflow 拆为 7 篇（01-07）。</p>
+        <h5>理由</h5>
+        <p>300 行 = 视觉上"一屏到顶"，编辑 review 不需要滚动；拆目录后每篇聚焦一个流程环节。</p>
+        <h5>后果</h5>
+        <p>ai-workflow 10 篇拆分基础建立；后续 <code>conventions/</code> 内所有文件都遵守此约束。</p>
+      </div>
+    </details>
+
+    <details class="adr">
+      <summary>ADR 0006 · 仅收束节点产出 ADR <span class="b-pill br">2026-05-28</span> <span class="b-pill ok">关键决策</span></summary>
+      <div class="body">
+        <h5>背景</h5>
+        <p>ADR 起初独立成 <code>docs/decisions/</code>，开发过程中随时记录。结果浮现 4 个问题：</p>
+        <p>① 决策碎片化：随时记录 → 缺乏阶段性审视 ② 与工作流脱节：ADR 独立于 worklog → 难追溯 ③ 过早形式化：单个功能点内的取舍被过早提升为 ADR，但实际影响有限 ④ 重复记录：worklog「关键决策」段与 ADR 内容大量重叠</p>
+        <h5>决策</h5>
+        <p>① <code>decisions/</code> 移入 <code>worklogs/decisions/</code>（ADR 不再是独立文档流，而是 worklog 体系的子集）<br>② 仅在<b>收束节点（人触发）</b>时整理决策；日常技术取舍记 worklog「关键决策」段即可<br>③ ADR 编号与收束节点对齐：新 ADR 编号紧随上次收束节点的最后一个</p>
+        <h5>理由</h5>
+        <p>① 决策质量更高：经一批功能点验证后再判断"值得永久存档" ② 减少噪音：微决策留 worklog，只有跨批次 / 影响架构方向的决策才需 ADR ③ 可追溯性增强：worklog → decisions 完整还原决策链</p>
+        <h5>后果</h5>
+        <p><b>操作变更</b>：日常开发 → 技术取舍只记录在 worklog「关键决策」段；收束节点 → 回顾本批次 worklog → 升格 ADR → 写入 <code>worklogs/decisions/</code>；ADR 不再接受"即时创建"。<br><b>文件变更</b>：<code>docs/decisions/</code> 目录废弃（迁移至 <code>worklogs/decisions/</code>）；FILE_GRAPH.md 决策树更新。<br><b>历史 ADR</b>：0001-0005 路径从 <code>docs/decisions/</code> 迁至 <code>worklogs/decisions/</code>。</p>
+      </div>
+    </details>
+
+    <div class="verdict">
+      <div class="lbl">VERDICT · ADR 0006 的核心影响</div>
+      <h4>从"开发中即时写 ADR" → "收束节点统一升格"</h4>
+      <p>这是工作流的一次重要转向：把<b>决策质量</b>（经一批功能点验证）放在<b>决策速度</b>（即时记录）之前。日常技术取舍留 worklog「关键决策」段（轻量），跨批次 / 架构方向的决策才升格 ADR（重量）。</p>
+    </div>
+
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · commit-msg 强制引用 worklog（红线 6）</div>
+      <h2>git commit 不引 worklog → 拒绝</h2>
+      <p>本模块的核心红线：<b>commit message 必须引用 worklog 文件</b>，否则拦截。机制：<code>scripts/check_worklog_ref.py</code> 在 commit-msg 阶段正则匹配。</p>
+    </section>
+
+    <h3>机制 · _meta.yaml 登记</h3>
+    <div class="code-block"><span class="cm"># conventions/_meta.yaml（节选）</span>
+<span class="kw">- id</span>: commit-msg-worklog-ref
+  <span class="kw">name</span>: commit message must reference worklog file
+  <span class="kw">description</span>: <span class="str">"06 红线：commit message 必须引用 worklog 文件（汇报不断档）"</span>
+  <span class="kw">entry</span>: python scripts/check_worklog_ref.py</div>
+
+    <h3>检测逻辑</h3>
+    <div class="code-block"><span class="kw">import re</span>
+
+WORKLOG_PATTERN = re.<span class="fn">compile</span>(
+    <span class="str">r"worklogs[\\/]+\d{4}-\d{2}-\d{2}[_\-\w]*\.md"</span>,
+    re.IGNORECASE,
+)
+
+<span class="cm"># 整段 commit message 至少要有 1 处 worklog 引用</span>
+<span class="kw">if</span> WORKLOG_PATTERN.<span class="fn">search</span>(msg):
+    <span class="kw">return</span> <span class="num">0</span>   <span class="cm"># 通过</span>
+<span class="kw">return</span> <span class="num">1</span>       <span class="cm"># 拦截</span></div>
+
+    <h3>典型 commit 格式</h3>
+    <div class="code-block"><span class="cm"># 标准格式（feat / fix / docs / refactor ...）</span>
+git commit -m <span class="str">"feat(02-coding): 实现密钥走环境变量（详见 worklogs/2026-05-27_规范正文v2重构.md）"</span>
+
+<span class="cm"># 修复类</span>
+git commit -m <span class="str">"fix(worklog): 修正 commit-msg 钩子误判（详见 worklogs/2026-05-26_二轮审查修复.md）"</span>
+
+<span class="cm"># 文档类</span>
+git commit -m <span class="str">"docs(worklog): 补 ADR 0006 内容（详见 worklogs/2026-05-28_08规范v3.0双图谱重构.md）"</span></div>
+
+    <h3>豁免（[skip-worklog]）</h3>
+    <div class="grid g3">
+      <div class="card">
+        <h4>① 收束节点批量提交</h4>
+        <p>一次 commit 含多个 worklog 引用。</p>
+        <div class="chip-row">
+          <span class="chip">收束</span>
+          <span class="chip">批量</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>② 紧急 hotfix</h4>
+        <p>先修复再补 worklog。</p>
+        <div class="chip-row">
+          <span class="chip br">hotfix</span>
+          <span class="chip br">紧急</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>③ 文档 / 元数据纯修改</h4>
+        <p>如 <code>FILE_GRAPH.md</code> 决策树调整。</p>
+        <div class="chip-row">
+          <span class="chip b">FILE_GRAPH</span>
+          <span class="chip b">纯修改</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>commit 拦截流程 · 交互模拟</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">点击不同场景，看 commit-msg 钩子如何逐层检查</p>
+    <div class="sim">
+      <h4><span class="ind"></span>commit-msg 钩子拦截流程模拟</h4>
+      <div id="simCommit">
+        <div class="sim-step" data-step="1"><span class="glyph">○</span> git commit -m "..."</div>
+        <div class="sim-step" data-step="2"><span class="glyph">○</span> commit-msg 钩子触发 → 读取 message</div>
+        <div class="sim-step" data-step="3"><span class="glyph">○</span> 阶段1 · type 前缀（feat/fix/docs...）</div>
+        <div class="sim-step" data-step="4"><span class="glyph">○</span> 阶段2 · commitlint 规范（&lt; 72 字符、空行）</div>
+        <div class="sim-step" data-step="5"><span class="glyph">○</span> 阶段3 · 跳过 [skip-worklog] 标记检查</div>
+        <div class="sim-step" data-step="6"><span class="glyph">○</span> 阶段4 · check_worklog_ref 正则匹配</div>
+        <div class="sim-step" data-step="7"><span class="glyph">○</span> 阶段5 · 接受 / 拒绝</div>
+      </div>
+      <div class="btn-row">
+        <button class="good" onclick="simCommit('good')">▶ 标准合规 commit</button>
+        <button class="danger" onclick="simCommit('bad-type')">▶ 缺 type 前缀</button>
+        <button class="danger" onclick="simCommit('bad-no-ref')">▶ 缺 worklog 引用</button>
+        <button onclick="simCommit('skip')">▶ 带 [skip-worklog] 豁免</button>
+        <button onclick="simResetCommit()">↺ 重置</button>
+      </div>
+      <div id="simCommitFinal" style="margin-top:10px;padding:7px 11px;background:var(--bg-soft);border:1px solid var(--line-soft);border-radius:6px;font-family:var(--mono);font-size:11.5px;color:var(--txt-dim)">点击上方按钮选择一种 commit 场景</div>
+    </div>
+
+    <div class="note crit">
+      <span class="ico">!</span>
+      <div>
+        <b>不能用 <code>--no-verify</code> 绕过</b>：commit-msg 钩子失败时，git 会拒绝 commit。要求补充 worklog 引用。这是项目级红线（红线 6），不属于个人偏好。<br>
+        <b>审计</b>：<code>git log --grep="[skip-worklog]"</code> 列出所有豁免 → 人触发复盘（滥用人触发复盘）。
+      </div>
+    </div>
+
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 与汇报体系的关系</div>
+      <h2>4 类产出物 · 粒度递增、频度递减</h2>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:170px">产出物</th><th>落点</th><th>时机</th><th>受众</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="b-pill ok">功能点级汇报</span></td><td>对话内联（<b>不落盘</b>）</td><td>每功能点完成</td><td>用户</td></tr>
+          <tr><td><span class="b-pill br">worklog</span></td><td><code>worklogs/YYYY-MM-DD_*.md</code></td><td>每功能点完成</td><td>后续开发者 / AI / 审计</td></tr>
+          <tr><td><span class="b-pill inf">收束报告</span></td><td><code>docs/reports/&lt;版本&gt;-&lt;主题&gt;.md</code></td><td>收束节点</td><td>团队 / 历史归档</td></tr>
+          <tr><td><span class="b-pill mid">ADR</span></td><td><code>worklogs/decisions/NNNN-*.md</code></td><td>收束节点</td><td>后续开发者 / AI</td></tr>
+          <tr><td><span class="b-pill b">STATUS 更新</span></td><td><code>STATUS.md</code> 每功能点一行</td><td>每功能点完成</td><td>dashboard</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>粒度与频度对比</h3>
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>细粒度 / 高频度</h4>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.3px"><b>功能点级汇报</b> · 每功能点 · 对话内联</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.3px"><b>worklog</b> · 每功能点 · 落档</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.3px"><b>STATUS 更新</b> · 每功能点 · 落档</li>
+        </ul>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>粗粒度 / 低频度</h4>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.3px"><b>收束报告</b> · 每收束节点 · <code>docs/reports/</code></li>
+          <li style="padding:5px 0;font-size:12.3px"><b>ADR</b> · 收束节点判断升格 · <code>worklogs/decisions/</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <blockquote>
+      "worklog ≠ 收束报告 ≠ ADR ≠ CHANGELOG ≠ wiki。<b>粒度递增、频度递减</b>。worklog 是过程证据、收束报告是阶段性总结、ADR 是架构决策——三者<b>互相不可替代</b>。"
+      <cite>—— M5 设计原则</cite>
+    </blockquote>
+
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 生命周期</div>
+      <h2>功能点 → worklog → 收束 → ADR 全链路</h2>
+    </section>
+
+    <h3>三阶段生命周期 · Mermaid 流程图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 功能点 → worklog → 收束 → ADR 完整生命周期 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    subgraph S1["阶段 1 · 功能点迭代（每 FP 循环）"]
+        FP["功能点开始"] --> IMPL["实现 TDD"]
+        IMPL --> VER["验证 E2E"]
+        VER --> WL["写 worklog<br/>YYYY-MM-DD_*.md<br/>五段式"]
+        WL --> CM["git commit<br/>commit-msg 引用 worklog"]
+        CM --> CK{"check_worklog_ref.py<br/>红线 6"}
+        CK -- "未引用 ✗" --> BLOCK["commit 拦截"]
+        BLOCK --> CM
+        CK -- "已引用 ✓" --> PASS["commit 通过"]
+    end
+
+    PASS --> STATUS["更新 STATUS.md<br/>每功能点一行"]
+
+    subgraph S2["阶段 2 · 收束节点（人触发，默认 3 FP）"]
+        CN{"到收束节点?"}
+        CN -- "未到" --> FP
+        CN -- "到" --> CL1["整理 worklog"]
+        CL1 --> CL2["跑测试"]
+        CL2 --> CL3["审计 diff"]
+        CL3 --> CL4["真机验证"]
+    end
+
+    subgraph S3["阶段 3 · ADR 升格（仅收束节点）"]
+        CL4 --> REVIEW["回溯 worklog<br/>关键决策段"]
+        REVIEW --> ADR{"值得长期保留?"}
+        ADR -- "否" --> ONLY["仅留 worklog"]
+        ADR -- "是" --> NEW["新 ADR NNNN<br/>worklogs/decisions/"]
+        NEW --> REPORT["收束报告<br/>docs/reports/"]
+        ONLY --> REPORT
+    end
+
+    classDef brandNode fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef accNode fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef okNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef errNode fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17
+    class CK,CN,ADR brandNode
+    class BLOCK errNode
+    class PASS,FP,IMPL,VER,WL,CM accNode
+    class CL1,CL2,CL3,CL4,REVIEW,NEW,REPORT,STATUS,ONLY okNode
+      </div>
+    </div>
+
+    <h3>时序图 · 一次 commit 走完整链路</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 一次 commit 经历 worklog → 钩子 → 收束 → ADR 的时序 (mermaid sequence)</div>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Dev as 开发者 / AI
+    participant Code as 仓库
+    participant WL as worklog 文件
+    participant Git as git
+    participant Hook as commit-msg 钩子
+    participant Status as STATUS.md
+    participant Gate as 收束节点
+
+    Dev->>Code: 写代码 / 改规范
+    Dev->>WL: 写 worklog（必填 2 段 + 可选 3 段）
+    Dev->>Git: git commit -m "feat(xxx): ... worklogs/...md"
+    Git->>Hook: 触发 commit-msg 钩子
+    Hook->>Hook: 正则匹配 worklog 引用
+    alt 含 worklog 引用
+        Hook-->>Git: ✓ 接受
+        Git->>Status: 更新 STATUS.md
+        Status->>Gate: dashboard 同步
+    else 缺引用
+        Hook-->>Git: ✗ 拒绝
+        Git-->>Dev: commit 失败，要求补 worklog
+    end
+    Note over Gate: 到达预设收束节点
+    Gate->>WL: 回顾本批次 worklog
+    Gate->>Hook: 整理本批次 commit
+    alt 值得长期保留
+        Gate->>WL: 升格为 ADR NNNN
+    end
+    Gate->>Status: 写收束报告
+      </div>
+    </div>
+
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 与其他模块的耦合</div>
+      <h2>9 项外部依赖 · 双向引用关系</h2>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>耦合方</th><th style="width:50px">方向</th><th>用途</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>conventions/03-git</code></td><td>→</td><td>红线 6 出处（commit-msg 必带 worklog 引用）</td></tr>
+          <tr><td><code>conventions/06-documentation</code></td><td>→</td><td>worklog 模板索引 + 档位裁剪</td></tr>
+          <tr><td><code>conventions/_meta.yaml</code></td><td>→</td><td>登记 <code>commit-msg-worklog-ref</code> 钩子</td></tr>
+          <tr><td><code>scripts/check_worklog_ref.py</code></td><td>→</td><td>commit-msg 强制检测</td></tr>
+          <tr><td><code>scripts/collect_l4_stats.py</code></td><td>→</td><td>worklog 数量统计 → 仪表盘</td></tr>
+          <tr><td><code>STATUS.md</code></td><td>↔</td><td>互引（每功能点一行 + worklog 路径）</td></tr>
+          <tr><td><code>docs/plan/开发清单.md</code></td><td>→</td><td>收束节点预设 + 触发记录</td></tr>
+          <tr><td><code>docs/reports/</code></td><td>→</td><td>收束报告落盘（区别于 worklog）</td></tr>
+          <tr><td><code>conventions/ai-workflow_*/04-长程开发.md</code></td><td>→</td><td>§2.5 更新记录 / §2.6 提交 / §2.8 收束</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>耦合关系 · 矩阵视图</h3>
+    <div class="tbl-wrap">
+      <table class="matrix">
+        <thead>
+          <tr><th></th><th>worklog</th><th>commit-msg</th><th>STATUS</th><th>收束</th><th>ADR</th><th>报告</th><th>钩子</th><th>模板</th><th>dashboard</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="lbl">01 架构</td><td class="partial">中</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="lbl">02 代码</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td><td class="partial">中</td><td class="no">—</td><td class="no">—</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="lbl">03 Git</td><td class="yes">强</td><td class="yes">强</td><td class="partial">中</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="lbl">04 API</td><td class="yes">强</td><td class="partial">中</td><td class="no">—</td><td class="partial">中</td><td class="yes">强</td><td class="no">—</td><td class="partial">中</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="lbl">05 测试</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="partial">中</td></tr>
+          <tr><td class="lbl">06 文档</td><td class="yes">强</td><td class="no">—</td><td class="yes">强</td><td class="partial">中</td><td class="no">—</td><td class="yes">强</td><td class="no">—</td><td class="yes">强</td><td class="no">—</td></tr>
+          <tr><td class="lbl">07 ai-workflow</td><td class="yes">强</td><td class="yes">强</td><td class="yes">强</td><td class="yes">强</td><td class="yes">强</td><td class="yes">强</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="lbl">08 图谱</td><td class="partial">中</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">强</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="lbl">收束节点</td><td class="ours-yes">核心</td><td class="ours">★</td><td class="ours">★</td><td class="ours-yes">核心</td><td class="ours-yes">核心</td><td class="ours-yes">核心</td><td class="ours">★</td><td class="ours">★</td><td class="ours">★</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>★ 标记</b> = 本模块（M5）作为"被引用方"被其他模块引用；<b>强 / 中 / 弱</b> = 本模块作为"引用方"对其他模块的依赖强度。<b>07 ai-workflow</b> 是耦合最重的（贯穿全流程），<b>收束节点</b> 行标为核心交汇点。
+      </div>
+    </div>
+
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · 边界与降级</div>
+      <h2>7 类异常场景 · 降级行为 + 明确不做</h2>
+    </section>
+
+    <h3>7 类异常场景 · 降级行为</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>场景</th><th>降级行为</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>commit-msg 钩子失败</td><td>拒绝 commit；要求补充 worklog 引用（不能用 <code>--no-verify</code> 绕过）</td></tr>
+          <tr><td>worklog 缺"做了什么"或"验证结果"段</td><td>不被工具拦（建议审查时人工检查）</td></tr>
+          <tr><td>收束节点未到但出现跨批次决策</td><td>留 worklog「关键决策」段，等下次收束时回溯</td></tr>
+          <tr><td>收束节点已到但 worklog 缺漏</td><td>用 <code>v&lt;X&gt;-backfill-&lt;范围&gt;.md</code> 补登（参考 <code>2026-06-08_v15-backfill-v02-v14-worklogs.md</code>）</td></tr>
+          <tr><td><code>[skip-worklog]</code> 滥用</td><td>由 <code>git log --grep="[skip-worklog]"</code> 审计；人触发复盘</td></tr>
+          <tr><td>ADR 路径漂移到 <code>docs/decisions/</code></td><td>不接受；ADR 0006 已固化路径</td></tr>
+          <tr><td>worklog 文件名超 60 字符</td><td>不被工具拦（建议审查时人工检查）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>明确不做</h3>
+    <div class="grid g2">
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不做 · worklog 模板改 yaml 结构化</h4>
+        <p>理由：牺牲可读性。Markdown 才是协作最友好格式。</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不做 · worklog 入 git 时压缩</h4>
+        <p>如 <code>.worklog.json</code>。理由：Markdown 才是协作最友好格式。</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不做 · worklog 超过 100 份自动归档</h4>
+        <p>当前 31 份无此压力。理由：避免"过早形式化"。</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不做 · ADR 改名 / 重编号</h4>
+        <p>编号是历史，禁动。理由：路径 / 编号是工作流的"指纹"。</p>
+      </div>
+    </div>
+
+    <section id="s11" class="sec-head" style="margin-top:50px">
+      <div class="tag">11 · 验收标准</div>
+      <h2>9 维度可勾选清单</h2>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>维度</th><th>验收方式</th><th>通过标准</th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>命名合规</td><td>全部 31 份文件</td><td>全部匹配 <code>YYYY-MM-DD_&lt;描述&gt;.md</code></td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>commit-msg 强引</td><td><code>python scripts/check_worklog_ref.py</code></td><td>全量 commit 命中</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>ADR 路径合规</td><td><code>ls worklogs/decisions/</code></td><td>6 份全部位于此目录</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>ADR 编号连续</td><td>编号 0001-0006</td><td>无跳号</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>模板合规</td><td>人工审阅 31 份</td><td>"做了什么" + "验证结果" 必填段全在</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>仪表盘同步</td><td><code>collect_l4_stats.py</code> 统计</td><td>worklog 数 = 31</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>收束节点 worklog</td><td>V1.5 期间</td><td>≥ 1 份 <code>v15-*.md</code></td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>断档补登 worklog</td><td>V1.5 期间</td><td>= 1 份 <code>v15-backfill-*.md</code></td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td>收束报告落盘</td><td><code>ls docs/reports/</code></td><td>与 worklog 区分（reports/ 不在本模块）</td><td><span class="b-pill ok">通过</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verdict">
+      <div class="lbl">VERDICT · M5 工作日志模块 · 设计交付</div>
+      <h4>现状设计 v1.0 完成 · 等实现计划确认 → 实施</h4>
+      <p>本稿定义：① 命名规约（YYYY-MM-DD_&lt;描述&gt;.md）② 五段式骨架（必填 2 + 可选 3）③ ADR 设计（6 份 + "仅收束节点产出"）④ commit-msg 强制引用 worklog ⑤ 与汇报体系的关系（4 类产出物）⑥ 边界与降级 ⑦ 验收标准（9 维度）。</p>
+      <p style="margin-top:8px"><b>配套</b>：<a href="实现计划.html" style="color:var(--brand);font-weight:700">实现计划.html</a> · <a href="README.md" style="color:var(--brand)">README.md</a> · <a href="简报.md" style="color:var(--brand)">简报.md</a> · <a href="阅读笔记.md" style="color:var(--brand)">阅读笔记.md</a></p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

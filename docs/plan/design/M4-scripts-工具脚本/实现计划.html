@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M4 scripts 工具脚本 · 历史演进路径 · 强制约束范式</title>
+<!-- Mermaid 渲染 -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true, barHeight: 22, barGap: 4, topPadding: 50, leftPadding: 75, gridLineStartPadding: 35, fontSize: 11, sectionFontSize: 12 }
+    });
+    }
+
+    // —— Tab 切换 ——
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // —— 进度条动画 ——
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    // —— 数字滚动 ——
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseFloat(el.getAttribute('data-target') || '0');
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target * 10) / 10;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+
+    // —— 侧边栏锚点激活 ——
+    var navLinks = document.querySelectorAll('nav a');
+    var sections = document.querySelectorAll('section[id]');
+    function syncActive(){
+      var scrollTop = window.scrollY + 80;
+      var cur = '';
+      sections.forEach(function(s){
+        if (s.offsetTop <= scrollTop) cur = s.id;
+      });
+      navLinks.forEach(function(a){
+        a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+      });
+    }
+    window.addEventListener('scroll', syncActive, {passive: true});
+    syncActive();
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;
+    --brand-2:#A85032;
+    --accent:#2F5061;
+    --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px;line-height:1.6}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+
+  .tabbar{display:flex;gap:2px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tab{padding:7px 14px;font-size:12px;color:var(--txt-dim);cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;transition:.18s;font-family:var(--sans)}
+  .tab:hover{background:var(--bg-soft)}
+  .tab.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tab-panel{display:none;padding:14px 0}
+  .tab-panel.active{display:block}
+
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  [id]{scroll-margin-top:24px}
+
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);
+    background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;
+    font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;
+    transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);
+    z-index:100;
+  }
+  .tip .tipbox::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1F1D17;
+  }
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+
+  .stage-card{padding:14px 16px;border-radius:11px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);position:relative}
+  .stage-card .stage-tag{position:absolute;top:-9px;left:14px;font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;font-weight:700;background:var(--panel);padding:0 6px;color:var(--brand)}
+  .stage-card .stage-date{font-family:var(--mono);font-size:10.5px;color:var(--txt-faint)}
+  .stage-card .stage-num{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--txt);margin:4px 0}
+  .stage-card .stage-cnt{font-size:12px;color:var(--txt-dim);line-height:1.55}
+  .stage-card .stage-scripts{font-family:var(--mono);font-size:10.5px;color:var(--accent);margin-top:6px}
+
+  .redline-row{display:grid;grid-template-columns:200px 60px 1fr;gap:10px;padding:9px 11px;border:1px solid var(--line-soft);border-radius:8px;margin:5px 0;background:var(--panel-2);align-items:center}
+  .redline-row .kind{font-size:12.4px;font-weight:700;color:var(--brand)}
+  .redline-row .times{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--txt);text-align:center}
+  .redline-row .how{font-size:11.8px;color:var(--txt-dim);line-height:1.55}
+
+  ul.tight{list-style:none;padding:0;margin:0}
+  ul.tight li{padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px}
+  ul.tight li:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ 左侧导航 ============ -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M4</div>
+      <div>
+        <b>scripts 工具脚本</b>
+        <span>历史演进 · v1.0</span>
+      </div>
+    </div>
+    <div class="meta">5 阶段 · 14 天<br>V0.x → V2.0.1<br>2 → 10 脚本<br>2026-05-26 → 06-09</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 总览 5 阶段</a>
+      <a href="#s2"><span class="n">02</span> V0.x 起步</a>
+      <a href="#s3"><span class="n">03</span> 引入枢纽</a>
+      <a href="#s4"><span class="n">04</span> V0.x 扩展</a>
+      <a href="#s5"><span class="n">05</span> V0.6 markdownlint</a>
+      <a href="#s6"><span class="n">06</span> 检测补全</a>
+      <a href="#s7"><span class="n">07</span> V1.5-V2.0.1 dogfood</a>
+      <div class="grp">关键证据</div>
+      <a href="#s8"><span class="n">08</span> 甘特图时间线</a>
+      <a href="#s9"><span class="n">09</span> 里程碑</a>
+      <a href="#s10"><span class="n">10</span> 测试策略</a>
+      <a href="#s11"><span class="n">11</span> 红线关系</a>
+      <a href="#s12"><span class="n">12</span> 未来扩展</a>
+    </nav>
+  </aside>
+
+  <!-- ============ 主内容 ============ -->
+  <main class="main">
+
+    <!-- ====================== HERO ====================== -->
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">devguard M4</span>
+        <span class="b-pill inf">5 阶段</span>
+        <span class="b-pill inf">14 天</span>
+        <span class="b-pill inf">10 脚本</span>
+        <span class="b-pill inf">1 枢纽</span>
+        <span class="b-pill br">强制约束范式</span>
+      </div>
+      <h1>M4 工具脚本 · 历史演进路径</h1>
+      <p class="sub">scripts/ 从 V0.x 起步的 2 个脚本（dashboard 启动器）→ V2.0.1 的 10 个脚本，历经 5 个阶段、14 天。<b>render_meta.py 是核心枢纽</b>——V0.x 引入、L1 检测脚本随规范陆续添加、V2.0.1 dogfood 完成全闭环。</p>
+      <div class="meta-row">
+        <span>周期 2026-05-26 → 2026-06-09</span>
+        <span>•</span>
+        <span>版本 v1.0</span>
+        <span>•</span>
+        <span>配套 设计.md / 简报.md / README.md</span>
+        <span>•</span>
+        <span>工作区 devguard 主仓库</span>
+      </div>
+    </section>
+
+    <!-- ====================== 目录 ====================== -->
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>总览 5 阶段</b><span style="font-size:11px;color:var(--txt-faint)">脚本数 2 → 10</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>V0.x 起步</b><span style="font-size:11px;color:var(--txt-faint)">dashboard 启动器</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>引入枢纽</b><span style="font-size:11px;color:var(--txt-faint)">render_meta.py</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>V0.x 扩展</b><span style="font-size:11px;color:var(--txt-faint)">+ compliance + fix_date</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>V0.6 markdownlint</b><span style="font-size:11px;color:var(--txt-faint)">跨平台兼容</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>检测补全</b><span style="font-size:11px;color:var(--txt-faint)">+ 4 check_*</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>V1.5-V2.0.1 dogfood</b><span style="font-size:11px;color:var(--txt-faint)">CI 5 阶段跑通</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>甘特图</b><span style="font-size:11px;color:var(--txt-faint)">mermaid gantt</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>里程碑</b><span style="font-size:11px;color:var(--txt-faint)">5 阶段时间轴</span></div></a>
+    </div>
+
+    <!-- ====================== 摘要 KPI ====================== -->
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="5">0</span></div>
+        <div class="lbl">演进阶段</div>
+        <div class="sub">V0.x → V2.0.1</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="14">0</span></div>
+        <div class="lbl">持续天数</div>
+        <div class="sub">2026-05-26 → 06-09</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="10">0</span></div>
+        <div class="lbl">脚本总数</div>
+        <div class="sub">2 → 10 增长 5 倍</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="1">0</span></div>
+        <div class="lbl">核心枢纽</div>
+        <div class="sub">render_meta.py</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="5">0</span></div>
+        <div class="lbl">L1 红线脚本</div>
+        <div class="sub">check_* + lint_*</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="4">0</span></div>
+        <div class="lbl">渲染产物</div>
+        <div class="sub">_meta.yaml 投射</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="17">0</span></div>
+        <div class="lbl">红线累计触发</div>
+        <div class="sub">5 类 × 多次</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="0">0</span></div>
+        <div class="lbl">未解决遗留</div>
+        <div class="sub">全部闭环</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">脚本数演进 · 6 个时间点</h3>
+    <div class="grid g6">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">V0.x 起步</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:20%"><div class="fill"></div></div></div>
+          <div class="val">2</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">V0.x 引入枢纽</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:30%"><div class="fill brand"></div></div></div>
+          <div class="val">3</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">V0.x 扩展</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:50%"><div class="fill"></div></div></div>
+          <div class="val">5</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">V0.6 lint</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:60%"><div class="fill gold"></div></div></div>
+          <div class="val">6</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">V0.x-V1.5</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:80%"><div class="fill good"></div></div></div>
+          <div class="val">8</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">V2.0.1</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div></div>
+          <div class="val">10</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>演进哲学</b>：scripts/ 从 2 个工具脚本起步，先有 dashboard 启动器（解决 file:// 协议问题）→ 引入 render_meta 枢纽（解决真源到产物的翻译）→ 随规范陆续补 L1 检测脚本（每加一条规范就有一个 check_*.py 兜底）→ V2.0.1 完成 dogfood（自我验证）。<b>剧本式扩展，每一步都解决一个具体问题</b>。
+      </div>
+    </div>
+
+    <!-- ====================== § 01 总览 ====================== -->
+    <section id="s1" class="sec-head" style="margin-top:40px">
+      <div class="tag">01 · 5 阶段总览</div>
+      <h2>scripts/ 从 2 → 10 · 5 阶段剧本</h2>
+      <p class="lead">每个阶段都解决一个具体问题——5 个阶段 = 5 个剧本。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 5 阶段演进 · 时间线 + 脚本数 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title scripts 模块 5 阶段演进时间线
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0.x
+    起步：仪表盘启动器             :done, s1, 2026-05-26, 1d
+    引入枢纽 render_meta.py         :done, s2, 2026-05-27, 1d
+    扩展 compliance + fix_date     :done, s3, 2026-05-27, 1d
+    section V0.6
+    markdownlint 跨平台兼容         :done, s4, 2026-06-07, 1d
+    section V0.x-V1.5
+    4 check_* 检测补全              :done, s5, 2026-05-28, 12d
+    section V1.5-V2.0.1
+    dogfood · CI 5 阶段跑通          :active, s6, 2026-06-08, 2d
+      </div>
+    </div>
+
+    <h3>5 阶段 · 横向时间线</h3>
+    <div class="h-tl">
+      <div class="ev">V0.x 起步</div>
+      <div class="arrow">▶</div>
+      <div class="ev">V0.x 引入枢纽</div>
+      <div class="arrow">▶</div>
+      <div class="ev">V0.x 扩展</div>
+      <div class="arrow">▶</div>
+      <div class="ev">V0.6 markdownlint</div>
+      <div class="arrow">▶</div>
+      <div class="ev">V0.x-V1.5 检测补全</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">V1.5-V2.0.1 dogfood</div>
+    </div>
+
+    <div class="grid g3">
+      <div class="stage-card">
+        <div class="stage-tag">STAGE 01</div>
+        <div class="stage-date">2026-05-26 · 1 天</div>
+        <div class="stage-num">V0.x 起步</div>
+        <div class="stage-cnt">解决 dashboard.html 的本地预览问题——浏览器 file:// 协议禁止 fetch 跨文件读取 STATUS.md</div>
+        <div class="stage-scripts">2 脚本：start_server.py + 打开仪表盘.bat</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-tag">STAGE 02</div>
+        <div class="stage-date">2026-05-27 · 1 天</div>
+        <div class="stage-num">V0.x 引入枢纽</div>
+        <div class="stage-cnt">把"规范元数据"和"钩子/CI 配置"打通——_meta.yaml 改了自动同步 4 个产物</div>
+        <div class="stage-scripts">+ 1 脚本：render_meta.py（370 行枢纽）</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-tag">STAGE 03</div>
+        <div class="stage-date">2026-05-27 · 1 天</div>
+        <div class="stage-num">V0.x 扩展</div>
+        <div class="stage-cnt">把"01-08 规范的 L1 配置存在性"和"渲染日期 bug 修复"工具化</div>
+        <div class="stage-scripts">+ 2 脚本：check_compliance.py + fix_render_date.py</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-tag">STAGE 04</div>
+        <div class="stage-date">2026-06-07 · 1 天</div>
+        <div class="stage-num">V0.6 markdownlint</div>
+        <div class="stage-cnt">把 06 文档规范的"markdownlint 红线"工具化——解决 glob 行为 + Windows 命令行长度限制</div>
+        <div class="stage-scripts">+ 1 脚本：lint_markdown.py（54 行）</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-tag">STAGE 05</div>
+        <div class="stage-date">2026-05-28 ~ 06-08 · 12 天</div>
+        <div class="stage-num">V0.x-V1.5 检测补全</div>
+        <div class="stage-cnt">把"commit message 红线 + 07 AI 流程章节红线 + 08 AST 示例红线 + L4 测试统计"工具化</div>
+        <div class="stage-scripts">+ 4 脚本：check_worklog_ref + check_ai_workflow + check_code_understanding + collect_l4_stats</div>
+      </div>
+      <div class="stage-card" style="border-color:var(--brand)">
+        <div class="stage-tag" style="color:var(--brand)">STAGE 06 (FINAL)</div>
+        <div class="stage-date">2026-06-08 ~ 06-09 · 2 天</div>
+        <div class="stage-num">V1.5-V2.0.1 dogfood</div>
+        <div class="stage-cnt">让所有脚本在 CI 真实跑通，自我 dogfood——5 个 check_*.py 全部进入 CI 5 阶段流水线</div>
+        <div class="stage-scripts">+ dashboard 闭环 · L4_STATS=65/65</div>
+      </div>
+    </div>
+
+    <!-- ====================== § 02 V0.x 起步 ====================== -->
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · 阶段 V0.x 起步</div>
+      <h2>仪表盘启动器 · 解决 file:// 协议</h2>
+      <p>2026-05-26 · 2 脚本 · 105 行 · 起点</p>
+    </section>
+
+    <h3>问题 → 解决</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · file:// 协议阻断问题 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TD
+    A["浏览器直接打开 dashboard.html"]
+    A -->|"fetch('STATUS.md')"| B["FAIL · file:// 跨文件协议阻断"]
+    B --> C["解决: HTTP 服务"]
+    C --> D["python scripts/start_server.py"]
+    D --> E["127.0.0.1:8080"]
+    E --> F["Windows 友好"]
+    F --> G["双击 打开仪表盘.bat"]
+
+    classDef failNode fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17
+    classDef okNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class B failNode
+    class A,D,E,G okNode
+      </div>
+    </div>
+
+    <h3>关键设计</h3>
+    <div class="grid g2">
+      <div class="card brand">
+        <h4>QuietHandler</h4>
+        <p>安静日志 + <code>Cache-Control: no-store, must-revalidate</code> 强制不缓存——每次刷新读到最新 STATUS.md。</p>
+        <div class="chip-row"><span class="chip br">no-store</span><span class="chip b">must-revalidate</span></div>
+      </div>
+      <div class="card hl">
+        <h4>端口顺延 · 最多 20 次</h4>
+        <p>端口冲突自动顺延 8080 → 8081 → ... → 8099，避免 8080 被占用导致启动失败。</p>
+        <div class="chip-row"><span class="chip b">顺延 20</span><span class="chip b">127.0.0.1</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<code>worklogs/2026-05-26_基础设施搭建.md</code>——本阶段从"仓库搭建"基础设施起步，scripts/ 雏形形成。
+      </div>
+    </div>
+
+    <!-- ====================== § 03 引入枢纽 ====================== -->
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · 阶段 V0.x 引入枢纽</div>
+      <h2>render_meta.py · 核心枢纽诞生</h2>
+      <p>2026-05-27 · +1 脚本 · 370 行 · 整个模块的"心脏"</p>
+    </section>
+
+    <h3>剧本</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · render_meta.py 引入剧本 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    A["#1 任务: render_meta.py 最小版"]
+    A --> B["支持 pre-commit-config 渲染和校验"]
+    B --> B1["python scripts/render_meta.py --render"]
+    B --> B2["python scripts/render_meta.py --check"]
+    B1 --> C["后续 #4 / #3 / #2 任务扩展"]
+    B2 --> C
+    C --> D["支持 convention-grade 渲染"]
+    D --> E["把分级标签投射到各篇规范顶部"]
+
+    classDef step fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17
+    classDef out fill:rgba(47,80,97,.13),stroke:#2F5061,color:#1F1D17
+    class A,B,C,D step
+    class B1,B2,E out
+      </div>
+    </div>
+
+    <h3>关键设计 · 4 维度</h3>
+    <div class="grid g4">
+      <div class="card">
+        <h4>退出码语义</h4>
+        <p><span class="b-pill ok">0</span>=成功  ·  <span class="b-pill warn">1</span>=渲染失败（环境故障）  ·  <span class="b-pill no">2</span>=校验失败（漂移违规）</p>
+        <div class="chip-row"><span class="chip br">3 状态</span></div>
+      </div>
+      <div class="card">
+        <h4>UTF-8 强制</h4>
+        <p>避免 Windows ANSI 损坏中文——读 yaml、写文件、输出日志全用 <code>encoding="utf-8"</code>。</p>
+        <div class="chip-row"><span class="chip b">utf-8</span></div>
+      </div>
+      <div class="card">
+        <h4>钩子排序</h4>
+        <p>ADR 约定：<b>pre-commit/pre-commit-hooks</b> 最便宜排最前（trailing-ws / end-of-file-fixer）。</p>
+        <div class="chip-row"><span class="chip b">ADR</span><span class="chip">最便宜先</span></div>
+      </div>
+      <div class="card">
+        <h4>commit 纪律</h4>
+        <p>改 _meta.yaml → <code>[meta]</code> 标记 + 模板版本同步（B3 策略）。</p>
+        <div class="chip-row"><span class="chip br">[meta]</span><span class="chip b">B3</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<code>worklogs/2026-05-27_规范正文v2重构.md</code>——本阶段是"规范 v2 重构"的工程化落子。
+      </div>
+    </div>
+
+    <!-- ====================== § 04 V0.x 扩展 ====================== -->
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 阶段 V0.x 扩展</div>
+      <h2>check_compliance.py + fix_render_date.py</h2>
+      <p>2026-05-27 · +2 脚本 · 240 行 · 临时脚本模式诞生</p>
+    </section>
+
+    <h3>剧本</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · check_compliance + fix_render_date 剧本 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    subgraph C["check_compliance.py（#10 任务 v2 实现）"]
+        C1["读 _meta.yaml 列出所有规范"]
+        C1 --> C2["对每篇做 L1 配置 + L4 测试检查"]
+        C2 --> C3["输出文本合规报告"]
+        C2 --> C4["--json 输出 JSON 报告"]
+    end
+    subgraph F["fix_render_date.py（V0.3 临时脚本）"]
+        F1["V0.3 收尾已用完"]
+        F1 --> F2["保留作为示例（intentional empty）"]
+    end
+    classDef step fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17
+    classDef out fill:rgba(47,80,97,.13),stroke:#2F5061,color:#1F1D17
+    class C1,C2,C3,C4 step
+    class F1,F2 out
+      </div>
+    </div>
+
+    <h3>关键设计</h3>
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>L1_CHECKS 字典</h4>
+        <p><code>id -> [(相对路径, 说明), ...]</code> 形式——便于扩展新规范。增加新规范时只需在 yaml 加 <code>l1_check_path</code>，无需改脚本。</p>
+        <div class="chip-row"><span class="chip b">dict 形式</span><span class="chip b">易扩展</span></div>
+      </div>
+      <div class="card gold">
+        <h4>JSON 输出</h4>
+        <p>CI 阶段可编程消费——<code>--json</code> 输出标准 JSON 格式，可被其他 CI 步骤 jq 解析。</p>
+        <div class="chip-row"><span class="chip gl">JSON</span><span class="chip b">CI 消费</span></div>
+      </div>
+      <div class="card good">
+        <h4>临时脚本模式</h4>
+        <p>用完保留 + 文件头说明——避免后续读代码的人疑惑"为什么是空文件"。这是 devguard 的<b>临时脚本存档约定</b>。</p>
+        <div class="chip-row"><span class="chip gd">intentional empty</span><span class="chip b">文件头说明</span></div>
+      </div>
+      <div class="card brand">
+        <h4>L1 范围</h4>
+        <p>01-08 规范全覆盖：01 架构 importlinter.ini、02 代码 ruff/gitleaks/markdownlint、03 Git commitlint/PR、04 API spectral、05 测试 pyproject、06 文档 README/CHANGELOG、08 图谱 call_graph。</p>
+        <div class="chip-row"><span class="chip br">01-08</span><span class="chip b">6 类规范</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<code>worklogs/2026-05-27_规范正文v2重构.md</code>——同 V0.x 引入枢纽 worklog，本阶段是 v2 重构的脚本工具化。
+      </div>
+    </div>
+
+    <!-- ====================== § 05 V0.6 ====================== -->
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · 阶段 V0.6 markdownlint</div>
+      <h2>lint_markdown.py · 跨平台兼容</h2>
+      <p>2026-06-07 · +1 脚本 · 54 行 · 解决 Windows 命令行 ~8KB 限制</p>
+    </section>
+
+    <h3>问题 → 解决</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · markdownlint-cli 跨平台问题 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TD
+    A["V0.6 加 markdownlint"]
+    A --> B["直接调 npx markdownlint 失败"]
+    B --> B1["1) 附加 glob 问题<br/>传 '**' 会把'附加文件'一起扫"]
+    B --> B2["2) Windows 命令行 ~8KB 长度限制<br/>137 文件拼成一行报错"]
+    B1 --> C["解决"]
+    B2 --> C
+    C --> D["Python 列所有 .md 文件"]
+    D --> E["排除规则: node_modules/、.git/、__pycache__/、dashboard.html.lock"]
+    E --> F["分批 50 个调用 markdownlint"]
+
+    classDef failNode fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17
+    classDef okNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class B1,B2 failNode
+    class A,C,D,E,F okNode
+      </div>
+    </div>
+
+    <h3>关键设计</h3>
+    <div class="grid g3">
+      <div class="card">
+        <h4>排除规则</h4>
+        <p><code>node_modules/</code>、<code>.git/</code>、<code>__pycache__/</code>、<code>dashboard.html.lock</code> 全部排除。</p>
+        <div class="chip-row"><span class="chip b">4 规则</span></div>
+      </div>
+      <div class="card">
+        <h4>跨平台兼容</h4>
+        <p>Windows npx 是 <code>.cmd</code> shim，必须 <code>shell=True</code>——直接 <code>subprocess.run(['npx', ...])</code> 在 Windows 失败。</p>
+        <div class="chip-row"><span class="chip b">shell=True</span><span class="chip br">.cmd shim</span></div>
+      </div>
+      <div class="card">
+        <h4>分批大小</h4>
+        <p>50 个文件一批——远低于 8KB 限制。137 文件 → 3 批调用，每批命令行长度 ~4KB。</p>
+        <div class="chip-row"><span class="chip gd">50/批</span><span class="chip b">8KB ↓</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<code>worklogs/2026-06-07_添加markdownlint.md</code>——本阶段是 markdownlint 添加专题。
+      </div>
+    </div>
+
+    <!-- ====================== § 06 检测补全 ====================== -->
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 阶段 V0.x-V1.5 检测补全</div>
+      <h2>+ 4 check_*.py · 章节级 L1 钩子</h2>
+      <p>2026-05-28 ~ 2026-06-08 · 12 天 · +4 脚本 · 270 行</p>
+    </section>
+
+    <h3>剧本</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 4 check_* 工具化剧本 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    A["check_worklog_ref.py（#10 任务）"]
+    A --> A1["pre-commit commit-msg 钩子"]
+    A1 --> A2["正则匹配 worklogs/YYYY-MM-DD_*.md"]
+
+    B["check_ai_workflow.py（V9.1 章节级 L1）"]
+    B --> B1["期望关键词表（7 篇 × 5-7 关键词）"]
+
+    C["check_code_understanding.py（V5.3 AST 解析）"]
+    C --> C1["关键函数 build_graph / find_callees / add_entity"]
+
+    D["collect_l4_stats.py（V6.3 retry / V7.2 修订）"]
+    D --> D1["替代 bash grep：Python 跑 pytest + 解析 L4 数字"]
+    D1 --> D2["输出 last line 格式: L4_STATS=64/64"]
+
+    classDef hub fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef out fill:rgba(47,80,97,.13),stroke:#2F5061,color:#1F1D17
+    class A,B,C,D hub
+    class A1,A2,B1,C1,D1,D2 out
+      </div>
+    </div>
+
+    <h3>关键设计 · 5 维度</h3>
+    <div class="grid g3">
+      <div class="card hl">
+        <h4>commit-msg 钩子</h4>
+        <p>用 pre-commit 框架而非自建——钩子安装/升级标准化，所有 devguard 子项目复用同一套。</p>
+        <div class="chip-row"><span class="chip b">pre-commit 框架</span><span class="chip b">标准化</span></div>
+      </div>
+      <div class="card brand">
+        <h4>worklog 引用 4 形式</h4>
+        <p>完整路径 / 相对路径 / 只文件名 / 链接 <code>[text](path)</code>——4 种引用形式都允许。</p>
+        <div class="chip-row"><span class="chip br">4 形式</span><span class="chip b">灵活</span></div>
+      </div>
+      <div class="card gold">
+        <h4>章节级 L1</h4>
+        <p>比"关键内容"更严——每篇必须有 §一 红线，缺则 fail。</p>
+        <div class="chip-row"><span class="chip gl">§一 红线</span><span class="chip b">更严</span></div>
+      </div>
+      <div class="card good">
+        <h4>AST 解析</h4>
+        <p>避免动态导入，只查静态函数定义——<code>ast.parse()</code> + FunctionDef 节点遍历。</p>
+        <div class="chip-row"><span class="chip gd">ast.parse</span><span class="chip b">静态</span></div>
+      </div>
+      <div class="card">
+        <h4>跨平台 L4 统计</h4>
+        <p>避免 PowerShell/ANSI 编码问题——Python 跑 pytest + 正则解析，CI 行为一致。</p>
+        <div class="chip-row"><span class="chip b">跨平台</span><span class="chip b">CI 一致</span></div>
+      </div>
+      <div class="card">
+        <h4>worklog 4 形式</h4>
+        <p>豁免标记 <code>[skip-worklog]</code>——紧急 hotfix 可绕过 worklog 引用要求。</p>
+        <div class="chip-row"><span class="chip b">[skip-worklog]</span><span class="chip b">hotfix 豁免</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<code>worklogs/2026-05-28_08规范v3.0双图谱重构.md</code> + <code>worklogs/2026-06-08_v15-section3-hook-text-table-collapsed.md</code>——本阶段跨 12 天，包含 08 规范重构 + V1.5 §3 折叠。
+      </div>
+    </div>
+
+    <!-- ====================== § 07 dogfood ====================== -->
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 阶段 V1.5-V2.0.1 dogfood</div>
+      <h2>所有脚本 · CI 5 阶段跑通</h2>
+      <p>2026-06-08 ~ 2026-06-09 · 2 天 · devguard 验证 devguard 自己的脚本</p>
+    </section>
+
+    <h3>剧本</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · dogfood 闭环 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    A["V1.5-V2.0.1 流程升级"]
+    A --> B["CI 5 阶段"]
+    B --> B1["lint → lint_markdown.py"]
+    B --> B2["test → render_meta.py --render + --check"]
+    B --> B3["l4-conventions → check_ai_workflow + check_code_understanding"]
+    B --> B4["compliance → check_compliance.py"]
+    B --> B5["build → collect_l4_stats.py + render.py"]
+    B5 --> C["dashboard 闭环"]
+    C --> D["L4_STATS=65/65"]
+    D --> E["注入 html-report-template"]
+    E --> F["dashboard.html"]
+
+    classDef stage fill:rgba(47,80,97,.13),stroke:#2F5061,color:#1F1D17
+    classDef out fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class A,B stage
+    class B1,B2,B3,B4,B5,D,E,F out
+    class C stage
+      </div>
+    </div>
+
+    <h3>关键设计</h3>
+    <div class="grid g3">
+      <div class="card hl">
+        <h4>L4 统计注入</h4>
+        <p>V6.3 retry + V7.2 <code>${VAR:-0}</code> 防御空字符串——CI 失败时 dashboard 卡片仍能显示合理值。</p>
+        <div class="chip-row"><span class="chip b">VAR:-0</span><span class="chip b">防御</span></div>
+      </div>
+      <div class="card brand">
+        <h4>dashboard 漂移检测</h4>
+        <p><code>git diff --exit-code dashboard.html</code> 失败即 CI fail——dashboard 与 STATUS.md 必须严格一致。</p>
+        <div class="chip-row"><span class="chip br">--exit-code</span><span class="chip b">漂移 fail</span></div>
+      </div>
+      <div class="card good">
+        <h4>dogfood 价值</h4>
+        <p>devguard 自身的规范由 devguard 自身的脚本验证——<b>闭环形成</b>，自验证系统自我进化。</p>
+        <div class="chip-row"><span class="chip gd">自验证</span><span class="chip b">闭环</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<code>worklogs/2026-06-08_v20-devguard-dogfood.md</code> + <code>worklogs/2026-06-09_ai-workflow-v2-rewrite.md</code> + <code>worklogs/2026-06-08_v15-section3-hook-text-table-collapsed.md</code>——3 份 worklog 联合记录本阶段。
+      </div>
+    </div>
+
+    <!-- ====================== § 08 甘特图 ====================== -->
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 关键证据</div>
+      <h2>脚本添加时间线 · 甘特图</h2>
+      <p>从 V0.x 起步到 V2.0.1，10 个脚本的添加节奏——<b>前期密集，后期补全</b>。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 10 脚本添加时间线 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title scripts 10 脚本逐个添加时间线
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section 启动器
+    start_server.py          :done, ss1, 2026-05-26, 1d
+    打开仪表盘.bat          :done, ss2, 2026-05-26, 1d
+    section L0 枢纽
+    render_meta.py (370 行)  :done, sr1, 2026-05-27, 1d
+    section L1 红线
+    check_compliance.py      :done, sc1, 2026-05-27, 1d
+    fix_render_date.py (临时):done, sf1, 2026-05-27, 1d
+    check_worklog_ref.py     :done, sc2, 2026-05-28, 1d
+    check_ai_workflow.py     :done, sc3, 2026-05-28, 1d
+    check_code_understanding :done, sc4, 2026-05-28, 1d
+    collect_l4_stats.py      :done, sc5, 2026-05-28, 1d
+    lint_markdown.py         :done, sl1, 2026-06-07, 1d
+    section Dogfood
+    V1.5-V2.0.1 dogfood     :active, sd1, 2026-06-08, 2d
+      </div>
+    </div>
+
+    <h3>5 阶段里程碑 · 时间线</h3>
+    <div class="diagram"><span class="cm">V0.x 起步    V0.x 引入枢纽   V0.x 扩展     V0.6 markdownlint  V0.x-V1.5 检测补全  V1.5-V2.0.1 dogfood</span>
+<span class="cm">────┴────   ────┴────     ────┴────    ────┴────         ────┴────            ────┴────</span>
+<span class="br">2 脚本</span><span class="cm">       </span><span class="hl">+ render</span><span class="cm">      </span><span class="gl">+ compliance</span><span class="cm">  </span><span class="gd">+ lint_markdown</span><span class="cm">    </span><span class="br">+ 4 check_*</span><span class="cm">          </span><span class="br">CI 5 阶段跑通</span>
+<span class="cm">dashboard    (370 行枢纽)    (V0.3 临时)    (跨平台兼容)        (commit-msg/章节)      (dogfood 闭环)</span>
+<span class="cm">2026-05-26   2026-05-27    2026-05-27    2026-06-07        2026-05-28~06-08    2026-06-08~09</span></div>
+
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4>V0.x 起步</h4>
+        <p>2026-05-26 · 1 天</p>
+        <p>2 脚本：start_server + 打开仪表盘.bat</p>
+        <div class="chip-row"><span class="chip b">起点</span><span class="chip">2 脚本</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--brand)">
+        <h4>V0.x 引入枢纽</h4>
+        <p>2026-05-27 · 1 天</p>
+        <p>+ render_meta.py（370 行）</p>
+        <div class="chip-row"><span class="chip br">核心枢纽</span><span class="chip">370 行</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gold)">
+        <h4>V0.x 扩展</h4>
+        <p>2026-05-27 · 1 天</p>
+        <p>+ check_compliance + fix_render_date</p>
+        <div class="chip-row"><span class="chip gl">综合合规</span><span class="chip">临时脚本模式</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>V0.6 markdownlint</h4>
+        <p>2026-06-07 · 1 天</p>
+        <p>+ lint_markdown.py（54 行）</p>
+        <div class="chip-row"><span class="chip gd">跨平台</span><span class="chip">8KB 限制</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--brand)">
+        <h4>V0.x-V1.5 检测补全</h4>
+        <p>2026-05-28 ~ 06-08 · 12 天</p>
+        <p>+ 4 check_*.py + collect_l4_stats</p>
+        <div class="chip-row"><span class="chip br">4 检测</span><span class="chip">章节级 L1</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--brand);background:linear-gradient(180deg,#FCF6EE,#FFF)">
+        <h4>V1.5-V2.0.1 dogfood</h4>
+        <p>2026-06-08 ~ 06-09 · 2 天</p>
+        <p>CI 5 阶段跑通 · L4_STATS=65/65</p>
+        <div class="chip-row"><span class="chip br">dogfood</span><span class="chip">5 阶段</span></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 09 里程碑 ====================== -->
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 里程碑</div>
+      <h2>5 阶段 → 5 个剧本节点</h2>
+      <p>每个阶段都对应一个 worklog + 一个具体问题。</p>
+    </section>
+
+    <div class="tl">
+      <div class="tl-item">
+        <h5>① 起点 <span class="ver">2026-05-26</span></h5>
+        <p>V0.x 起步 · 2 脚本 · 解决 file:// 协议阻断</p>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--accent)">worklog: 2026-05-26_基础设施搭建.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>② 引入枢纽 <span class="ver">2026-05-27</span></h5>
+        <p>render_meta.py 370 行 · 真源到 4 产物的翻译</p>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--accent)">worklog: 2026-05-27_规范正文v2重构.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>③ 综合合规 <span class="ver">2026-05-27</span></h5>
+        <p>check_compliance.py + 临时脚本模式</p>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--accent)">worklog: 2026-05-27_规范正文v2重构.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>④ 跨平台 <span class="ver">2026-06-07</span></h5>
+        <p>lint_markdown.py · 解决 8KB 限制 + .cmd shim</p>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--accent)">worklog: 2026-06-07_添加markdownlint.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>⑤ 检测补全 <span class="ver">2026-05-28 ~ 06-08</span></h5>
+        <p>4 check_*.py + collect_l4_stats.py</p>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--accent)">worklog: 2026-05-28_08规范v3.0双图谱重构.md / 2026-06-08_v15-section3-hook-text-table-collapsed.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>⑥ Dogfood 闭环 <span class="ver">2026-06-08 ~ 06-09</span></h5>
+        <p>CI 5 阶段跑通 · L4_STATS=65/65 · 闭环形成</p>
+        <p style="font-family:var(--mono);font-size:10.5px;color:var(--accent)">worklog: 2026-06-08_v20-devguard-dogfood.md / 2026-06-09_ai-workflow-v2-rewrite.md</p>
+      </div>
+    </div>
+
+    <!-- ====================== § 10 测试策略 ====================== -->
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · 测试策略</div>
+      <h2>10 脚本 × 测试方式</h2>
+      <p>每个脚本的测试方式——CI 跑、手动验证、保留示例 3 类。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card">
+        <h4>render_meta.py</h4>
+        <p>跑 <code>--render</code> + <code>--check</code> 双验证 + CI <code>test</code> 阶段</p>
+        <div class="chip-row"><span class="chip br">双验证</span><span class="chip b">CI test</span></div>
+      </div>
+      <div class="card">
+        <h4>check_ai_workflow.py</h4>
+        <p>CI <code>l4-conventions</code> 阶段，期望 0 FAIL</p>
+        <div class="chip-row"><span class="chip br">CI</span><span class="chip b">0 FAIL</span></div>
+      </div>
+      <div class="card">
+        <h4>check_code_understanding.py</h4>
+        <p>CI <code>l4-conventions</code> 阶段，期望 0 FAIL</p>
+        <div class="chip-row"><span class="chip br">CI</span><span class="chip b">AST 解析</span></div>
+      </div>
+      <div class="card">
+        <h4>check_compliance.py</h4>
+        <p>CI <code>compliance</code> 阶段，期望 0 FAIL</p>
+        <div class="chip-row"><span class="chip br">CI</span><span class="chip b">--json</span></div>
+      </div>
+      <div class="card">
+        <h4>check_worklog_ref.py</h4>
+        <p>pre-commit 框架 + 任意不带引用的 commit-msg 验证拦截</p>
+        <div class="chip-row"><span class="chip b">pre-commit</span><span class="chip br">拦截验证</span></div>
+      </div>
+      <div class="card">
+        <h4>collect_l4_stats.py</h4>
+        <p>CI <code>build</code> 阶段，期望 <code>L4_STATS=65/65</code></p>
+        <div class="chip-row"><span class="chip b">CI build</span><span class="chip gd">65/65</span></div>
+      </div>
+      <div class="card">
+        <h4>lint_markdown.py</h4>
+        <p>pre-commit 框架 + CI <code>lint</code> 阶段</p>
+        <div class="chip-row"><span class="chip b">pre-commit</span><span class="chip br">CI lint</span></div>
+      </div>
+      <div class="card">
+        <h4>start_server.py</h4>
+        <p>手动启动 8080 + 浏览器打开 dashboard.html 验证</p>
+        <div class="chip-row"><span class="chip b">手动</span><span class=" ">8080</span></div>
+      </div>
+      <div class="card">
+        <h4>打开仪表盘.bat</h4>
+        <p>手动双击 Windows 验证</p>
+        <div class="chip-row"><span class="chip b">手动</span><span class="chip br">Windows</span></div>
+      </div>
+      <div class="card" style="background:var(--bg-soft)">
+        <h4>fix_render_date.py</h4>
+        <p>（无）V0.3 一次性脚本，保留为示例</p>
+        <div class="chip-row"><span class="chip mid">无</span><span class="chip b">intentional empty</span></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 11 红线关系 ====================== -->
+    <section id="s11" class="sec-head" style="margin-top:50px">
+      <div class="tag">11 · 与红线的关系</div>
+      <h2>V2.0.1 时点 · 红线累计触发 + 处理</h2>
+      <p>scripts 模块累计触发并解决的红线——5 类、17 次。</p>
+    </section>
+
+    <h3>5 类红线 · 仪表</h3>
+    <div class="redline-row"><div class="kind">红线检测脚本<br/>自身 L1 失败</div><div class="times">~3</div><div class="how">V5.2 → V5.3 关键词表升级；V6.1 引入章节级 L1</div></div>
+    <div class="redline-row"><div class="kind">渲染漂移</div><div class="times">~2</div><div class="how">V0.1 加 <code>meta-render</code> 钩子；CI <code>test</code> 阶段 <code>--check</code> 兜底</div></div>
+    <div class="redline-row"><div class="kind">worklog 引用漏</div><div class="times">~5</div><div class="how"><code>check_worklog_ref.py</code> 拦下，习惯性加引用</div></div>
+    <div class="redline-row"><div class="kind">L4 统计失败</div><div class="times">~2</div><div class="how">V6.3 retry 改 Python 解析；V7.2 加默认值防御</div></div>
+    <div class="redline-row"><div class="kind">markdownlint 误报</div><div class="times">~5</div><div class="how">V0.6 引入 lint_markdown.py 分批调用，跨平台稳定</div></div>
+
+    <h3>红线处理分布 · 进度条</h3>
+    <div class="card">
+      <div class="bar-row"><div class="lbl">红线检测脚本 L1 失败</div><div class="bar"><div class="anim-bar" style="--w:18%"><div class="fill brand"></div></div></div><div class="val">3</div></div>
+      <div class="bar-row"><div class="lbl">渲染漂移</div><div class="bar"><div class="anim-bar" style="--w:12%"><div class="fill"></div></div></div><div class="val">2</div></div>
+      <div class="bar-row"><div class="lbl">worklog 引用漏</div><div class="bar"><div class="anim-bar" style="--w:30%"><div class="fill gold"></div></div></div><div class="val">5</div></div>
+      <div class="bar-row"><div class="lbl">L4 统计失败</div><div class="bar"><div class="anim-bar" style="--w:12%"><div class="fill"></div></div></div><div class="val">2</div></div>
+      <div class="bar-row"><div class="lbl">markdownlint 误报</div><div class="bar"><div class="anim-bar" style="--w:30%"><div class="fill good"></div></div></div><div class="val">5</div></div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>dogfood 价值</b>：每一次红线触发都被 scripts/ 自己的钩子/检测脚本拦下——本模块既<b>触发</b>红线也<b>解决</b>红线。<b>17 次触发全部闭环</b>，无遗留。
+      </div>
+    </div>
+
+    <!-- ====================== § 12 未来扩展 ====================== -->
+    <section id="s12" class="sec-head" style="margin-top:50px">
+      <div class="tag">12 · 未来扩展提示（非本期范围）</div>
+      <h2>5 个未来方向 · 留给后人</h2>
+      <p>本模块已交付，但还有 5 个可演进方向——已识别、未做、不在 V2.0.1 范围。</p>
+    </section>
+
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4>L1 检测脚本插件化</h4>
+        <p>当前 check_*.py 各自手写，期望引入<b>插件注册机制</b>。新规范只需写一个 check 函数，无需重写 CI 集成。</p>
+        <div class="chip-row"><span class="chip b">插件化</span><span class="chip">技术债 #5</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4>dashboard 实时数据</h4>
+        <p>当前 dashboard.html 是<b>静态文件</b>，未来可加定时刷新——CI 触发后自动重渲染 + 推送。</p>
+        <div class="chip-row"><span class="chip b">实时</span><span class="chip">WebSocket?</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4>跨平台 .sh 启动器</h4>
+        <p>当前 <code>打开仪表盘.bat</code> 仅 Windows 友好——Mac/Linux 用户需手动跑 <code>start_server.py</code>。期望加 <code>打开仪表盘.sh</code>。</p>
+        <div class="chip-row"><span class="chip b">.sh</span><span class="chip">Mac/Linux</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gold)">
+        <h4>render_meta.py 增量渲染</h4>
+        <p>当前每次 <code>--render</code> 全量重写——未来可<b>只渲染变化部分</b>，减少 CI 时间。</p>
+        <div class="chip-row"><span class="chip gl">增量</span><span class="chip">diff 检测</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gold)">
+        <h4>commit-msg 多语言</h4>
+        <p>当前正则仅匹配英文 + 阿拉伯数字文件名——未来可支持<b>任意 unicode</b>（中文 worklog 也能匹配）。</p>
+        <div class="chip-row"><span class="chip gl">unicode</span><span class="chip">中文兼容</span></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--txt-faint)">
+        <h4>本节不承诺</h4>
+        <p>未来扩展是<b>已识别未做</b>——<b>不在 V2.0.1 范围</b>。由后人按需提需求、做 ADR、加入收束节点后再做。</p>
+        <div class="chip-row"><span class="chip">非本期</span></div>
+      </div>
+    </div>
+
+    <div class="verdict" style="margin-top:24px">
+      <div class="lbl">VERDICT · 演进总结</div>
+      <h4>scripts/ 是 devguard 的"自验证骨架"</h4>
+      <p style="font-size:13px;color:var(--txt);line-height:1.7">14 天、5 阶段、10 脚本——scripts/ 从 2 个启动器起步，引入 370 行枢纽，再随规范陆续补 L1 检测脚本，最后 V2.0.1 完成 dogfood 闭环。<b>本模块既是规范执行器，也是规范自己的测试套件</b>。每一次红线触发都被 scripts/ 自己的钩子/检测脚本拦下——<b>17 次触发全部闭环</b>。这是 devguard 强制约束范式从"文档"走向"自验证系统"的里程碑。</p>
+      <div class="chip-row" style="margin-top:10px">
+        <span class="chip b">M4 实现计划 v1.0</span>
+        <span class="chip gd">5 阶段 · 14 天</span>
+        <span class="chip br">强制约束范式</span>
+        <span class="chip">devguard 主仓库</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>
