@@ -71,3 +71,8 @@ repos:
         stages: [commit-msg]
         entry: python scripts/check_exemption_log.py
         language: python
+      - id: commit-msg-updated-tag
+        name: managed files must refresh update tag
+        stages: [commit-msg]
+        entry: python scripts/check_updated_tag.py
+        language: python

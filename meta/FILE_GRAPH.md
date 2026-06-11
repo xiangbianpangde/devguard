@@ -86,8 +86,10 @@
 ├── worklogs/                         # 【工作日志】每个功能点一份 YYYY-MM-DD_描述.md
 │   └── decisions/                    #   ADR 架构决策记录（收束节点产出，见 ADR 0006）
 │
-├── scripts/                          # 【工具脚本】仪表盘启动等辅助脚本
+├── scripts/                          # 【工具脚本】仪表盘启动 + L1 检查/钩子脚本
 │   ├── start_server.py               #   本地预览服务器（dashboard 入口）
+│   ├── check_*.py                    #   L1 章节级检查 + commit-msg 钩子（render_meta 投射进 .pre-commit-config）
+│   ├── hook_updated_tag_posttooluse.py #  Claude PostToolUse 护栏（#53 更新时间标签编辑当下阻断）
 │   └── 打开仪表盘.bat                 #   双击启动 dashboard
 │
 ├── meta/                             # 【元信息】描述仓库自身的文件
@@ -98,7 +100,9 @@
 ├── README.md                         # 顶层：人类使用指南（仅供人类阅读）
 ├── STATUS.md                         # 顶层：进度仪表盘数据源（dashboard 解析它）
 ├── dashboard.html                    # 顶层：可视化进度面板
-└── .gitignore                        # 顶层：忽略规则
+├── .gitignore                        # 顶层：忽略规则
+└── .claude/                          # 顶层：Claude Code 会话配置
+    └── settings.json                 #   PostToolUse 钩子注册（#53 更新时间标签编辑当下阻断）
 ```
 
 ---

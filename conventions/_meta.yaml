@@ -71,6 +71,7 @@ conventions:
         - scripts/check_worklog_structure.py
         - scripts/check_file_placement.py
         - scripts/check_exemption_log.py
+        - scripts/check_updated_tag.py
     l1_check: pre-commit + commitlint
     l1_check_doc: https://pre-commit.com/
     l3_route: 任务类型=提交 → 必读本篇
@@ -398,6 +399,16 @@ pre_commit:
     description: "V2.3 #51 豁免登记强制化：commit message 含 [skip-*] 必须在 meta/豁免清单.md 登记并同步入暂存区；本钩子自身不可豁免"
     stages: [commit-msg]
     entry: python scripts/check_exemption_log.py
+    language: python
+
+  - id: commit-msg-updated-tag
+    name: managed files must refresh update tag
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "V2.3 #53 更新时间标签强制化：staged 受管入口文件必须含 `> 更新:` 标签且日期为今天；豁免 [skip-updated]"
+    stages: [commit-msg]
+    entry: python scripts/check_updated_tag.py
     language: python
 
 # ============================================================

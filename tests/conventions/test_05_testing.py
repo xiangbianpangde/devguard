@@ -88,6 +88,7 @@ class TestTestingContracts:
                 "test_plan",  # V2.1 #42: 开发清单格式 L1
                 "test_file_placement",  # V2.1 #45 强化: 文件放置规则 L1
                 "test_exemption_log",  # V2.3 #51: 豁免登记强制化
+                "test_updated_tag",  # V2.3 #53: 更新时间标签强制化
             ]
         )
         assert existing == expected, (
