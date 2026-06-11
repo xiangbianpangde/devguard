@@ -539,7 +539,7 @@ preferences_integration:
 
   - id: mem-workflow-001
     source: user-profile
-    target: conventions/ai-workflow_AI协作开发流程/04-第二步_迭代开发.md §2.1 前置 0
+    target: conventions/ai-workflow_AI协作开发流程/04-长程开发.md §四 迭代开发前置
     content: "动本地文件前必备份（git 不是备份）"
     date: 2026-06-07
 

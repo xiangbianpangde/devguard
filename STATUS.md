@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-11（V2.3：#51 豁免登记 + #53/#54 更新时间标签 + #52 收束硬闸门 ✅ 交付；#48-#50 待开始；闸门已对 V2.3 生效）
+> 更新: 2026-06-11（V2.2 #47 旧引用语义重映射 ✅ 交付；V2.3 #51-#54 ✅；#48-#50 进行中；闸门已对 V2.3 生效）
 
 ## 当前进度
 
@@ -21,7 +21,7 @@
 | | **#40-#42 Phase2 入口文件 L1（STATUS/CLAUDE/开发清单 + L4 tests）** | **✅** | **2026-06-11** |
 | | **#43-#44 Phase3 渲染鲁棒性 + 模板漂移扩展** | **✅** | **2026-06-11** |
 | | **#45-#46 Phase4 文件放置 + 收束产物检查** | **✅** | **2026-06-11** |
-| **V2.2 启动** | **#47 ai-workflow 旧文件引用语义重映射 + 模板同步**（详见 worklogs/2026-06-11_v2.2-fp47-planning.md） | **⏳ 待开始** | **-** |
+| **V2.2 交付** | **#47 ai-workflow 旧文件引用语义重映射 + 模板同步**（详见 worklogs/2026-06-11_v2.2-fp47-remapping.md） | **✅** | **2026-06-11** |
 | **V2.3 阶段A** | **#51 豁免登记强制化**（meta/豁免清单 + check_exemption_log commit-msg 钩子 + 7 L4，#52/#53 硬拦截前置） | **✅** | **2026-06-11** |
 | **V2.3 阶段B** | **#53 更新时间标签强制化**（check_updated_tag commit-msg 硬拦 + PostToolUse 阻断；三层组合样板） | **✅** | **2026-06-11** |
 | **V2.3 阶段B+** | **#54 更新标签全仓泛化**（钩子范围 6→全仓 159 在范围 .md + 回填 153 文件（git 末次修改日）+ 排除 templates/worklogs/.github/CHANGELOG + backfill 脚本） | **✅** | **2026-06-11** |
@@ -157,7 +157,7 @@
 | #44 🆕 check_template_drift.py（5 类入口文件章节存在性对比） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #45 🆕 check_file_placement.py（新文件 vs FILE_GRAPH 决策树，commit-msg hook） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
-| #47 ai-workflow 旧文件引用语义重映射 + 模板同步（conventions/01-08 + docs/templates/ 12+ 处死链语义重映射；模板 `docs/templates/devguard/scripts/check_ai_workflow.py` V1.0 旧 7 篇硬编码 → 新 9 篇） | - | ⏳ 待开始 | - |
+| #47 ai-workflow 旧文件引用语义重映射 + 模板同步（conventions/01-08 + 双导航 26 处 + docs/templates/ 11 处死链语义重映射；模板 `docs/templates/devguard/scripts/check_ai_workflow.py` V1.0 旧 7 篇硬编码 → 新 9 篇；root _meta.yaml mem-workflow-001 target 重映射） | - | ✅ 已完成 | 2026-06-11 (V2.2) |
 | #48 统一 HTML 模板族 + 格式强制措施（汇报 / 计划 / 实施设计 / 绘图素材库 四套权威 HTML 模板沉淀进 docs/templates/ + 登记 README-模板索引/FILE_GRAPH；并为这些产出物建章节/结构校验钩子，对标 #40-#42 章节级 L1） | - | ⏳ 待开始 | - |
 | #49 基准约束脚手架（可一键复制到新项目的最小约束基线：钩子 + CI + _meta.yaml + 模板的脚手架打包） | - | ⏳ 待开始 | - |
 | #50 交流 agent + 对应强制措施（需求对齐 / 决策澄清的协作 agent 定义 + 其落地的强制措施） | - | ⏳ 待开始 | - |

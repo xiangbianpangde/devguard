@@ -26,7 +26,7 @@
 
 ### 第二层：按需读取（根据当前任务）
 - 涉及功能点开发 → 读对应 BDD 规格（`docs/specs/NN-{名称}.md`）
-- 涉及收束节点 → 读 `06-第三步_收束节点.md` + 对应模板
+- 涉及收束节点 → 读 `conventions/ai-workflow_AI协作开发流程/08-汇报收束.md` + 对应模板
 - 涉及调研 → 读 `docs/research/` 相关文档
 - 涉及设计决策 → 读 `worklogs/decisions/` 的 ADR
 
@@ -45,7 +45,7 @@
 - [ ] 最近的 worklog 是否可追溯到当前状态？
 
 ### 角色切换
-根据任务自动切换角色（见 `conventions/ai-workflow_AI协作开发流程/01-角色分工与文件体系.md`）：
+根据任务自动切换角色（任务分类见 `conventions/ai-workflow_AI协作开发流程/01-流程全景.md`）：
 - 调研 → 技术调研助手
 - 计划 → 架构师
 - 开发 → 主力开发者（遵守规范 + BDD + 写 worklog）

@@ -17,7 +17,7 @@
 ---
 # Git 协作规范
 
-> **本规范是 [ai-workflow 第二步·迭代开发 §2.6 Git 提交](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) 的细化**，展开提交格式、分支策略与 Review 流程；也支撑 §2.3/§2.4 的审查与确认在 Git 层面落地。
+> **本规范是 [ai-workflow 04-长程开发 §四 git commit 环节](ai-workflow_AI协作开发流程/04-长程开发.md) 的细化**，展开提交格式、分支策略与 Review 流程；也支撑「审查 diff / 人确认」环节在 Git 层面落地。
 >
 > **档位即分支模型**：轻量（1-3 人）用 Trunk-Based；标准（4-10 人）用 GitHub Flow；团队（10+ 人）用 Git Flow。
 > 更新: 2026-06-11
@@ -137,9 +137,9 @@ module.exports = { extends: ['@commitlint/config-conventional'] };
 
 | 方向 | 链接 |
 |------|------|
-| 细化自 | [ai-workflow 第二步 §2.6 Git 提交](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) |
+| 细化自 | [ai-workflow 04-长程开发 §四 git commit](ai-workflow_AI协作开发流程/04-长程开发.md) |
 | 验收标准 | [docs/specs/03-git.md](../docs/specs/03-git.md) |
-| 验证证据要求 | [ai-workflow §2.2 可观测验证](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) |
+| 验证证据要求 | [ai-workflow 04-长程开发 §4.3 真机 E2E 验证](ai-workflow_AI协作开发流程/04-长程开发.md) |
 
 ---
 
