@@ -92,6 +92,7 @@ class TestTestingContracts:
                 "test_convergence_gate",  # V2.3 #52: 收束硬闸门
                 "test_html_artifact",  # V2.3 #48: HTML 产出物结构校验
                 "test_decision_alignment",  # V2.3 #50: 决策对齐拦开工
+                "test_doc_sync",  # V2.3 阶段C 补遗: 四件套硬同步
             ]
         )
         assert existing == expected, (

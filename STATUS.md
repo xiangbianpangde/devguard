@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-11（V2.2 #47 + V2.3 #48/#50 ✅ 交付；#49 + 阶段C 补遗进行中；闸门已对 V2.3 生效）
+> 更新: 2026-06-11（V2.2 #47 + V2.3 #48/#50/阶段C补遗 ✅ 交付；#49 进行中；闸门已对 V2.3 生效）
 
 ## 当前进度
 
@@ -28,21 +28,22 @@
 | **V2.3 阶段C** | **#52 收束硬闸门**（check_convergence_gate commit-msg 钩子 + STATUS 机器标记 + 5 L4；软闸门→铁闸门） | **✅** | **2026-06-11** |
 | **V2.3 阶段D** | **#48 统一 HTML 模板族 + 格式强制**（4 套模板（AgentHub 风格基准）+ check_html_artifact commit-msg 钩子 + --all CI 审计 + 8 L4） | **✅** | **2026-06-11** |
 | **V2.3 阶段E** | **#50 交流 agent + 决策对齐强制**（liaison 子代理（PGFGA 思维助产士 + GLM-5.1 迭代机制）+ check_decision_alignment 拦开工 + 7 L4） | **✅** | **2026-06-11** |
-| **V2.3 在途** | **#49 基准脚手架 + 阶段C 补遗 check_doc_sync** | **⏳ 待开始** | **-** |
+| **V2.3 阶段C+** | **#52 补遗 check_doc_sync 四件套硬同步**（结构增删硬拦/值级 WARN + 8 L4；STATUS 残留 #52 旧行收口） | **✅** | **2026-06-11** |
+| **V2.3 在途** | **#49 基准约束脚手架**（V2.3 最后一件） | **⏳ 待开始** | **-** |
 
 ## 累计数据
 
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
-- **18 pre-commit 钩子**（commit-msg 10 个 + pre-commit 8 个，双层；V2.3 #51 exemption-log + #53 updated-tag + #52 convergence-gate + #48 html-artifact + #50 decision-alignment）+ **1 个 Claude PostToolUse 钩子**（#53 编辑当下阻断）+ **1 个交流子代理**（#50 liaison）
+- **19 pre-commit 钩子**（commit-msg 11 个 + pre-commit 8 个，双层；V2.3 #51 exemption-log + #53 updated-tag + #52 convergence-gate + #48 html-artifact + #50 decision-alignment + 阶段C doc-sync）+ **1 个 Claude PostToolUse 钩子**（#53 编辑当下阻断）+ **1 个交流子代理**（#50 liaison）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **118 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5 + #52 test_convergence_gate 5 + #48 test_html_artifact 8 + #50 test_decision_alignment 7；旧记的 7 个 ai-workflow 既存失败现已不复现）
+- **126 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5 + #52 test_convergence_gate 5 + #48 test_html_artifact 8 + #50 test_decision_alignment 7 + 阶段C test_doc_sync 8；旧记的 7 个 ai-workflow 既存失败现已不复现）
 - **159 个在范围文档 .md 全部带「更新」标签**（#54 回填 153 + 既有 6；排除 templates/worklogs/.github/CHANGELOG）
 - **15 收束报告**（V0.1-V1.5 全部落盘）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）+ **HTML 模板族 4 套**（#48：汇报/计划/实施设计/绘图素材库，AgentHub 风格令牌）
 - **6 ADR 决策**（worklogs/decisions/）
 - **97 commits**（5/26 → 6/11 完整链可追）
 - **V2.1 新增脚本 11 个**（7 L1 checker + 4 commit-msg hook）
-- **V2.3 新增脚本 7 个**（check_exemption_log / check_updated_tag / check_convergence_gate / check_html_artifact / check_decision_alignment commit-msg hook + hook_updated_tag_posttooluse PostToolUse 护栏 + backfill_updated_tag 回填工具）
+- **V2.3 新增脚本 8 个**（check_exemption_log / check_updated_tag / check_convergence_gate / check_html_artifact / check_decision_alignment / check_doc_sync commit-msg hook + hook_updated_tag_posttooluse PostToolUse 护栏 + backfill_updated_tag 回填工具）
 
 ## 阻塞项
 
@@ -164,7 +165,7 @@
 | #49 基准约束脚手架（可一键复制到新项目的最小约束基线：钩子 + CI + _meta.yaml + 模板的脚手架打包） | - | ⏳ 待开始 | - |
 | #50 交流 agent + 对应强制措施（`.claude/agents/liaison.md` 子代理：PGFGA 思维助产士管线（三铁律/六步管线/心流档位）+ GLM-5.1 迭代机制（闭环自评/三级决策/防退化）；`check_decision_alignment.py` commit-msg 拦开工（提案缺 Owner 决策节硬拦；待拍板+新交付同提交硬拦）+ --all CI 审计 + 2 历史提案追溯登记 + 7 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #51 豁免登记强制化（meta/豁免清单.md 账 + check_exemption_log.py commit-msg 钩子：用 [skip-*] 必须登记+同步暂存账，否则拦截；--audit 审计；7 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
-| #52 长程任务流程强制规范操作（长程任务的 cron self 监控 / 收束闸门 / 断档防护等流程从自律升级为工具强制） | - | ⏳ 待开始 | - |
+| #52 补遗：check_doc_sync.py 四件套硬同步（阶段C 拆出项回收：编号功能点行增/删须 STATUS↔开发清单 同步 + CLAUDE 同提交（增量比对，存量口径差不追溯）；值级改动仅 WARN；豁免 `[skip-docsync]` + 7 L4。原 #52 描述中 cron-self 监控属 mavis 运行时 L3 规则、断档防护已由 #36-#38 焊死，见 worklog） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #53 「更新时间」标签强制化（补全 CLAUDE/README 缺失标签 + check_updated_tag.py commit-msg 硬拦 + hook_updated_tag_posttooluse.py PostToolUse 阻断 + .claude/settings.json + 4 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #54 更新标签全仓泛化（钩子范围 6→全仓 159 在范围 .md；backfill_updated_tag.py 回填 153 文件取 git 末次修改日；排除 templates/worklogs/.github/CHANGELOG；全仓 markdownlint 通过） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #52 收束硬闸门（节点驱动）（check_convergence_gate.py commit-msg 钩子 + STATUS 机器标记 nodes（设计时预设节点）/last_converged_fp；交付把已交付最大功能点推到越过下一预设节点时拒提交，staged vs HEAD 比对不冻结非交付提交；豁免 [skip-gate]；5 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |

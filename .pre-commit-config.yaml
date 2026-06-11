@@ -91,3 +91,8 @@ repos:
         stages: [commit-msg]
         entry: python scripts/check_decision_alignment.py
         language: python
+      - id: commit-msg-doc-sync
+        name: fp row changes must sync STATUS/plan/CLAUDE
+        stages: [commit-msg]
+        entry: python scripts/check_doc_sync.py
+        language: python

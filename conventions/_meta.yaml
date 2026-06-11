@@ -113,7 +113,8 @@ conventions:
       l1_check_path:
         - .markdownlint.json
         - scripts/lint_markdown.py
-    l1_check: markdownlint-cli + .markdownlint.json
+        - scripts/check_doc_sync.py
+    l1_check: markdownlint-cli + .markdownlint.json + check_doc_sync.py（V2.3 四件套硬同步）
     l1_check_doc: https://github.com/DavidAnson/markdownlint
     l3_route: 任务类型=写文档 → 必读本篇
 
@@ -442,6 +443,16 @@ pre_commit:
     description: "V2.3 #50 决策对齐强制：staged 设计提案须含「Owner 决策」节；提案仍有「待拍板」时同一提交不得交付功能点（拦开工）；豁免 [skip-align]"
     stages: [commit-msg]
     entry: python scripts/check_decision_alignment.py
+    language: python
+
+  - id: commit-msg-doc-sync
+    name: fp row changes must sync STATUS/plan/CLAUDE
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "V2.3 阶段C 补遗（#52 拆出）四件套硬同步：编号功能点行的增/删须 STATUS↔开发清单 同步且 CLAUDE 同提交（增量比对）；值级改动仅 WARN；豁免 [skip-docsync]"
+    stages: [commit-msg]
+    entry: python scripts/check_doc_sync.py
     language: python
 
 # ============================================================
