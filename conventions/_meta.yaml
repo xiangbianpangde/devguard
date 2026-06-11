@@ -172,7 +172,8 @@ conventions:
         - docs/reports/
         - scripts/check_plan.py
         - scripts/check_template_drift.py
-    l1_check: 模板 + reports/ 目录 + check_plan.py + 模板漂移检测（V7.1 章节级 L1 + 开发清单格式）
+        - scripts/check_html_artifact.py
+    l1_check: 模板 + reports/ 目录 + check_plan.py + 模板漂移检测 + HTML 模板族结构校验（V7.1 章节级 L1 + 开发清单格式 + V2.3 #48）
     l1_check_doc: https://keepachangelog.com/
     l3_route: 任务类型=模板/汇报 → 必读本篇
 
@@ -420,6 +421,16 @@ pre_commit:
     description: "V2.3 #52 收束硬闸门（节点驱动）：提交把'已交付最大功能点'推到越过 STATUS.md 预设收束节点时拒提交；豁免 [skip-gate]"
     stages: [commit-msg]
     entry: python scripts/check_convergence_gate.py
+    language: python
+
+  - id: commit-msg-html-artifact
+    name: html artifacts must match template family contracts
+    source: local
+    grade: red_line
+    maps_to: 10-templates-reporting
+    description: "V2.3 #48 HTML 产出物结构校验：staged 受查 html（reports/plan-design/templates）带 doc-template 声明的须满足类型契约（8要素/五段式/8节/素材库4区）；untyped 仅 WARN；豁免 [skip-html]"
+    stages: [commit-msg]
+    entry: python scripts/check_html_artifact.py
     language: python
 
 # ============================================================

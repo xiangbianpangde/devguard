@@ -37,3 +37,6 @@ venv/
 
 # Node（V0.2 commitlint 启用：@commitlint/cli + config-conventional）
 node_modules/
+
+# Playwright MCP 浏览器验证临时产物（截图/快照/控制台日志）
+.playwright-mcp/

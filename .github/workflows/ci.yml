@@ -148,6 +148,10 @@ jobs:
       - name: check_template_drift.py（V2.1 #44 模板漂移检测）
         run: python scripts/check_template_drift.py
 
+      # V2.3 #48: HTML 产出物结构审计（模板族契约；typed 违规 fail，untyped 仅提示）
+      - name: check_html_artifact.py --all（V2.3 #48 HTML 模板族结构审计）
+        run: python scripts/check_html_artifact.py --all
+
   # -------------------------------------------------------------
   # 阶段 5：build（构建验证，依赖前 4 阶段）
   # -------------------------------------------------------------

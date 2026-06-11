@@ -81,3 +81,8 @@ repos:
         stages: [commit-msg]
         entry: python scripts/check_convergence_gate.py
         language: python
+      - id: commit-msg-html-artifact
+        name: html artifacts must match template family contracts
+        stages: [commit-msg]
+        entry: python scripts/check_html_artifact.py
+        language: python

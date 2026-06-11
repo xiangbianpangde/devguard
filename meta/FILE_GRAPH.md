@@ -55,6 +55,10 @@
 │   ├── specs/                        #   BDD 功能规格（00-10，逐个对应规范/功能点）
 │   └── templates/                    #   ★模板权威来源（新项目从此复制）
 │       ├── README-模板索引.md         #     ★模板索引 + 编写规约
+│       ├── 汇报模板.html              #     HTML 模板族（#48）：验收报告 8 要素（doc-template: report）
+│       ├── 计划模板.html              #     HTML 模板族（#48）：五段式提案 + Owner 决策（plan）
+│       ├── 实施设计模板.html          #     HTML 模板族（#48）：实现计划 8 节（impl-design）
+│       ├── 绘图素材库模板.html        #     HTML 模板族（#48）：图型/组件/样式令牌公共库（asset-library）
 │       ├── BDD规格模板.md
 │       ├── CLAUDE模板.md
 │       ├── README模板.md

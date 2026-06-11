@@ -1,7 +1,7 @@
 # 模板库 — 索引与编写规约
 
 > **👤 人类参考** | `docs/templates/` 是所有文件模板的**权威来源**。新项目从此处复制；新增模板须遵循本规约。
-> 更新: 2026-06-08
+> 更新: 2026-06-11
 
 ---
 
@@ -25,6 +25,10 @@
 | `AI会话启动模板.md` | 新会话初始化清单 | AI 新会话启动时 | 嵌入 CLAUDE.md 或系统 prompt |
 | `devguard/html-report-template/` | 自动 dashboard 渲染（从 _meta.yaml + STATUS.md） | 项目状态可视化 | `dashboard.html` |
 | `devguard/final-report-template/` | **高密度学术风 HTML 报告**（11 Mermaid + 3 Tab + 5 进度条 + 1 步骤模拟器） | 阶段性汇报 / 收束报告 / 季度总结 | `docs/reports/YYYY-MM-DD_xxx.html` |
+| `汇报模板.html` | **HTML 模板族·汇报**（验收报告 8 要素，`doc-template: report`） | 功能点验收 / 收束 / 阶段汇报落盘 | `docs/reports/YYYY-MM-DD_{主题}.html` |
+| `计划模板.html` | **HTML 模板族·计划**（五段式设计提案 + Owner 决策，`doc-template: plan`） | 设计提案 / 批次立项评审 | `docs/plan/design/...html` |
+| `实施设计模板.html` | **HTML 模板族·实施设计**（实现计划 8 节，`doc-template: impl-design`） | 设计文件夹 7 件套的 HTML 渲染件 | `docs/plan/design/{模块名}/实现计划.html` |
+| `绘图素材库模板.html` | **HTML 模板族·绘图素材库**（Mermaid 图型 / 组件 / 样式令牌 / 用法） | 写任何 HTML 产出物前取件 | 库文件本体（缺件先补库） |
 
 ---
 
@@ -82,3 +86,4 @@
 |------|------|----------|
 | 2026-05-27 | v1 | 初版（13 个模板） |
 | 2026-06-08 | v1.1 | 新增 `devguard/final-report-template/`（V1.x 收尾汇报定型，11 Mermaid / 3 Tab / 5 进度条 / 1 步骤模拟器） |
+| 2026-06-11 | v1.2 | V2.3 #48 新增 HTML 模板族 4 套（汇报/计划/实施设计/绘图素材库），结构契约由 `scripts/check_html_artifact.py` 强制（commit-msg 钩子 + `--all` CI 审计；豁免 `[skip-html]` 须登记） |

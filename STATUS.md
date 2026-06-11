@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-06-11（V2.2 #47 旧引用语义重映射 ✅ 交付；V2.3 #51-#54 ✅；#48-#50 进行中；闸门已对 V2.3 生效）
+> 更新: 2026-06-11（V2.2 #47 + V2.3 #48 HTML 模板族 ✅ 交付；#49/#50 进行中；闸门已对 V2.3 生效）
 
 ## 当前进度
 
@@ -26,21 +26,22 @@
 | **V2.3 阶段B** | **#53 更新时间标签强制化**（check_updated_tag commit-msg 硬拦 + PostToolUse 阻断；三层组合样板） | **✅** | **2026-06-11** |
 | **V2.3 阶段B+** | **#54 更新标签全仓泛化**（钩子范围 6→全仓 159 在范围 .md + 回填 153 文件（git 末次修改日）+ 排除 templates/worklogs/.github/CHANGELOG + backfill 脚本） | **✅** | **2026-06-11** |
 | **V2.3 阶段C** | **#52 收束硬闸门**（check_convergence_gate commit-msg 钩子 + STATUS 机器标记 + 5 L4；软闸门→铁闸门） | **✅** | **2026-06-11** |
-| **V2.3 在途** | **#48-#50 约束与模板强化**（HTML 模板族+格式强制 / 基准脚手架 / 交流 agent；阶段C 的 check_doc_sync 拆后续） | **⏳ 待开始** | **-** |
+| **V2.3 阶段D** | **#48 统一 HTML 模板族 + 格式强制**（4 套模板（AgentHub 风格基准）+ check_html_artifact commit-msg 钩子 + --all CI 审计 + 8 L4） | **✅** | **2026-06-11** |
+| **V2.3 在途** | **#49/#50 约束与模板强化**（基准脚手架 / 交流 agent；阶段C 的 check_doc_sync 拆后续） | **⏳ 待开始** | **-** |
 
 ## 累计数据
 
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
-- **16 pre-commit 钩子**（commit-msg 8 个 + pre-commit 8 个，双层；V2.3 #51 exemption-log + #53 updated-tag + #52 convergence-gate）+ **1 个 Claude PostToolUse 钩子**（#53 编辑当下阻断）
+- **17 pre-commit 钩子**（commit-msg 9 个 + pre-commit 8 个，双层；V2.3 #51 exemption-log + #53 updated-tag + #52 convergence-gate + #48 html-artifact）+ **1 个 Claude PostToolUse 钩子**（#53 编辑当下阻断）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **103 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5 + #52 test_convergence_gate 5；旧记的 7 个 ai-workflow 既存失败现已不复现）
+- **111 L4 tests passed**（tests/conventions/，V2.3 #51 test_exemption_log 7 + #53/#54 test_updated_tag 5 + #52 test_convergence_gate 5 + #48 test_html_artifact 8；旧记的 7 个 ai-workflow 既存失败现已不复现）
 - **159 个在范围文档 .md 全部带「更新」标签**（#54 回填 153 + 既有 6；排除 templates/worklogs/.github/CHANGELOG）
 - **15 收束报告**（V0.1-V1.5 全部落盘）
-- **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
+- **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）+ **HTML 模板族 4 套**（#48：汇报/计划/实施设计/绘图素材库，AgentHub 风格令牌）
 - **6 ADR 决策**（worklogs/decisions/）
 - **97 commits**（5/26 → 6/11 完整链可追）
 - **V2.1 新增脚本 11 个**（7 L1 checker + 4 commit-msg hook）
-- **V2.3 新增脚本 5 个**（check_exemption_log / check_updated_tag / check_convergence_gate commit-msg hook + hook_updated_tag_posttooluse PostToolUse 护栏 + backfill_updated_tag 回填工具）
+- **V2.3 新增脚本 6 个**（check_exemption_log / check_updated_tag / check_convergence_gate / check_html_artifact commit-msg hook + hook_updated_tag_posttooluse PostToolUse 护栏 + backfill_updated_tag 回填工具）
 
 ## 阻塞项
 
@@ -158,7 +159,7 @@
 | #45 🆕 check_file_placement.py（新文件 vs FILE_GRAPH 决策树，commit-msg hook） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #46 🆕 check_convergence_artifacts.py（收束节点 ADR + 收束报告存在性 CI 检查） | - | ✅ 已完成 | 2026-06-11 (V2.1) <!-- fp --> |
 | #47 ai-workflow 旧文件引用语义重映射 + 模板同步（conventions/01-08 + 双导航 26 处 + docs/templates/ 11 处死链语义重映射；模板 `docs/templates/devguard/scripts/check_ai_workflow.py` V1.0 旧 7 篇硬编码 → 新 9 篇；root _meta.yaml mem-workflow-001 target 重映射） | - | ✅ 已完成 | 2026-06-11 (V2.2) |
-| #48 统一 HTML 模板族 + 格式强制措施（汇报 / 计划 / 实施设计 / 绘图素材库 四套权威 HTML 模板沉淀进 docs/templates/ + 登记 README-模板索引/FILE_GRAPH；并为这些产出物建章节/结构校验钩子，对标 #40-#42 章节级 L1） | - | ⏳ 待开始 | - |
+| #48 统一 HTML 模板族 + 格式强制措施（汇报 8 要素 / 计划五段式 / 实施设计 8 节 / 绘图素材库 四套权威 HTML 模板（视觉基准 AgentHub dashboard）+ 登记 README-模板索引/FILE_GRAPH；check_html_artifact.py commit-msg 钩子 + --all CI 审计，doc-template 声明者硬拦、存量 WARN；8 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
 | #49 基准约束脚手架（可一键复制到新项目的最小约束基线：钩子 + CI + _meta.yaml + 模板的脚手架打包） | - | ⏳ 待开始 | - |
 | #50 交流 agent + 对应强制措施（需求对齐 / 决策澄清的协作 agent 定义 + 其落地的强制措施） | - | ⏳ 待开始 | - |
 | #51 豁免登记强制化（meta/豁免清单.md 账 + check_exemption_log.py commit-msg 钩子：用 [skip-*] 必须登记+同步暂存账，否则拦截；--audit 审计；7 L4） | - | ✅ 已完成 | 2026-06-11 (V2.3) |
