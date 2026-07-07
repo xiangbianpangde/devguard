@@ -6,6 +6,29 @@
 # L4 验证：tests/conventions/test_05_testing.py
 # 模板版本：docs/templates/devguard/pyproject.toml
 # ============================================================
+# 项目元信息 + 依赖（pip install -e ".[dev]" 装齐开发工具）
+# 隔离于 .venv，不污染全局环境
+# ============================================================
+[project]
+name = "devguard"
+version = "2.0.1"
+description = "通用开发规范 — 可复制到新项目的规范 + AI 协作流程模板"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",   # render_meta.py / check_compliance.py 依赖
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.6",
+    "coverage>=7.0",
+    "pre-commit>=3.0",
+]
+
 [tool.pytest.ini_options]
 # 默认只跑 L4 规范测试（不强制业务代码覆盖率门禁）
 # 等真实业务测试建好后，可改 addopts 加 --cov-fail-under=80
