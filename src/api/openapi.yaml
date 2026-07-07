@@ -9,6 +9,15 @@ info:
   title: 用户管理 API
   description: 演示 RESTful API 设计规范（04-api 落地示例）
   version: 1.0.0
+  contact:
+    name: devguard
+    email: devguard@example.com
+servers:
+  - url: /api/v1
+    description: API v1 基路径
+tags:
+  - name: users
+    description: 用户管理
 security:
   - bearerAuth: []
 paths:
@@ -105,13 +114,13 @@ paths:
                   message: { type: string }
                   data: { type: string, example: '' }
                 required: [code, message, data]
-  /api/v1/users/{user_id}:
+  /api/v1/users/{user-id}:
     get:
       operationId: getUser
       description: 获取单个用户
       tags: [users]
       parameters:
-        - name: user_id
+        - name: user-id
           in: path
           required: true
           description: 用户 ID

@@ -265,35 +265,35 @@ conventions:
 pre_commit:
   - id: trailing-whitespace
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: recommend
     maps_to: 通用整洁
     description: 去除行尾空白
 
   - id: end-of-file-fixer
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: recommend
     maps_to: 通用整洁
     description: 确保文件以换行符结尾
 
   - id: check-yaml
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: YAML 语法检查（_meta.yaml 修改后必须能解析）
 
   - id: check-json
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: JSON 语法检查
 
   - id: check-added-large-files
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: 防止误提交大文件
