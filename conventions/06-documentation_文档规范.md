@@ -20,7 +20,7 @@
 # 文档规范
 
 > **本规范是 ai-workflow 中文档产出环节的细化**：
-> - 细化 [第二步 §2.5 更新记录](ai-workflow_AI协作开发流程/04-长程开发.md)（worklog / STATUS / CLAUDE）与 [§2.8 + 07-汇报](ai-workflow_AI协作开发流程/08-汇报收束.md)。
+> - 细化 [08-汇报收束·记录 更新记录](ai-workflow_AI协作开发流程/04-长程开发.md)（worklog / STATUS / CLAUDE）与 [§2.8 + 07-汇报](ai-workflow_AI协作开发流程/08-汇报收束.md)。
 > - 细化交付物文档（README / CHANGELOG / 设计文档）；并支撑[第三步·收束节点](ai-workflow_AI协作开发流程/08-汇报收束.md)的「文档一致性检查」。
 >
 > **模板权威在 [docs/templates/](../docs/templates/README-模板索引.md)**——本规范只定标准与红线，模板正文不在此重抄。

@@ -9,6 +9,8 @@ info:
   title: 用户管理 API
   description: 演示 RESTful API 设计规范（04-api 落地示例）
   version: 1.0.0
+security:
+  - bearerAuth: []
 paths:
   /api/v1/users:
     get:
@@ -142,3 +144,10 @@ paths:
                   message: { type: string }
                   data: { type: string, example: '' }
                 required: [code, message, data]
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer Token 认证（04-api 红线 5：默认需认证）
