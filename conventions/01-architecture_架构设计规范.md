@@ -19,7 +19,7 @@
 ---
 # 架构设计规范
 
-> **本规范是 [ai-workflow 第一步·编写计划](ai-workflow_AI协作开发流程/03-第一步_编写计划.md) 的细化**，把「技术选型 / 架构设计」环节展开成可执行标准，并作为 [第二步 §2.3 DeepSeek 审查](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md)「架构层面」的判据。
+> **本规范是 [ai-workflow 第一步·编写计划](ai-workflow_AI协作开发流程/04-长程开发.md) 的细化**，把「技术选型 / 架构设计」环节展开成可执行标准，并作为 [第二步 §2.3 DeepSeek 审查](ai-workflow_AI协作开发流程/04-长程开发.md)「架构层面」的判据。
 >
 > **档位裁剪**：轻量项目（< 5 功能点）只守 §一「红线」，不强制 ADR、调用图；标准 / 团队项目守全部。
 
@@ -105,7 +105,7 @@ forbidden_modules = fastapi, sqlalchemy, django
 ### 技术选型（结论写入 ADR）
 
 成熟稳定 > 新奇；社区活跃 > 功能强大；团队熟悉 > 理论最优；够用 > 过度准备。
-选型理由写入 ADR（`worklogs/decisions/`，仅[收束节点](ai-workflow_AI协作开发流程/06-第三步_收束节点.md)产出）。
+选型理由写入 ADR（`worklogs/decisions/`，仅[收束节点](ai-workflow_AI协作开发流程/08-汇报收束.md)产出）。
 
 ---
 
@@ -148,11 +148,11 @@ def create_user(request):
 
 | 方向 | 链接 |
 |------|------|
-| 细化自 | [ai-workflow 第一步·编写计划](ai-workflow_AI协作开发流程/03-第一步_编写计划.md) |
+| 细化自 | [ai-workflow 第一步·编写计划](ai-workflow_AI协作开发流程/04-长程开发.md) |
 | 验收标准 | [docs/specs/01-architecture.md](../docs/specs/01-architecture.md) |
 | 密钥 / 代码级安全 | [02-代码编写规范](02-coding_代码编写规范.md) |
 | 调用图 / 依赖黑洞 / 代码地图 | [08-代码理解与图谱规范](08-code-understanding_代码理解与图谱规范.md) |
-| ADR 产出时机 | [ai-workflow 第三步·收束节点](ai-workflow_AI协作开发流程/06-第三步_收束节点.md) |
+| ADR 产出时机 | [ai-workflow 第三步·收束节点](ai-workflow_AI协作开发流程/08-汇报收束.md) |
 
 ---
 

@@ -1,3 +1,19 @@
+## 分级标签
+
+> 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
+> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
+> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
+
+| 级别 | 数量 |
+|------|------|
+| 红线 | 0 |
+| 警告 | 0 |
+| 推荐 | 0 |
+
+**L1 检测**：CONTRIBUTING.md 存在（V1.4 章节级 L1）
+**L3 路由**：任务类型=开源贡献 → 必读本篇
+
+---
 # Contributing to devguard
 
 > V1.4 新建

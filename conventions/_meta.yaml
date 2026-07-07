@@ -117,7 +117,7 @@ conventions:
     grade:
       red_line: 0
       warning: 0
-      recommend: 7    # 7 篇流程文档
+      recommend: 9    # 9 篇流程文档（v2.0 双轨制 + 部署规范）
       l1_check_path:
         - scripts/check_ai_workflow.py
     l1_check: check_ai_workflow.py（V5.2 章节级 L1）
@@ -139,7 +139,7 @@ conventions:
 
   - id: 09-dashboard-gen
     title: 仪表盘自动生成规范
-    file: conventions/ai-workflow_AI协作开发流程/07-汇报.md
+    file: conventions/ai-workflow_AI协作开发流程/
     grade:
       red_line: 0
       warning: 0
@@ -153,7 +153,7 @@ conventions:
 
   - id: 10-templates-reporting
     title: 模板与汇报规范
-    file: conventions/ai-workflow_AI协作开发流程/07-汇报.md
+    file: conventions/ai-workflow_AI协作开发流程/
     grade:
       red_line: 0
       warning: 0
@@ -469,7 +469,7 @@ preferences_integration:
 
   - id: mem-workflow-001
     source: user-profile
-    target: conventions/ai-workflow_AI协作开发流程/04-第二步_迭代开发.md §2.1 前置 0
+    target: conventions/ai-workflow_AI协作开发流程/04-长程开发.md §迭代开发 前置
     content: "动本地文件前必备份（git 不是备份）"
     date: 2026-06-07
 

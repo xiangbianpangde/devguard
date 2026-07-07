@@ -109,7 +109,7 @@
 | 合并 plan/ + design/ → docs/plan/ | - | ✅ 已完成 | 2026-05-27 |
 | decisions 移入 worklog + 约束节点决策总结规则 | - | ✅ 已完成 | 2026-05-27 |
 | CLAUDE.md ↔ README 角色分离（13 个 README 更新） | - | ✅ 已完成 | 2026-05-27 |
-| 汇报体系纳入 ai-workflow（新建 07-汇报.md + 流程集成） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
+| 汇报体系纳入 ai-workflow（新建 08-汇报收束.md + 流程集成） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-05-27 |
 | 汇报与收束定义修正（CLAUDE/06/07 三文件对齐） | - | ✅ 已完成 | 2026-05-27 |
 | ai-workflow 流程修订（角色/收束闸门/可观测/档位）+ README 命名规范化 + 收束术语统一 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-05-27 |
 | 规范正文 v2.0 重构（01-06/08 细化挂接+红线自动检测+去重+图谱收拢）+ 7 份 BDD realign + src 落地配置(5) + CLAUDE 三件套(根/模板/导航) + 汇报定义澄清(功能点级内联不落盘，9 处文档对齐) | specs/01-08 | ✅ 已完成 | 2026-05-27 |
