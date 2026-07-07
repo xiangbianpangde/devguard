@@ -60,6 +60,13 @@ jobs:
       - name: spectral（04-api L1）
         run: npx --yes @stoplight/spectral-cli lint src/api/openapi.yaml --ruleset .spectral.yaml
 
+      # V10: 汇报一致性 L1 — 收束报告结构 + 文档质量 + 一致性评分 ≥80%
+      - name: 汇报一致性（check_report + check_doc_quality + check_consistency）
+        run: |
+          python scripts/check_report.py
+          python scripts/check_doc_quality.py
+          python scripts/check_consistency.py
+
   # -------------------------------------------------------------
   # 阶段 2：test（pytest + 覆盖率门禁）
   # -------------------------------------------------------------

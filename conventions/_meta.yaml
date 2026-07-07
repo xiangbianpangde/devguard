@@ -120,7 +120,10 @@ conventions:
       recommend: 9    # 9 篇流程文档（v2.0 双轨制 + 部署规范）
       l1_check_path:
         - scripts/check_ai_workflow.py
-    l1_check: check_ai_workflow.py（V5.2 章节级 L1）
+        - scripts/check_report.py
+        - scripts/check_doc_quality.py
+        - scripts/check_consistency.py
+    l1_check: check_ai_workflow + check_report + check_doc_quality + check_consistency（汇报一致性）
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
