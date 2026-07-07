@@ -340,7 +340,6 @@ pre_commit:
     maps_to: 03-git
     description: "03 红线 2：commit message 符合 Conventional Commits"
     stages: [commit-msg]
-    config: commitlint.config.js
 
   - id: commit-msg-worklog-ref
     name: commit-msg must reference worklog file
@@ -372,13 +371,15 @@ ci:
   # 5 阶段流水线（每阶段独立 job，失败立即红）
   stages:
     - id: lint
-      name: L1 lint（ruff + gitleaks + markdownlint）
+      name: L1 lint（ruff + gitleaks + markdownlint + importlinter + spectral）
       runner: ubuntu-latest
       needs: []
       tools:
         - pip: ruff
+        - pip: import-linter   # V10: 01-architecture L1（分层依赖契约 + 领域层纯净）
         - bin: gitleaks
         - bin: markdownlint   # V3.1 启用：markdownlint-cli + npm + Python 包装脚本 lint_markdown.py
+        - bin: spectral        # V10: 04-api L1（npx @stoplight/spectral-cli）
 
     - id: test
       name: pytest + 覆盖率门禁

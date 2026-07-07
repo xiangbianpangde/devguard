@@ -50,6 +50,16 @@ jobs:
           npm ci --silent
           python scripts/lint_markdown.py
 
+      # V10: 01-architecture L1 — importlinter（分层依赖契约 + 领域层纯净）
+      - name: importlinter（01-architecture L1）
+        run: |
+          pip install import-linter
+          lint-imports --config importlinter.ini
+
+      # V10: 04-api L1 — spectral（OpenAPI lint，规则见 .spectral.yaml）
+      - name: spectral（04-api L1）
+        run: npx --yes @stoplight/spectral-cli lint src/api/openapi.yaml --ruleset .spectral.yaml
+
   # -------------------------------------------------------------
   # 阶段 2：test（pytest + 覆盖率门禁）
   # -------------------------------------------------------------

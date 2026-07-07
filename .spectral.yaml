@@ -11,7 +11,7 @@ extends: ["spectral:oas"]
 rules:
   # 红线 1：URL 路径用 kebab-case（小写字母 + 数字 + / + - + 占位符 {}）
   path-kebab-case:
-    given: "$.paths[*]~"
+    given: "$.paths~"
     then:
       function: pattern
       functionOptions:
@@ -19,7 +19,7 @@ rules:
 
   # 红线 1：URL 路径不含动词（get/create/update/delete 等）
   no-verb-in-path:
-    given: "$.paths[*]~"
+    given: "$.paths~"
     then:
       function: pattern
       functionOptions:
@@ -30,7 +30,7 @@ rules:
 
   # 响应必须含 data 字段（红线 2：统一响应）
   response-have-data:
-    given: "$.paths[*][get,post,put,delete,patch].responses[?(@property >= 200 && @property < 300)]"
+    given: "$.paths.*.*.responses.*"
     then:
       field: content.application/json.schema.properties.data
       function: truthy
