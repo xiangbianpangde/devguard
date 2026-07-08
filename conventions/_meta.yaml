@@ -117,10 +117,13 @@ conventions:
     grade:
       red_line: 0
       warning: 0
-      recommend: 7    # 7 篇流程文档
+      recommend: 9    # 9 篇流程文档（v2.0 双轨制 + 部署规范）
       l1_check_path:
         - scripts/check_ai_workflow.py
-    l1_check: check_ai_workflow.py（V5.2 章节级 L1）
+        - scripts/check_report.py
+        - scripts/check_doc_quality.py
+        - scripts/check_consistency.py
+    l1_check: check_ai_workflow + check_report + check_doc_quality + check_consistency（汇报一致性）
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
@@ -139,7 +142,7 @@ conventions:
 
   - id: 09-dashboard-gen
     title: 仪表盘自动生成规范
-    file: conventions/ai-workflow_AI协作开发流程/07-汇报.md
+    file: conventions/ai-workflow_AI协作开发流程/
     grade:
       red_line: 0
       warning: 0
@@ -153,7 +156,7 @@ conventions:
 
   - id: 10-templates-reporting
     title: 模板与汇报规范
-    file: conventions/ai-workflow_AI协作开发流程/07-汇报.md
+    file: conventions/ai-workflow_AI协作开发流程/
     grade:
       red_line: 0
       warning: 0
@@ -265,35 +268,35 @@ conventions:
 pre_commit:
   - id: trailing-whitespace
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: recommend
     maps_to: 通用整洁
     description: 去除行尾空白
 
   - id: end-of-file-fixer
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: recommend
     maps_to: 通用整洁
     description: 确保文件以换行符结尾
 
   - id: check-yaml
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: YAML 语法检查（_meta.yaml 修改后必须能解析）
 
   - id: check-json
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: JSON 语法检查
 
   - id: check-added-large-files
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: 防止误提交大文件
@@ -340,7 +343,6 @@ pre_commit:
     maps_to: 03-git
     description: "03 红线 2：commit message 符合 Conventional Commits"
     stages: [commit-msg]
-    config: commitlint.config.js
 
   - id: commit-msg-worklog-ref
     name: commit-msg must reference worklog file
@@ -372,13 +374,15 @@ ci:
   # 5 阶段流水线（每阶段独立 job，失败立即红）
   stages:
     - id: lint
-      name: L1 lint（ruff + gitleaks + markdownlint）
+      name: L1 lint（ruff + gitleaks + markdownlint + importlinter + spectral）
       runner: ubuntu-latest
       needs: []
       tools:
         - pip: ruff
+        - pip: import-linter   # V10: 01-architecture L1（分层依赖契约 + 领域层纯净）
         - bin: gitleaks
         - bin: markdownlint   # V3.1 启用：markdownlint-cli + npm + Python 包装脚本 lint_markdown.py
+        - bin: spectral        # V10: 04-api L1（npx @stoplight/spectral-cli）
 
     - id: test
       name: pytest + 覆盖率门禁
@@ -469,7 +473,7 @@ preferences_integration:
 
   - id: mem-workflow-001
     source: user-profile
-    target: conventions/ai-workflow_AI协作开发流程/04-第二步_迭代开发.md §2.1 前置 0
+    target: conventions/ai-workflow_AI协作开发流程/04-长程开发.md §迭代开发 前置
     content: "动本地文件前必备份（git 不是备份）"
     date: 2026-06-07
 

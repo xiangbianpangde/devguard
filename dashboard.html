@@ -51,9 +51,9 @@
   <!-- 总览卡片 -->
   <div class="card-grid">
     <div class="card">
-      <span class="num">100%</span>
-      <span class="label">总进度（35 / 35 功能点）</span>
-      <div class="progress-bar"><div class="fill" style="width: 100%"></div></div>
+      <span class="num">0%</span>
+      <span class="label">总进度（0 / 10 功能点）</span>
+      <div class="progress-bar"><div class="fill" style="width: 0%"></div></div>
     </div>
     <div class="card">
       <span class="num">17</span>
@@ -64,7 +64,7 @@
       <span class="label">红线总数（8 篇规范的 §一红线之和）</span>
     </div>
     <div class="card">
-      <span class="num">65 / 65</span>
+      <span class="num">69 / 69</span>
       <span class="label">L4 规范测试（tests/conventions/）</span>
     </div>
   </div>
@@ -89,7 +89,7 @@
       <tr><td><code>04-api</code> API 设计规范</td><td>7</td><td>0</td><td>0</td><td><code>spectral</code></td><td>任务类型=接口设计 → 必读本篇</td></tr>
       <tr><td><code>05-testing</code> 测试规范</td><td>4</td><td>0</td><td>0</td><td><code>pytest --cov-fail-under</code></td><td>任务类型=实现 → 必读本篇</td></tr>
       <tr><td><code>06-documentation</code> 文档规范</td><td>5</td><td>0</td><td>0</td><td><code>markdownlint-cli + .markdownlint.json</code></td><td>任务类型=写文档 → 必读本篇</td></tr>
-      <tr><td><code>07-ai-workflow</code> AI 协作开发流程</td><td>0</td><td>0</td><td>7</td><td><code>check_ai_workflow.py（V5.2 章节级 L1）</code></td><td>AI 任务路由必读</td></tr>
+      <tr><td><code>07-ai-workflow</code> AI 协作开发流程</td><td>0</td><td>0</td><td>9</td><td><code>check_ai_workflow.py（V5.2 章节级 L1）</code></td><td>AI 任务路由必读</td></tr>
       <tr><td><code>08-code-understanding</code> 代码理解与图谱规范</td><td>0</td><td>0</td><td>0</td><td><code>check_code_understanding.py（V5.3 章节级 L1）</code></td><td>任务类型=图谱生成 → 必读本篇</td></tr>
       <tr><td><code>09-dashboard-gen</code> 仪表盘自动生成规范</td><td>0</td><td>0</td><td>0</td><td><code>render_meta.py + render.py（仪表盘模板 + 渲染脚本）</code></td><td>任务类型=仪表盘渲染 → 必读本篇</td></tr>
       <tr><td><code>10-templates-reporting</code> 模板与汇报规范</td><td>0</td><td>0</td><td>0</td><td><code>模板 + reports/ 目录（V7.1 章节级 L1）</code></td><td>任务类型=模板/汇报 → 必读本篇</td></tr>
@@ -116,41 +116,16 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>架构设计规范 (01)</td><td>specs/01-architecture.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
-      <tr><td>代码编写规范 (02)</td><td>specs/02-coding.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
-      <tr><td>Git 协作规范 (03)</td><td>specs/03-git.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
-      <tr><td>API 设计规范 (04)</td><td>specs/04-api.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
-      <tr><td>测试规范 (05)</td><td>specs/05-testing.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
-      <tr><td>文档规范 (06)</td><td>specs/06-documentation.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
-      <tr><td>AI 协作开发流程</td><td>specs/07-ai-workflow.md</td><td class="ok">已完成</td><td>-</td><td></td></tr>
-      <tr><td>项目基础设施搭建</td><td>specs/00-infrastructure-template.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>统一模板 + BDD 规格</td><td>specs/00-infrastructure-template.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>01-架构 模板改造</td><td>specs/01-architecture.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>02-代码 模板改造</td><td>specs/02-coding.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>03-Git 模板改造</td><td>specs/03-git.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>04-API 模板改造</td><td>specs/04-api.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>05-测试 模板改造</td><td>specs/05-testing.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>06-文档 模板改造</td><td>specs/06-documentation.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>示例代码库</td><td>specs/08-examples.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>仪表盘自动生成</td><td>specs/09-dashboard-gen.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>基础设施修正（审查修复）</td><td>-</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>二轮审查修复（全量复查）</td><td>-</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>文件图谱 + 仪表盘优化</td><td>specs/09-dashboard-gen.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>统一模板规约 + 汇报模板</td><td>specs/10-templates-reporting.md</td><td class="ok">已完成</td><td>2026-05-26</td><td></td></tr>
-      <tr><td>5处现有规范增强（图谱v2第一步）</td><td>specs/01-06-07</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>第08号规范初稿（图谱v2第二步）</td><td>specs/08-code-understanding.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>BDD规格：现有规范增强 + 08规范</td><td>specs/01-08</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>示例代码：src/code-understanding/</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>交叉引用更新：FILE_GRAPH + README + CLAUDE</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>文件夹重整：提取模板+补齐AI模板+消除重叠</td><td>specs/10-templates-reporting.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>合并 plan/ + design/ → docs/plan/</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>decisions 移入 worklog + 约束节点决策总结规则</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>CLAUDE.md ↔ README 角色分离（13 个 README 更新）</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>汇报体系纳入 ai-workflow（新建 07-汇报.md + 流程集成）</td><td>specs/10-templates-reporting.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>汇报与收束定义修正（CLAUDE/06/07 三文件对齐）</td><td>-</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>ai-workflow 流程修订（角色/收束闸门/可观测/档位）+ README 命名规范化 + 收束术语统一</td><td>specs/07-ai-workflow.md</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>规范正文 v2.0 重构（01-06/08 细化挂接+红线自动检测+去重+图谱收拢）+ 7 份 BDD realign + src 落地配置(5) + CLAUDE 三件套(根/模板/导航) + 汇报定义澄清(功能点级内联不落盘，9 处文档对齐)</td><td>specs/01-08</td><td class="ok">✅ 已完成</td><td>2026-05-27</td><td></td></tr>
-      <tr><td>第08号规范 v3.0 重构（双图谱范式：CodeGraph + Understand-Anything 替代图数据库+Cypher+Mermaid）</td><td>specs/08-code-understanding.md</td><td class="ok">✅ 已完成</td><td>2026-05-28</td><td></td></tr>
+      <tr><td>V0.x 起步</td><td>#1-#33 (含 35/35 列表 + 8 规范)</td><td class="">✅</td><td>2026-05-26</td><td></td></tr>
+      <tr><td>V0.1 收束</td><td>9 钩子 + 5 阶段 CI</td><td class="">✅</td><td>2026-05-27</td><td></td></tr>
+      <tr><td>V0.2-V0.9 收束</td><td>commitlint / markdownlint / L1 检测 / 章节级 L1 / 模板同步</td><td class="">✅</td><td>2026-06-07</td><td></td></tr>
+      <tr><td>V1.0 收尾</td><td>12-codeowners + 收束索引 + CHANGELOG</td><td class="">✅</td><td>2026-06-07</td><td></td></tr>
+      <tr><td>V1.1 收尾</td><td>13-changelog + 14-security</td><td class="">✅</td><td>2026-06-07</td><td></td></tr>
+      <tr><td>V1.2 收尾</td><td>15-support + SUPPORT.md</td><td class="">✅</td><td>2026-06-07</td><td></td></tr>
+      <tr><td>V1.3 收尾</td><td>16-license + LICENSE + README 重写</td><td class="">✅</td><td>2026-06-07</td><td></td></tr>
+      <tr><td>V1.4 收尾</td><td>17-contributing + CONTRIBUTING.md</td><td class="">✅</td><td>2026-06-07</td><td></td></tr>
+      <tr><td>V1.5 收尾</td><td>final-report-template 沉淀 + 2 份 V1.x 汇报 HTML + STATUS 滞后修复 + worklog 断档补登</td><td class="">✅</td><td>2026-06-08</td><td></td></tr>
+      <tr><td>**V2.0.1 启动**</td><td>**devguard dogfood (V1.x 范式在自身闭环 8 次拦截 / 全部修复)**</td><td class="">**✅**</td><td>**2026-06-08**</td><td></td></tr>
     </tbody>
   </table>
 

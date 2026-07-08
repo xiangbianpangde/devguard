@@ -13,15 +13,15 @@
 | 警告 | 0 |
 | 推荐 | 0 |
 
-**L1 检测**：markdownlint-cli2 + .markdownlint.json
+**L1 检测**：markdownlint-cli + .markdownlint.json
 **L3 路由**：任务类型=写文档 → 必读本篇
 
 ---
 # 文档规范
 
 > **本规范是 ai-workflow 中文档产出环节的细化**：
-> - 细化 [第二步 §2.5 更新记录](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md)（worklog / STATUS / CLAUDE）与 [§2.8 + 07-汇报](ai-workflow_AI协作开发流程/07-汇报.md)。
-> - 细化交付物文档（README / CHANGELOG / 设计文档）；并支撑[第三步·收束节点](ai-workflow_AI协作开发流程/06-第三步_收束节点.md)的「文档一致性检查」。
+> - 细化 [08-汇报收束·记录 更新记录](ai-workflow_AI协作开发流程/04-长程开发.md)（worklog / STATUS / CLAUDE）与 [§2.8 + 07-汇报](ai-workflow_AI协作开发流程/08-汇报收束.md)。
+> - 细化交付物文档（README / CHANGELOG / 设计文档）；并支撑[第三步·收束节点](ai-workflow_AI协作开发流程/08-汇报收束.md)的「文档一致性检查」。
 >
 > **模板权威在 [docs/templates/](../docs/templates/README-模板索引.md)**——本规范只定标准与红线，模板正文不在此重抄。
 > **档位裁剪**：轻量（README + worklog）/ 标准（+ CHANGELOG + 设计文档）/ 团队（+ CONTRIBUTING + 代码地图）。
@@ -100,7 +100,7 @@ def create_order(user_id: str, product_id: str, quantity: int) -> Order:
 
 | 规则 | 要点 |
 |------|------|
-| 收束节点检查文档一致性 | 逐份对照代码现状（[第三步](ai-workflow_AI协作开发流程/06-第三步_收束节点.md)） |
+| 收束节点检查文档一致性 | 逐份对照代码现状（[第三步](ai-workflow_AI协作开发流程/08-汇报收束.md)） |
 | 过时文档移 `archive/`，标废弃日期 | `> ⚠️ 已废弃: YYYY-MM-DD，替代: xxx` |
 
 ### 配图规约（学术论文场景 — 触发时启用）
@@ -159,11 +159,11 @@ def create_order(user_id: str, product_id: str, quantity: int) -> Order:
 
 | 方向 | 链接 |
 |------|------|
-| 细化自 | [§2.5 更新记录](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) · [07-汇报](ai-workflow_AI协作开发流程/07-汇报.md) |
+| 细化自 | [§2.5 更新记录](ai-workflow_AI协作开发流程/04-长程开发.md) · [07-汇报](ai-workflow_AI协作开发流程/08-汇报收束.md) |
 | 模板权威 | [docs/templates/](../docs/templates/README-模板索引.md) |
 | 验收标准 | [docs/specs/06-documentation.md](../docs/specs/06-documentation.md) |
 | 代码地图 CODE_MAP / 知识图谱 | [08-代码理解与图谱规范](08-code-understanding_代码理解与图谱规范.md) |
-| 文档一致性检查时机 | [第三步·收束节点](ai-workflow_AI协作开发流程/06-第三步_收束节点.md) |
+| 文档一致性检查时机 | [第三步·收束节点](ai-workflow_AI协作开发流程/08-汇报收束.md) |
 
 ---
 

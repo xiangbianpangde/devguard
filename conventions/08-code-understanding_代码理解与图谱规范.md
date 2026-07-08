@@ -12,13 +12,13 @@
 | 警告 | 0 |
 | 推荐 | 0 |
 
-**L1 检测**：人工审查
+**L1 检测**：check_code_understanding.py（V5.3 章节级 L1）
 **L3 路由**：任务类型=图谱生成 → 必读本篇
 
 ---
 # 代码理解与图谱规范
 
-> **本规范是 [ai-workflow 第二步 §2.9 工具链增强](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) 的细化**，定义「代码理解需要什么图谱、谁来用、怎么建」。
+> **本规范是 [ai-workflow 04-长程开发·工具增强](ai-workflow_AI协作开发流程/04-长程开发.md) 的细化**，定义「代码理解需要什么图谱、谁来用、怎么建」。
 > 它同时收拢了原先散落在 01/02/05/06 的调用图相关内容（调用关系标注、影响分析、代码地图、依赖黑洞检测），是这些主题的**唯一权威来源**。
 
 ---
@@ -328,7 +328,7 @@ def place_order(user_id: str, items: list[Item]) -> Order:
 
 | 方向 | 链接 |
 |------|------|
-| 细化自 | [ai-workflow §2.9 工具链增强](ai-workflow_AI协作开发流程/04-第二步_迭代开发.md) |
+| 细化自 | [ai-workflow §2.9 工具链增强](ai-workflow_AI协作开发流程/04-长程开发.md) |
 | AI 图谱工具 | [CodeGraph](https://github.com/colbymchenry/codegraph) — MIT · 29.8k stars |
 | 人的图谱工具 | [Understand-Anything](https://github.com/Lum1104/Understand-Anything) — MIT · 39.8k stars |
 | 调研数据来源 | `docs/research/图谱与代码理解工具调研-output/` |
@@ -336,7 +336,7 @@ def place_order(user_id: str, items: list[Item]) -> Order:
 | 代码可理解性 | [02-代码编写规范](02-coding_代码编写规范.md) |
 | 影响分析驱动的增量测试 | [05-测试规范](05-testing_测试规范.md) |
 | 代码地图 / 知识互联（轻量退路） | [06-文档规范](06-documentation_文档规范.md) |
-| 收束节点审计 | [ai-workflow 第三步 §3.3](ai-workflow_AI协作开发流程/06-第三步_收束节点.md) |
+| 收束节点审计 | [ai-workflow 第三步 §3.3](ai-workflow_AI协作开发流程/08-汇报收束.md) |
 
 ---
 

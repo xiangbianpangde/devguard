@@ -1,3 +1,19 @@
+## 分级标签
+
+> 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
+> 修改流程：改 `conventions/_meta.yaml` → 跑 `render_meta.py --render convention-grade`。
+> **不要手改本节**（手改会被 `render_meta.py --check` 检测到，CI fail）。
+
+| 级别 | 数量 |
+|------|------|
+| 红线 | 0 |
+| 警告 | 0 |
+| 推荐 | 0 |
+
+**L1 检测**：README.md 存在（V9.2 章节级 L1）
+**L3 路由**：任务类型=项目入口 → 必读本篇
+
+---
 # 通用开发规范 — 使用指南
 
 > **👤 本文件供人类阅读**。AI Agent 请阅读 `CLAUDE.md`。

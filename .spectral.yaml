@@ -30,7 +30,7 @@ rules:
 
   # 响应必须含 data 字段（红线 2：统一响应）
   response-have-data:
-    given: "$.paths[*][get,post,put,delete,patch].responses[?(@property >= 200 && @property < 300)]"
+    given: "$.paths.*.*.responses.*"
     then:
       field: content.application/json.schema.properties.data
       function: truthy
