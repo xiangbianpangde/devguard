@@ -1,7 +1,7 @@
-"""V6.3 替代方案：Python 跑 pytest + 解析 L4 数字（passed/total）
+"""Run the L4 convention suite and emit its passed/total counts.
 
-比 bash grep 更稳：避免 PowerShell/ANSI 编码问题，跨平台一致。
-输出 last line 格式: 'L4_STATS=64/64'
+The command fails closed: a failing or unparseable pytest run never emits a
+successful ``L4_STATS`` record. Output on success: ``L4_STATS=64/64``.
 """
 
 from __future__ import annotations
@@ -12,6 +12,13 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+NON_PASSING_SUCCESS_OUTCOMES = ("skipped", "xfailed", "xpassed")
+
+
+def _count_outcome(output: str, outcome: str) -> int:
+    """Extract one pytest summary outcome count, defaulting to zero."""
+    match = re.search(rf"(\d+)\s+{outcome}\b", output)
+    return int(match.group(1)) if match else 0
 
 
 def main() -> int:
@@ -23,23 +30,21 @@ def main() -> int:
         text=True,
     )
     output = result.stdout + result.stderr
+    if result.returncode != 0:
+        print(output, file=sys.stderr, end="")
+        return 1
+
     # 匹配 "= 64 passed in 2.99s" 或 "64 passed in 2.99s"
     passed_match = re.search(r"(\d+)\s+passed", output)
-    total_match = re.search(r"(\d+)\s+passed.*in\s+([\d.]+)s", output)
 
-    if not passed_match or not total_match:
-        print("L4_STATS=0/0", end="")
+    if not passed_match:
+        print("FAIL: 无法从 pytest 输出解析 L4 通过数", file=sys.stderr)
+        print(output, file=sys.stderr, end="")
         return 1
 
     passed = int(passed_match.group(1))
-    # total = passed + failed（如果有 failed）+ error + skipped（如果有）
-    # 但 V6.3 简化：只报 passed/total（total = passed 因为测试稳定）
-    # 完整版可从 pytest json report 读
-    total_match_real = re.search(r"=+ (\d+) passed", output) or re.search(
-        r"(\d+) passed in", output
-    )
-    total = int(total_match_real.group(1)) if total_match_real else passed
-
+    non_passing = sum(_count_outcome(output, outcome) for outcome in NON_PASSING_SUCCESS_OUTCOMES)
+    total = passed + non_passing
     print(f"L4_STATS={passed}/{total}", end="")
     return 0
 

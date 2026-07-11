@@ -24,9 +24,7 @@ class TestCodeUnderstandingContracts:
         """核心洞察：08 规范必须明确提到双图谱（CodeGraph + Understand-Anything）"""
         content = CONV_08.read_text(encoding="utf-8")
         assert "CodeGraph" in content, "08 规范缺 CodeGraph（AI 图谱）"
-        assert (
-            "Understand-Anything" in content
-        ), "08 规范缺 Understand-Anything（人图谱）"
+        assert "Understand-Anything" in content, "08 规范缺 Understand-Anything（人图谱）"
 
     def test_spec_distinguishes_ai_vs_human(self):
         """核心洞察：08 规范必须明确区分 AI 消费者 vs 人消费者"""

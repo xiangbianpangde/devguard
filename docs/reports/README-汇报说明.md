@@ -2,6 +2,7 @@
 
 > **👤 人类参考** | 对应规范：`conventions/06-documentation_文档规范.md`
 > 模板：`docs/templates/汇报模板.md`
+> 更新: 2026-07-11
 
 **本目录主要存放收束报告。** 汇报是 `STATUS.md` / `worklogs/` 的对外提炼，不重复记录事实。
 

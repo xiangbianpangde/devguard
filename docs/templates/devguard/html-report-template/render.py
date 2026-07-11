@@ -31,26 +31,20 @@ def load_meta(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
-def parse_status(path: Path) -> list[dict]:
-    """解析 STATUS.md '## 当前进度' 节内表格（只取第一个表格，忽略 '## 收束节点历史' 等其他节）
-
-    边界条件：STATUS.md 可能含多个 markdown 表格（当前进度 + 收束历史 + 阻塞项等），
-    此函数只取 '## 当前进度' 节后的第一个表格。
-    """
+def _parse_section(path: Path, heading: str, *, detailed: bool) -> list[dict]:
+    """Parse the first Markdown table under one named H2 section."""
     if not path.exists():
         return []
     rows: list[dict] = []
-    in_progress_section = False
+    in_section = False
     in_table = False
     for line in path.read_text(encoding="utf-8").splitlines():
-        # 跟踪是否在 ## 当前进度 节内
         if line.startswith("## "):
-            in_progress_section = "当前进度" in line
-            in_table = False  # 进入新节就重置表格状态
+            in_section = heading in line
+            in_table = False
             continue
-        if not in_progress_section:
+        if not in_section:
             continue
-        # 进入表格：检测 |--- 分隔符（前面是表头行）
         if not in_table:
             if "---" in line and "|" in line:
                 in_table = True
@@ -59,21 +53,36 @@ def parse_status(path: Path) -> list[dict]:
         if not line.strip().startswith("|"):
             in_table = False
             continue
-        # 跳过表头：精确匹配第一列 == "功能点"（BDD 列含"BDD" 字符串的合法数据行不跳）
         cols = [c.strip() for c in line.strip().strip("|").split("|")]
-        if cols and cols[0] == "功能点":
+        if cols and cols[0] in {"#", "功能点", "阶段"}:
             continue
-        if len(cols) >= 4:
+        if detailed and len(cols) >= 5:
             rows.append(
                 {
                     "num": cols[0],
-                    "name": cols[1] if len(cols) > 1 else "",
-                    "status": cols[2] if len(cols) > 2 else "",
-                    "bdd": cols[3] if len(cols) > 3 else "",
-                    "date": cols[4] if len(cols) > 4 else "",
+                    "name": cols[1],
+                    "bdd": cols[2],
+                    "status": cols[3],
+                    "date": cols[4],
+                }
+            )
+        elif not detailed and len(cols) >= 4:
+            rows.append(
+                {
+                    "num": cols[0],
+                    "name": cols[1],
+                    "status": cols[2],
+                    "bdd": "",
+                    "date": cols[3],
                 }
             )
     return rows
+
+
+def parse_status(path: Path) -> list[dict]:
+    """Parse numbered feature truth, with a legacy stage-table fallback."""
+    detailed_rows = _parse_section(path, "详细功能点列表", detailed=True)
+    return detailed_rows or _parse_section(path, "当前进度", detailed=False)
 
 
 def render_convention_rows(meta: dict) -> str:
@@ -103,7 +112,7 @@ def render_status_rows(rows: list[dict]) -> str:
     out: list[str] = []
     for r in rows:
         status = r["status"]
-        if "完成" in status:
+        if "✅" in status or "完成" in status:
             cls = "ok"
         elif "WIP" in status or "失败" in status:
             cls = "warn"
@@ -111,14 +120,14 @@ def render_status_rows(rows: list[dict]) -> str:
             cls = ""
         out.append(
             f"<tr><td>{r['num']}</td><td>{r['name']}</td>"
-            f"<td class=\"{cls}\">{status}</td><td>{r['bdd']}</td><td>{r['date']}</td></tr>"
+            f'<td class="{cls}">{status}</td><td>{r["bdd"]}</td><td>{r["date"]}</td></tr>'
         )
     return "\n      ".join(out)
 
 
 def compute_progress(status_rows: list[dict]) -> tuple[int, int, int]:
     total = len(status_rows)
-    done = sum(1 for r in status_rows if "完成" in r["status"])
+    done = sum(1 for r in status_rows if "✅" in r["status"] or "完成" in r["status"])
     pct = int(done / total * 100) if total > 0 else 0
     return done, total, pct
 
@@ -129,9 +138,7 @@ def render(
     meta = load_meta(meta_path)
     status_rows = parse_status(status_path)
     done, total, pct = compute_progress(status_rows)
-    red_line_total = sum(
-        c.get("grade", {}).get("red_line", 0) for c in meta.get("conventions", [])
-    )
+    red_line_total = sum(c.get("grade", {}).get("red_line", 0) for c in meta.get("conventions", []))
     template_text = TEMPLATE_FILE.read_text(encoding="utf-8")
     template = Template(template_text)
     # V3.3 幂等性修复：render_date 改为 static "latest"（不调 git，CI drift = 0）
@@ -175,12 +182,8 @@ def main() -> int:
             return 0
         return int(s)
 
-    parser.add_argument(
-        "--l4-passed", type=_to_int_or_zero, default=0, help="L4 规范测试通过数"
-    )
-    parser.add_argument(
-        "--l4-total", type=_to_int_or_zero, default=0, help="L4 规范测试总数"
-    )
+    parser.add_argument("--l4-passed", type=_to_int_or_zero, default=0, help="L4 规范测试通过数")
+    parser.add_argument("--l4-total", type=_to_int_or_zero, default=0, help="L4 规范测试总数")
     args = parser.parse_args()
     render(
         Path(args.meta),

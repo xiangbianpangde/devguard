@@ -19,11 +19,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORTS_DIR = REPO_ROOT / "docs" / "reports"
 
 REQUIRED_SECTIONS = ["一、整理", "二、测试", "三、审计", "四、效果验证", "五、技术债"]
+REPORT_NAME = re.compile(r"^收束报告-v(?P<major>\d+)\.(?P<minor>\d+)\.md$")
+TABLE_SEPARATOR = re.compile(r"(?m)^\s*\|(?:\s*:?-{3,}:?\s*\|){2,}\s*$")
 
 
 def version_key(name: str) -> tuple[int, ...]:
-    m = re.search(r"v(\d+\.\d+)", name)
-    return tuple(int(x) for x in m.group(1).split(".")) if m else (0, 0)
+    match = REPORT_NAME.fullmatch(name)
+    return (int(match.group("major")), int(match.group("minor"))) if match else (0, 0)
+
+
+def count_tables(text: str) -> int:
+    """Count Markdown tables by their separator row, independent of width."""
+    return len(TABLE_SEPARATOR.findall(text))
 
 
 def check_report(path: Path) -> list[str]:
@@ -35,11 +42,10 @@ def check_report(path: Path) -> list[str]:
             errors.append(f"缺章节: {sec}")
 
     mermaid_count = text.count("```mermaid")
-    table_count = text.count("|---|")
+    table_count = count_tables(text)
     if mermaid_count < 1 and table_count < 2:
         errors.append(
-            f"图表不足: mermaid {mermaid_count}, 表格 {table_count}"
-            "（需 ≥1 mermaid 或 ≥2 表格）"
+            f"图表不足: mermaid {mermaid_count}, 表格 {table_count}" "（需 ≥1 mermaid 或 ≥2 表格）"
         )
 
     if "收束结论" not in text:
@@ -49,9 +55,12 @@ def check_report(path: Path) -> list[str]:
 
 
 def main() -> int:
-    reports = [
-        p for p in REPORTS_DIR.glob("收束报告-v*.md") if version_key(p.name) >= (2, 0)
-    ]
+    candidates = list(REPORTS_DIR.glob("收束报告-*.md"))
+    invalid_names = sorted(path.name for path in candidates if not REPORT_NAME.fullmatch(path.name))
+    if invalid_names:
+        print(f"FAIL 收束报告文件名不符合 收束报告-vN.N.md: {invalid_names}")
+        return 1
+    reports = [p for p in candidates if version_key(p.name) >= (2, 0)]
     if not reports:
         print("OK 无 v2.0+ 收束报告（首次收束前）")
         return 0

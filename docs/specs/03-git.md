@@ -1,5 +1,6 @@
 # BDD 规格: Git 协作规范
 
+> 更新: 2026-07-11
 > 对应 `03-git_Git协作规范.md`（v2.0：04-长程开发·Git 提交的细化）
 
 ---
@@ -12,7 +13,7 @@
   1. 打开 `03-git_Git协作规范.md`，读引言与 §一/§二
 - 预期结果：
   - 声明细化「04-长程开发·Git 提交」，档位绑定分支模型（轻量 Trunk / 标准 GitHub Flow / 团队 Git Flow）
-  - §一红线（main 禁直推、Conventional Commits、一 commit 一事、禁 force push、≥1 Approve）每条标注 commitlint / 分支保护
+  - §一红线（main 禁直推、Conventional Commits、一 commit 一事、禁 force push、团队 ≥1 Approve；单人 PR + 必需 CI + 自审记录）每条标注 commitlint / 分支保护
   - §二提供可复制物料：commitlint.config.js、.gitmessage、PR 模板、分支保护设置步骤
 
 ### 场景 1：分支策略适配团队规模
@@ -43,4 +44,14 @@
 - 预期结果：
   - 有 Review 检查清单
   - 明确 Review 时限（<24h）
-  - 明确 Approve 标准（至少 1 人）
+  - 团队项目明确 Approve 标准（至少 1 人）
+  - 单人项目不设置无法满足的审批人数，但仍强制 PR、必需 CI、会话解决和结构化自审记录
+
+### 场景 4：分支保护是平台真实状态
+- 前置条件：远程仓库已创建
+- 操作步骤：
+  1. 为 `main` 配置 Require PR、必需 CI、会话解决、禁止 force push 和删除
+  2. 通过 GitHub API 或设置页回读配置
+- 预期结果：
+  - 直接 push 和缺少必需检查的合并被平台拒绝
+  - 回读结果与规范声明一致，不以 README 声明代替平台配置

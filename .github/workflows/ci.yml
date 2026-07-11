@@ -25,18 +25,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install ruff
-        run: pip install ruff
+      - name: Install lint and governance dependencies
+        run: pip install ruff==0.6.0 pyyaml
 
       - name: ruff check
         run: ruff check . --config src/coding/ruff.toml
 
-      # ruff format check 跨平台 newline 差异会误报，V0.1 暂跳过（V2 修 newline 处理后启用）
+      - name: ruff format check
+        run: ruff format --check . --config src/coding/ruff.toml
 
       - name: gitleaks manual run V3.3
         run: |
@@ -66,32 +67,30 @@ jobs:
           python scripts/check_report.py
           python scripts/check_doc_quality.py
           python scripts/check_consistency.py
+          python scripts/check_ecc_alignment.py --threshold 80
 
   # -------------------------------------------------------------
-  # 阶段 2：test（pytest + 覆盖率门禁）
+  # 阶段 2：test（文档规范仓库的 Python/契约测试）
   # -------------------------------------------------------------
   test:
-    name: pytest + cov gate
+    name: Repository pytest suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install pytest + pytest-cov + pyyaml
-        run: pip install pytest pytest-cov pyyaml
+      - name: Install pytest + pyyaml + pinned ruff
+        run: pip install pytest pyyaml ruff==0.6.0
 
-      - name: render_meta.py --render convention-grade（保证工作区最新）
-        run: python scripts/render_meta.py --render convention-grade
-
-      - name: render_meta.py --check
+      - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
 
-      - name: pytest collect
-        run: pytest -q --co || echo "no tests collected (OK for v0.1)"
+      - name: Run repository tests
+        run: pytest -q
 
   # -------------------------------------------------------------
   # 阶段 3：l4-conventions（L4 规范测试）
@@ -103,18 +102,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: Install deps
-        run: pip install pytest pyyaml ruff
+        run: pip install pytest pyyaml ruff==0.6.0
 
-      - name: render_meta.py --render convention-grade（保证工作区最新）
-        run: python scripts/render_meta.py --render convention-grade
-
-      - name: render_meta.py --check
+      - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
 
       - name: pytest tests/conventions/
@@ -127,6 +123,20 @@ jobs:
       - name: check_code_understanding.py（V6.1 08 章节级 L1）
         run: python scripts/check_code_understanding.py
 
+      # V2.1 #40-#42：入口文件章节级 L1（STATUS / CLAUDE / 开发清单）
+      - name: check_status.py（V2.1 #40 STATUS 格式 L1）
+        run: python scripts/check_status.py
+
+      - name: check_claude.py（V2.1 #41 CLAUDE 结构 L1）
+        run: python scripts/check_claude.py
+
+      - name: check_plan.py（V2.1 #42 开发清单格式 L1 + 交叉校验）
+        run: python scripts/check_plan.py
+
+      # V2.1 #46: 收束节点产物检查（ADR + 收束报告）
+      - name: check_convergence_artifacts.py（V2.1 #46 收束产物检查）
+        run: python scripts/check_convergence_artifacts.py
+
   # -------------------------------------------------------------
   # 阶段 4：compliance（合规扫描）
   # -------------------------------------------------------------
@@ -137,7 +147,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -146,6 +156,18 @@ jobs:
 
       - name: Run compliance scan
         run: python scripts/check_compliance.py
+
+      # V2.1 #44: 模板漂移检测（5 类入口文件章节存在性对比）
+      - name: check_template_drift.py（V2.1 #44 模板漂移检测）
+        run: python scripts/check_template_drift.py
+
+      # V2.3 #48: HTML 产出物结构审计（模板族契约；typed 违规 fail，untyped 仅提示）
+      - name: check_html_artifact.py --all（V2.3 #48 HTML 模板族结构审计）
+        run: python scripts/check_html_artifact.py --all
+
+      # V2.3 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
+      - name: check_decision_alignment.py --all（V2.3 #50 决策对齐审计）
+        run: python scripts/check_decision_alignment.py --all
 
   # -------------------------------------------------------------
   # 阶段 5：build（构建验证，依赖前 4 阶段）
@@ -157,9 +179,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Install build verification dependencies
+        run: pip install pytest pyyaml ruff==0.6.0
 
       - name: Python compile check
         run: python -m compileall src/ -q
@@ -169,9 +194,8 @@ jobs:
       # V6.3 失败后回退硬编码 + V7.2 修订：自动收集 L4 + ${VAR:-0} 默认值防御
       - name: Render dashboard.html（V3.2 + V7.2 自动收集 L4）
         run: |
-          pip install pyyaml
-          # V6.3 retry (V7.2): 用 Python 脚本 collect_l4_stats.py 收集 L4
-          L4_STATS=$(python scripts/collect_l4_stats.py 2>/dev/null || echo "L4_STATS=0/0")
+          # L4 collector runs pytest and fails closed; Build cannot publish fake 0/0.
+          L4_STATS=$(python scripts/collect_l4_stats.py)
           L4_PASSED=$(echo "$L4_STATS" | sed 's/L4_STATS=\([0-9]*\)\/\([0-9]*\)/\1/')
           L4_TOTAL=$(echo "$L4_STATS" | sed 's/L4_STATS=\([0-9]*\)\/\([0-9]*\)/\2/')
           # V7.2: bash ${VAR:-0} 防御空字符串（避免 --l4-passed "" 被 shell 解释为无参）

@@ -1,5 +1,3 @@
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -18,6 +16,7 @@
 ---
 # 代码理解与图谱规范
 
+> 更新: 2026-07-11
 > **本规范是 [ai-workflow 04-长程开发·工具增强](ai-workflow_AI协作开发流程/04-长程开发.md) 的细化**，定义「代码理解需要什么图谱、谁来用、怎么建」。
 > 它同时收拢了原先散落在 01/02/05/06 的调用图相关内容（调用关系标注、影响分析、代码地图、依赖黑洞检测），是这些主题的**唯一权威来源**。
 
@@ -329,6 +328,7 @@ def place_order(user_id: str, items: list[Item]) -> Order:
 | 方向 | 链接 |
 |------|------|
 | 细化自 | [ai-workflow §2.9 工具链增强](ai-workflow_AI协作开发流程/04-长程开发.md) |
+| 验收标准 | [docs/specs/08-code-understanding.md](../docs/specs/08-code-understanding.md) |
 | AI 图谱工具 | [CodeGraph](https://github.com/colbymchenry/codegraph) — MIT · 29.8k stars |
 | 人的图谱工具 | [Understand-Anything](https://github.com/Lum1104/Understand-Anything) — MIT · 39.8k stars |
 | 调研数据来源 | `docs/research/图谱与代码理解工具调研-output/` |
@@ -344,6 +344,7 @@ def place_order(user_id: str, items: list[Item]) -> Order:
 
 | 日期 | 版本 | 变更说明 |
 |------|------|---------|
+| 2026-07-11 | v3.1 | 补齐规范与 BDD 的双向可执行契约链接 |
 | 2026-05-28 | v3.0 | **范式重构**：从「图数据库+Cypher+Mermaid」单一范式转为「CodeGraph（AI）+ Understand-Anything（人）」双图谱；删除 Cypher 查询示例、存储选型表、工具列表、CODE_MAP 手写要求 |
 | 2026-05-27 | v2.0 | 重构为 §2.9 的细化；设启用门槛；删全部报告引用与固化数字；收拢 01/02/05/06 的调用图内容成唯一权威 |
 | 2026-05-27 | v1.0 | 初稿，8 章结构 |

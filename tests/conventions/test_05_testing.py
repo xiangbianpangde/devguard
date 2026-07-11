@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -34,9 +33,7 @@ class TestTestingContracts:
     def test_pytest_testpaths_defined(self):
         """pytest 必须配置 testpaths 指向 tests 目录"""
         content = PYPROJECT.read_text(encoding="utf-8")
-        assert (
-            "testpaths" in content
-        ), "pyproject.toml 缺 [tool.pytest.ini_options] testpaths 配置"
+        assert "testpaths" in content, "pyproject.toml 缺 [tool.pytest.ini_options] testpaths 配置"
 
     def test_pytest_collection_runs_clean(self):
         """红线 1：pytest 收集能跑通（不依赖执行顺序：每次 collect 顺序可能不同）"""
@@ -64,9 +61,9 @@ class TestTestingContracts:
         ), f"pytest 收集不稳定（第一次 {n1}，第二次 {n2}）—— 红线 1：测试可能依赖执行顺序"
 
     def test_l4_tests_for_every_convention(self):
-        """红线 5（BDD+TDD）：每篇规范必须严格 1 个 L4 test（_meta.yaml l4_tests.rule）
+        """红线 5（BDD+TDD）：每篇规范必须至少有 1 个 L4 test。
 
-        #3 任务完成后状态：8 篇全覆盖
+        治理能力可以继续增加独立契约测试，不能把新增测试误判为漂移。
         """
         if not L4_TESTS_DIR.exists():
             pytest.fail("tests/conventions/ 缺失——L4 规范测试不存在")
@@ -83,12 +80,22 @@ class TestTestingContracts:
                 "test_08_code_understanding",
                 "test_perf_baseline",  # V2.5: 性能基线
                 "test_meta_l1_check",  # V4.4: _meta.yaml l1_check 字段一致性
+                "test_status",  # V2.1 #40: STATUS.md 章节级 L1
+                "test_claude",  # V2.1 #41: CLAUDE.md 结构 L1
+                "test_plan",  # V2.1 #42: 开发清单格式 L1
+                "test_file_placement",  # V2.1 #45 强化: 文件放置规则 L1
+                "test_exemption_log",  # V2.3 #51: 豁免登记强制化
+                "test_updated_tag",  # V2.3 #53: 更新时间标签强制化
+                "test_convergence_gate",  # V2.3 #52: 收束硬闸门
+                "test_html_artifact",  # V2.3 #48: HTML 产出物结构校验
+                "test_decision_alignment",  # V2.3 #50: 决策对齐拦开工
+                "test_doc_sync",  # V2.3 阶段C 补遗: 四件套硬同步
+                "test_scaffold",  # V2.3 #49: 基准约束脚手架
             ]
         )
-        assert existing == expected, (
-            f"L4 测试文件集不匹配（实际 {len(existing)}，期望 {len(expected)}）\n"
-            f"多余: {set(existing) - set(expected)}\n"
-            f"缺失: {set(expected) - set(existing)}"
+        missing = set(expected) - set(existing)
+        assert not missing, (
+            f"L4 核心测试缺失（实际 {len(existing)}，" f"核心期望 {len(expected)}）：{missing}"
         )
 
     def test_redline_2_mock_boundary_documented(self):
@@ -109,9 +116,5 @@ class TestTestingContracts:
         """红线 5（BDD+TDD）：docs/specs/ 至少有 BDD 规格"""
         if not SPECS_DIR.exists():
             pytest.skip("docs/specs/ 不存在（v0.1 项目可能未建 BDD）")
-        bdd_files = list(SPECS_DIR.glob("**/*.md")) + list(
-            SPECS_DIR.glob("**/*.feature")
-        )
-        assert (
-            bdd_files
-        ), "docs/specs/ 没有 BDD 规格文件（红线 5：开发按 BDD+TDD 流程，缺 BDD 源）"
+        bdd_files = list(SPECS_DIR.glob("**/*.md")) + list(SPECS_DIR.glob("**/*.feature"))
+        assert bdd_files, "docs/specs/ 没有 BDD 规格文件（红线 5：开发按 BDD+TDD 流程，缺 BDD 源）"

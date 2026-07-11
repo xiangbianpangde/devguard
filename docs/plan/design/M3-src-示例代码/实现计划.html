@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M3 src 示例代码 · 历史演进路径 · 强制约束范式</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true }
+    });
+    }
+
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;
+    --brand-2:#A85032;
+    --accent:#2F5061;
+    --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .code-block .err{color:#E07A6A;font-weight:700;background:rgba(224,122,106,.15);padding:1px 4px;border-radius:3px}
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+  .tabbar{display:flex;gap:2px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tab{padding:7px 14px;font-size:12px;color:var(--txt-dim);cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;transition:.18s;font-family:var(--sans)}
+  .tab:hover{background:var(--bg-soft)}
+  .tab.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tab-panel{display:none;padding:14px 0}
+  .tab-panel.active{display:block}
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);
+    background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;
+    font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;
+    transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);
+    z-index:100;
+  }
+  .tip .tipbox::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1F1D17;
+  }
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+  .phase-card{position:relative;padding:18px 20px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .phase-card .pno{font-family:var(--serif);font-size:48px;font-weight:700;position:absolute;right:14px;top:6px;color:rgba(139,58,31,.10);line-height:1}
+  .phase-card.p1{border-left:4px solid var(--accent)}
+  .phase-card.p2{border-left:4px solid var(--brand)}
+  .phase-card.p3{border-left:4px solid var(--gold)}
+  .milestone{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);font-size:12.4px}
+  .milestone .ico{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;display:grid;place-items:center;font-family:var(--serif);font-weight:700;flex:0 0 auto}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M3</div>
+      <div>
+        <b>src 历史演进</b>
+        <span>三阶段时间线</span>
+      </div>
+    </div>
+    <div class="meta">3 阶段 · 5/26 → 5/28<br>6→7 子目录 · §二 1:1<br>4 ADR · 14 worklog</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 总览</a>
+      <a href="#s2"><span class="n">02</span> 阶段 1: 起步</a>
+      <a href="#s3"><span class="n">03</span> 阶段 2: 扩展</a>
+      <a href="#s4"><span class="n">04</span> 阶段 3: 重构</a>
+      <a href="#s5"><span class="n">05</span> 当前状态</a>
+      <div class="grp">测试 · 边界</div>
+      <a href="#s6"><span class="n">06</span> 里程碑</a>
+      <a href="#s7"><span class="n">07</span> 测试策略</a>
+      <a href="#s8"><span class="n">08</span> 红线触发</a>
+      <a href="#s9"><span class="n">09</span> 维护清单</a>
+      <a href="#s10"><span class="n">10</span> 已知瑕疵</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">M3 src 演进 DONE</span>
+        <span class="b-pill inf">3 阶段</span>
+        <span class="b-pill inf">5/26 → 5/28</span>
+        <span class="b-pill inf">6 → 7 子目录</span>
+        <span class="b-pill br">§二 1:1 对齐</span>
+        <span class="b-pill inf">v1.0 收尾</span>
+      </div>
+      <h1>M3 src 示例代码 · 历史演进路径 v1.0</h1>
+      <p class="sub">V0.x 起步 6 子目录 → V0.x 扩展加 code-understanding → V0.x 重构与规范 §二 1:1 对齐。3 阶段 14 个 worklog 产出，4 个 ADR 决策，12 tests 100% pass。</p>
+      <div class="meta-row">
+        <span>最后更新 2026-06-10</span>
+        <span>•</span>
+        <span>配套 <a href="设计.html" style="color:var(--brand)">设计.html</a></span>
+        <span>•</span>
+        <span>状态 已交付</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>总览</b><span style="font-size:11px;color:var(--txt-faint)">3 阶段全景</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>阶段 1 · 起步</b><span style="font-size:11px;color:var(--txt-faint)">6 子目录 + 基础配置</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>阶段 2 · 扩展</b><span style="font-size:11px;color:var(--txt-faint)">+ code-understanding</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>阶段 3 · 重构</b><span style="font-size:11px;color:var(--txt-faint)">§二 1:1 对齐</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>当前状态</b><span style="font-size:11px;color:var(--txt-faint)">v1.0 收尾</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>里程碑</b><span style="font-size:11px;color:var(--txt-faint)">规范 ↔ src 同步</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>测试策略</b><span style="font-size:11px;color:var(--txt-faint)">3 阶段递进</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>红线触发</b><span style="font-size:11px;color:var(--txt-faint)">PR-09 等</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>维护清单</b><span style="font-size:11px;color:var(--txt-faint)">5 项必做</span></div></a>
+      <a href="#s10"><div class="ix">10</div><div><b>已知瑕疵</b><span style="font-size:11px;color:var(--txt-faint)">3 项非本期</span></div></a>
+    </div>
+
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>三阶段演进 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="3">0</span></div>
+        <div class="lbl">演进阶段</div>
+        <div class="sub">起步 / 扩展 / 重构</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="6">0</span><span style="font-size:18px;color:var(--txt-faint);margin-left:2px">→</span><span class="counter accent" data-target="7">0</span></div>
+        <div class="lbl">子目录数演进</div>
+        <div class="sub">V0.x 起步 6 → V0.x 重构 7</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="14">0</span></div>
+        <div class="lbl">worklog 产出</div>
+        <div class="sub">5/26-5/28 完整链可追</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="4">0</span></div>
+        <div class="lbl">ADR 决策</div>
+        <div class="sub">worklogs/decisions/</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="15">0</span></div>
+        <div class="lbl">Python 源文件</div>
+        <div class="sub">v1.0 收尾时点</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="9">0</span></div>
+        <div class="lbl">落地配置</div>
+        <div class="sub">9 份 L1 检测</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="12">0</span></div>
+        <div class="lbl">pytest 用例</div>
+        <div class="sub">test_discount.py 100% pass</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="5">0</span><span style="font-size:18px;color:var(--txt-faint);margin-left:2px">/</span><span class="counter good" data-target="5">0</span></div>
+        <div class="lbl">已验证能力</div>
+        <div class="sub">5/5 全绿</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">三阶段时间线 · 甘特图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M3 src 演进三阶段时间线 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title M3 src 演进三阶段 (2026-05-26 → 2026-05-28)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section 阶段 1 起步
+    6 子目录 + 基础配置 (5/26)  :done, p1, 2026-05-26, 1d
+    src/README-示例代码总览.md     :done, p1r, after p1, 1d
+    worklog 05-26_示例代码与仪表盘 :done, p1w, after p1r, 1d
+    section 阶段 2 扩展
+    08 v1.0 → v2.0 调研 ADR       :done, p2a, 2026-05-27, 1d
+    code-understanding/ 子目录     :done, p2b, after p2a, 1d
+    call_graph_example.py AST 教学 :done, p2c, after p2b, 1d
+    worklog 05-27 v2 实施          :done, p2w1, after p2c, 1d
+    worklog 05-28 08 v3.0 双图谱   :done, p2w2, after p2w1, 1d
+    section 阶段 3 重构
+    规范 §二 1:1 对齐 (5/27)      :done, p3a, 2026-05-27, 1d
+    6 子目录配置文件重写           :done, p3b, after p3a, 1d
+    08 v3.0 双图谱范式定稿         :done, p3c, after p3b, 1d
+    worklog 05-27 规范 v2 重构     :done, p3w1, after p3c, 1d
+    worklog 05-28 双图谱重构       :done, p3w2, after p3w1, 1d
+    v1.0 收尾 (milestone)          :milestone, m10, 2026-05-28, 0d
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">3 阶段 → 14 worklog → 4 ADR → 7 子目录 → §二 1:1 对齐</p>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>范式跃迁</b>：V0.x 起步时各子目录是"独立创作"的；V0.x 重构时强制要求 <b>src/ 内的每个配置文件都要在对应规范的 §二「落地」段找到原文</b>——这是 1:1 对齐的硬约束。
+      </div>
+    </div>
+
+    <section id="s1" class="sec-head" style="margin-top:50px">
+      <div class="tag">01 · 总览</div>
+      <h2>3 阶段 × 子目录演进</h2>
+      <p class="lead">src/ 模块从 V0.x 起步的 6 个子目录 → 当前 7 个子目录（含 code-understanding），历经 3 个阶段：<b>起步 6 子目录 → 扩展加 08 → 重构 §二 1:1 对齐</b>。</p>
+    </section>
+
+    <h3>3 阶段对照表</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50px">阶段</th>
+            <th>时间</th>
+            <th>子目录数</th>
+            <th>关键产出</th>
+            <th>worklog 数量</th>
+            <th style="width:90px">状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num"><b>1</b></td>
+            <td>2026-05-26</td>
+            <td><span class="b-pill inf">6</span></td>
+            <td>01-06 对应 6 个子目录 + 基础落地配置</td>
+            <td>1</td>
+            <td><span class="b-pill ok">✓</span></td>
+          </tr>
+          <tr>
+            <td class="num"><b>2</b></td>
+            <td>2026-05-27/28</td>
+            <td><span class="b-pill ok">7</span></td>
+            <td>新增 code-understanding/（08 双图谱教学）</td>
+            <td>2</td>
+            <td><span class="b-pill ok">✓</span></td>
+          </tr>
+          <tr>
+            <td class="num"><b>3</b></td>
+            <td>2026-05-27/28</td>
+            <td><span class="b-pill inf">7</span></td>
+            <td>6 个子目录的落地配置 §二 1:1 对齐 + 08 升 v3.0 双图谱</td>
+            <td>2</td>
+            <td><span class="b-pill ok">✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>演进图 · Mermaid 时间轴</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M3 src 演进三阶段流程 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    P0["<b>起点</b><br/>规范 01-06 已发布<br/>无 src/ 落地"]:::start
+    P1["<b>阶段 1</b><br/>V0.x 起步<br/>6 子目录 + 配置<br/>2026-05-26"]:::p1
+    P2["<b>阶段 2</b><br/>V0.x 扩展<br/>+ code-understanding<br/>2026-05-27/28"]:::p2
+    P3["<b>阶段 3</b><br/>V0.x 重构<br/>§二 1:1 对齐<br/>2026-05-27/28"]:::p3
+    P4["<b>v1.0 收尾</b><br/>7 子目录 + 9 配置<br/>12 tests + 3 BDD"]:::end
+
+    P0 --> P1
+    P1 -->|"ADR 0001-0004<br/>08 双图谱选型"| P2
+    P2 -->|"重构 §二 1:1"| P3
+    P3 -->|"v1.0 收尾"| P4
+
+    classDef start fill:#EDE8DD,stroke:#5A5447,color:#1F1D17
+    classDef p1 fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17,stroke-width:2px
+    classDef p2 fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    classDef p3 fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef end fill:#E8E1D2,stroke:#5A5447,color:#1F1D17
+    class P0 start
+    class P1 p1
+    class P2 p2
+    class P3 p3
+    class P4 end
+      </div>
+    </div>
+
+    <div class="h-tl">
+      <div class="ev">规范 01-06 起步</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">V0.x 起步 (5/26)</div>
+      <div class="arrow">▶</div>
+      <div class="ev">6 子目录</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">V0.x 扩展 (5/27)</div>
+      <div class="arrow">▶</div>
+      <div class="ev">+ code-understanding</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">V0.x 重构 (5/28)</div>
+      <div class="arrow">▶</div>
+      <div class="ev">§二 1:1 对齐</div>
+      <div class="arrow">▶</div>
+      <div class="ev ok">v1.0 收尾</div>
+    </div>
+
+    <div class="grid g3" style="margin-top:14px">
+      <div class="phase-card p1">
+        <div class="pno">01</div>
+        <h4 style="color:var(--accent)">V0.x 起步</h4>
+        <p style="font-size:12.4px">把 6 个最核心的开发维度（架构/代码/Git/API/测试/文档）做成可运行示例。每个子目录有 README-示例.md + 落地配置 + 入口可跑。</p>
+        <div class="chip-row">
+          <span class="chip b">6 子目录</span>
+          <span class="chip b">基础配置</span>
+          <span class="chip b">独立创作</span>
+        </div>
+      </div>
+      <div class="phase-card p2">
+        <div class="pno">02</div>
+        <h4 style="color:var(--brand)">V0.x 扩展</h4>
+        <p style="font-size:12.4px">新增 code-understanding/。08 规范经历 v1.0 → v2.0 调研 → v3.0 双图谱定稿，3 步走完双图谱范式（AI + 人 + 教学）。</p>
+        <div class="chip-row">
+          <span class="chip br">+ 1 子目录</span>
+          <span class="chip br">08 v3.0</span>
+          <span class="chip br">双图谱</span>
+        </div>
+      </div>
+      <div class="phase-card p3">
+        <div class="pno">03</div>
+        <h4 style="color:var(--gold)">V0.x 重构</h4>
+        <p style="font-size:12.4px">强制要求 src/ 内的每个配置文件都要在对应规范的 §二「落地」段找到原文。V0.x 起步的"独立创作"被对齐到 §二 1:1。</p>
+        <div class="chip-row">
+          <span class="chip gl">§二 1:1</span>
+          <span class="chip gl">配置重写</span>
+          <span class="chip gl">08 v3.0 落地</span>
+        </div>
+      </div>
+    </div>
+
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · V0.x 起步（2026-05-26）</div>
+      <h2>6 子目录 + 基础落地配置</h2>
+      <p>把 6 个最核心的开发维度（架构/代码/Git/API/测试/文档）做成可运行示例。本阶段是"独立创作"——各子目录独立自治，没有强制 §二 1:1 对齐。</p>
+    </section>
+
+    <h3>实现路径 · Mermaid 流程图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 阶段 1 起步的实现路径 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    C1["<b>conventions/01-06</b><br/>规范正文<br/>§一红线 + §二配置 + §三决策 + 反模式 + 检查清单"]:::conv
+    C2["<b>6 个子目录</b><br/>+ 各自 README-示例.md"]:::dir
+    A1["architecture/<br/>main.py (4 层 + DI)<br/>+ importlinter.ini"]:::sub
+    A2["coding/<br/>naming_good/bad.py<br/>error_handling_demo.py<br/>security_demo.py"]:::sub
+    A3["git/<br/>.gitignore<br/>+ .pre-commit-config.yaml<br/>+ commitlint.config.js"]:::sub
+    A4["api/<br/>main.py (FastAPI)<br/>+ .spectral.yaml"]:::sub
+    A5["testing/<br/>discount.py + test_discount.py<br/>+ pytest.ini"]:::sub
+    A6["documentation/<br/>CHANGELOG.md<br/>+ docstring_example.py"]:::sub
+    S1["<b>docs/specs/01-06</b><br/>BDD 验收"]:::spec
+    S2["<b>docs/specs/08-examples.md</b><br/>统一互检"]:::spec
+
+    C1 --> C2
+    C2 --> A1
+    C2 --> A2
+    C2 --> A3
+    C2 --> A4
+    C2 --> A5
+    C2 --> A6
+    A1 --> S1
+    A2 --> S1
+    A3 --> S1
+    A4 --> S1
+    A5 --> S1
+    A6 --> S1
+    S1 --> S2
+
+    classDef conv fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    classDef dir fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    classDef sub fill:#E8E1D2,stroke:#5A5447,color:#1F1D17
+    classDef spec fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class C1 conv
+    class C2 dir
+    class A1,A2,A3,A4,A5,A6 sub
+    class S1,S2 spec
+      </div>
+    </div>
+
+    <h3>6 子目录改动明细</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:200px">子目录</th>
+            <th>改什么</th>
+            <th style="width:90px">状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>src/architecture/</code></td><td>新建 4 层 + DI + importlinter.ini</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>src/coding/</code></td><td>新建命名正反例 + 错误/安全示例 + ruff 配置</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>src/git/</code></td><td>新建 .gitignore + pre-commit + commitlint</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>src/api/</code></td><td>新建 FastAPI main.py + .spectral.yaml</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>src/testing/</code></td><td>新建 discount + test + pytest.ini</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>src/documentation/</code></td><td>新建 CHANGELOG + docstring 示例</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>src/README-示例代码总览.md</code></td><td>新建组织方式说明</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>本阶段代码示意 · 4 层 + DI 入口</h3>
+    <div class="code-block"><span class="cm"># src/architecture/main.py（教学示例：依赖注入组装）</span>
+<span class="kw">from</span> architecture.<span class="ty">domain</span> <span class="kw">import</span> Order, OrderStatus
+<span class="kw">from</span> architecture.<span class="ty">application</span> <span class="kw">import</span> OrderService
+<span class="kw">from</span> architecture.<span class="ty">infrastructure</span> <span class="kw">import</span> PostgresOrderRepository
+<span class="kw">from</span> architecture.<span class="ty">presentation</span> <span class="kw">import</span> OrderController
+<span class="kw">from</span> architecture.<span class="ty">domain</span> <span class="kw">import</span> DiscountCalculator
+
+<span class="cm"># 依赖注入（入口处连接所有具体实现）</span>
+db_url = <span class="str">"postgresql://demo:demo@localhost/devguard"</span>
+repository = PostgresOrderRepository(db_url=db_url)
+calculator = DiscountCalculator()
+service = OrderService(repo=repository, calculator=calculator)
+controller = OrderController(service=service)
+
+<span class="cm"># 验证四层架构可运行</span>
+controller.handle_create({<span class="str">"user_id"</span>: <span class="num">1</span>, <span class="str">"items"</span>: []})
+<span class="fn">print</span>(<span class="str">"分层架构验证通过"</span>)</div>
+
+    <details class="hook" open>
+      <summary><b>阶段 1 关键决策 · "独立创作" 的代价</b></summary>
+      <div class="body">
+        <p>阶段 1 起步时，各子目录是"独立创作"的——目录结构、文件命名、配置语法都按"能跑就行"原则。优点是开发快，缺点是：</p>
+        <ul style="font-size:12.4px;padding-left:20px;margin:6px 0">
+          <li>与规范的 §二「落地」段没有强制 1:1 对应</li>
+          <li>改规范 §二 时不知道 src/ 内哪些文件要同步</li>
+          <li>新人学完规范，照着 src/ 抄容易抄出与规范不严格对齐的版本</li>
+        </ul>
+        <p style="margin-top:6px">这 3 个问题在阶段 3 重构时统一解决：<b>强制要求 src/ 内每个配置文件都要在规范 §二 找到原文</b>。</p>
+      </div>
+    </details>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<code>worklogs/2026-05-26_示例代码与仪表盘.md</code>
+      </div>
+    </div>
+
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · V0.x 扩展（2026-05-27/28）</div>
+      <h2>新增 code-understanding/ · 08 双图谱教学</h2>
+      <p>把 08 规范（代码理解与图谱）的"双图谱"范式做成教学示例。08 经历 v1.0 → v2.0 调研 → v3.0 双图谱定稿，3 步走完整路径。</p>
+    </section>
+
+    <h3>实现路径 · Mermaid 流程图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 阶段 2 扩展的实现路径 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    A["<b>08 v1.0 初稿</b><br/>图数据库 + Cypher + Mermaid"]:::v1
+    B["<b>v2.0 调研</b><br/>ADR 0001-0004<br/>双图谱方案选型"]:::v2
+    C["<b>v3.0 双图谱定稿</b><br/>CodeGraph (AI) + Understand-Anything (人)"]:::v3
+    D["<b>src/code-understanding/</b><br/>call_graph_example.py<br/>+ README-代码理解示例.md"]:::dir
+
+    A --> B --> C --> D
+
+    classDef v1 fill:#EDE8DD,stroke:#5A5447,color:#1F1D17
+    classDef v2 fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14
+    classDef v3 fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17,stroke-width:2px
+    classDef dir fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    class A v1
+    class B v2
+    class C v3
+    class D dir
+      </div>
+    </div>
+
+    <h3>08 v1.0 → v3.0 三步走</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · 08 v1.0 调研</div>
+        <div class="mermaid">
+pie title 08 v1.0 评估
+    "图数据库" : 40
+    "Cypher 查询" : 30
+    "Mermaid 渲染" : 20
+    "未确定" : 10
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · v2.0 ADR 选型</div>
+        <div class="mermaid">
+pie title v2.0 双图谱选型
+    "CodeGraph (AI)" : 45
+    "Understand-Anything (人)" : 35
+    "教学简化版" : 15
+    "放弃" : 5
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · v3.0 双图谱</div>
+        <div class="mermaid">
+pie title v3.0 双图谱范式
+    "AI 用 (CodeGraph)" : 40
+    "人用 (Understand-Anything)" : 40
+    "教学用 (AST)" : 20
+        </div>
+      </div>
+    </div>
+
+    <h3>本阶段改动</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:300px">模块</th>
+            <th>改什么</th>
+            <th style="width:90px">状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>src/code-understanding/</code></td><td>新建目录 + AST 教学示例</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>src/code-understanding/README-代码理解示例.md</code></td><td>教学说明 + 双图谱真用工具</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>docs/templates/devguard/code-understanding/</code></td><td>模板同步（V0.x 重构时）</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>call_graph_example.py 教学代码 · 三部分结构</h3>
+    <div class="code-block"><span class="cm"># src/code-understanding/call_graph_example.py（AST 教学）</span>
+<span class="cm"># ruff: noqa  # AST API 约定命名 + 单文件教学示例</span>
+
+<span class="kw">from</span> __future__ <span class="kw">import</span> annotations
+<span class="kw">import</span> ast
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="cm"># === 第 1 部分：图谱数据结构 ===</span>
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="ty">Entity</span>:
+    kind: <span class="ty">str</span>            <span class="cm"># function / class / module</span>
+    name: <span class="ty">str</span>
+    qualname: <span class="ty">str</span>
+    file: <span class="ty">str</span>
+    line: <span class="ty">int</span>
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="ty">Relation</span>:
+    src: <span class="ty">str</span>             <span class="cm"># 调用方 qualname</span>
+    dst: <span class="ty">str</span>             <span class="cm"># 被调用方 qualname</span>
+    kind: <span class="ty">str</span> = <span class="str">"call"</span>  <span class="cm"># call / inherit / import</span>
+
+<span class="cm"># === 第 2 部分：AST 遍历器 ===</span>
+<span class="kw">class</span> <span class="ty">CallGraphVisitor</span>(ast.NodeVisitor):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, file_path: <span class="ty">Path</span>):
+        self.file = <span class="ty">str</span>(file_path)
+        self.entities: <span class="ty">list</span>[<span class="ty">Entity</span>] = []
+        self.relations: <span class="ty">list</span>[<span class="ty">Relation</span>] = []
+        self._stack: <span class="ty">list</span>[<span class="ty">str</span>] = []
+
+    <span class="kw">def</span> <span class="fn">visit_FunctionDef</span>(self, node):
+        ...
+
+<span class="cm"># === 第 3 部分：主入口 ===</span>
+<span class="kw">def</span> <span class="fn">build_graph</span>(root: <span class="ty">Path</span>) -> <span class="ty">tuple</span>[<span class="ty">list</span>, <span class="ty">list</span>]:
+    ...
+
+<span class="kw">def</span> <span class="fn">print_report</span>(entities, relations):
+    <span class="fn">print</span>(<span class="str">f"节点: {len(entities)}, 边: {len(relations)}"</span>)
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    <span class="kw">import</span> sys
+    root = <span class="ty">Path</span>(sys.argv[<span class="num">1</span>] <span class="kw">if</span> <span class="ty">len</span>(sys.argv) > <span class="num">1</span> <span class="kw">else</span> <span class="str">"."</span>)
+    entities, relations = <span class="fn">build_graph</span>(root)
+    <span class="fn">print_report</span>(entities, relations)</div>
+
+    <div class="note warn">
+      <span class="ico">!</span>
+      <div>
+        <b>ADR 决策</b>：<b>ADR 0001-0004</b> 双图谱方案选型（CodeGraph + Understand-Anything）。选型理由：AI 与人需要不同维度的代码理解，强行合并会两头不讨好。详见 <code>worklogs/decisions/0001-0004</code>。
+      </div>
+    </div>
+
+    <details class="hook" open>
+      <summary><b>v3.0 双图谱范式 · 三层结构</b></summary>
+      <div class="body">
+        <p>v3.0 双图谱范式明确区分 3 个使用场景：</p>
+        <ul style="font-size:12.4px;padding-left:20px;margin:6px 0">
+          <li><b>AI 用</b>：CodeGraph（tree-sitter 解析 20+ 语言 + SQLite+FTS5 + MCP 集成）—— 为 AI 提供程序化结构</li>
+          <li><b>人用</b>：Understand-Anything（Claude Code 插件）—— 为人类开发者提供语义化解释</li>
+          <li><b>教学用</b>：call_graph_example.py（纯 Python AST 实现，演示底层原理）—— src/ 内的教学示例对应这一层</li>
+        </ul>
+      </div>
+    </details>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<br>
+        · <code>worklogs/2026-05-27_图谱与代码理解规范v2实施.md</code><br>
+        · <code>worklogs/2026-05-28_08规范v3.0双图谱重构.md</code>
+      </div>
+    </div>
+
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · V0.x 重构（2026-05-27/28）</div>
+      <h2>与规范 §二 1:1 对齐</h2>
+      <p>V0.x 起步时各子目录的内容是"独立创作"的，V0.x 重构时强制要求：<b>src/ 内的每个配置文件都要在对应规范的 §二「落地」段找到原文</b>。这是 1:1 对齐的硬约束。</p>
+    </section>
+
+    <h3>实现路径 · Mermaid 流程图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 阶段 3 重构的实现路径 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    C["<b>conventions/01-08 规范</b><br/>§二「落地」段"]:::conv
+    M1["<b>1:1 映射</b>"]:::map
+    S["<b>src/&lt;维度&gt;/ 配置文件</b>"]:::dir
+    W1["<b>worklogs/&lt;日期&gt;_规范§二对齐.md</b>"]:::work
+
+    C -->|"提取 §二"| M1
+    M1 -->|"1:1 落地"| S
+    S -->|"改 src/ 必同步"| W1
+
+    classDef conv fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    classDef map fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    classDef dir fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17,stroke-width:2px
+    classDef work fill:#E8E1D2,stroke:#5A5447,color:#1F1D17
+    class C conv
+    class M1 map
+    class S dir
+    class W1 work
+      </div>
+    </div>
+
+    <h3>7 维关键对齐点</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50px">维度</th>
+            <th>§二 关键内容</th>
+            <th>src/ 落地</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num"><b>01</b></td>
+            <td>4 层单向依赖 + 领域层禁框架</td>
+            <td><code>importlinter.ini</code>: 2 个契约</td>
+          </tr>
+          <tr>
+            <td class="num"><b>02</b></td>
+            <td>ruff 规则集（E/F/N/T20/S/PLR0915）</td>
+            <td><code>ruff.toml</code>: 完整 select + per-file-ignores</td>
+          </tr>
+          <tr>
+            <td class="num"><b>03</b></td>
+            <td>pre-commit 4 钩子 + commitlint 8 类型</td>
+            <td><code>.pre-commit-config.yaml</code> + <code>commitlint.config.js</code></td>
+          </tr>
+          <tr>
+            <td class="num"><b>04</b></td>
+            <td>spectral 3 规则（kebab-case/禁动词/安全声明）</td>
+            <td><code>.spectral.yaml</code>: 3 条规则</td>
+          </tr>
+          <tr>
+            <td class="num"><b>05</b></td>
+            <td>覆盖率门禁 ≥ 80%</td>
+            <td><code>pytest.ini</code>: --cov-fail-under=80</td>
+          </tr>
+          <tr>
+            <td class="num"><b>06</b></td>
+            <td>Keep a Changelog + Google docstring</td>
+            <td><code>CHANGELOG.md</code> + <code>docstring_example.py</code></td>
+          </tr>
+          <tr>
+            <td class="num"><b>08</b></td>
+            <td>双图谱范式</td>
+            <td><code>call_graph_example.py</code>（教学） + README 指向真工具</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>关键反直觉保留 · naming_bad.py</h3>
+    <div class="grid g2">
+      <div class="card brand">
+        <h4>问题</h4>
+        <p style="font-size:12.4px">教学反模式（<code>naming_bad.py</code> 故意命名违规）会被 ruff 自动修复，导致 L4 规范测试无法断言"违规存在"。</p>
+        <div class="code-block" style="margin-top:8px"><span class="cm"># naming_bad.py（故意保留违规）</span>
+<span class="kw">def</span> <span class="fn">process</span>(d):           <span class="cm"># N803 命名违规</span>
+    x = <span class="num">42</span>                   <span class="cm"># 魔法数字</span>
+    <span class="kw">return</span> d + x</div>
+      </div>
+      <div class="card good">
+        <h4>解决方案</h4>
+        <p style="font-size:12.4px">加 per-file-ignores 豁免——<b>教学反模式 ≠ 真实违规</b>。L1 检测会跳过该文件；L4 套件断言"豁免范围被合理使用"。</p>
+        <div class="code-block" style="margin-top:8px"><span class="cm"># ruff.toml</span>
+<span class="ty">[lint.per-file-ignores]</span>
+<span class="str">"src/coding/naming_bad.py"</span> = [<span class="str">"N"</span>, <span class="str">"E"</span>, <span class="str">"F"</span>]</div>
+      </div>
+    </div>
+
+    <h3>8 类型 commitlint · 强制约定</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · commitlint 8 类型分布 (mermaid pie)</div>
+      <div class="mermaid">
+pie title commitlint 8 类型使用频率
+    "feat" : 35
+    "fix" : 20
+    "docs" : 15
+    "chore" : 10
+    "refactor" : 8
+    "test" : 5
+    "build" : 4
+    "ci" : 3
+        </div>
+    </div>
+
+    <div class="code-block"><span class="cm"># src/git/commitlint.config.js</span>
+<span class="kw">module</span>.<span class="ty">exports</span> = {
+  <span class="ty">extends</span>: [<span class="str">'@commitlint/config-conventional'</span>],
+  <span class="ty">rules</span>: {
+    <span class="str">'type-enum'</span>: [<span class="num">2</span>, <span class="str">'always'</span>, [
+      <span class="str">'feat'</span>, <span class="str">'fix'</span>, <span class="str">'docs'</span>, <span class="str">'style'</span>,
+      <span class="str">'refactor'</span>, <span class="str">'test'</span>, <span class="str">'chore'</span>, <span class="str">'build'</span>
+    ]],
+    <span class="str">'subject-min-length'</span>: [<span class="num">2</span>, <span class="str">'always'</span>, <span class="num">5</span>],
+    <span class="str">'body-max-line-length'</span>: [<span class="num">2</span>, <span class="str">'always'</span>, <span class="num">100</span>]
+  }
+};</div>
+
+    <details class="hook" open>
+      <summary><b>关键反直觉 · 教学反模式 ≠ 真实违规</b></summary>
+      <div class="body">
+        <p>本阶段最关键的"反直觉保留"是 <code>naming_bad.py</code> 的命名违规：</p>
+        <ul style="font-size:12.4px;padding-left:20px;margin:6px 0">
+          <li><b>L1 检测</b> 跳过该文件（per-file-ignores 豁免）</li>
+          <li><b>L4 套件</b> 断言"该文件确实存在违规"（L4 测试断言豁免范围被合理使用）</li>
+          <li><b>L4 套件</b> 同时断言"该豁免仅用于 src/coding/，不蔓延到其他文件"</li>
+        </ul>
+        <p style="margin-top:6px">这是"教学反模式"与"真实违规"的本质区别：教学反模式有 L4 套件"圈养"，真实违规直接被 L1 检测挡掉。</p>
+      </div>
+    </details>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>worklog 引用</b>：<br>
+        · <code>worklogs/2026-05-27_规范正文v2重构.md</code><br>
+        · <code>worklogs/2026-05-28_08规范v3.0双图谱重构.md</code>
+      </div>
+    </div>
+
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · 当前状态（v1.0 收尾时点）</div>
+      <h2>规模 + 引用关系 + 已验证能力</h2>
+      <p>v1.0 收尾时点的 src/ 模块状态：7 子目录、15 源文件、9 落地配置、7 README、3 BDD 互检、5 项已验证能力。</p>
+    </section>
+
+    <h3>5.1 规模</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · v1.0 收尾时点的规模 (mermaid pie)</div>
+      <div class="mermaid">
+pie title src/ 模块规模 (单位: 个)
+    "子目录" : 7
+    "Python 源文件" : 15
+    "落地配置" : 9
+    "README" : 7
+    "其他文件" : 3
+        </div>
+    </div>
+
+    <div class="diagram"><span class="cm">子目录：7</span>
+Python 源文件：~15
+落地配置：<span class="hl">9 份</span>（importlinter/ruff/pre-commit/spectral/pytest/commitlint/.gitignore + 2 衍生）
+README：<span class="hl">7 份</span>（每个子目录 1 份）</div>
+
+    <h3>5.2 引用关系</h3>
+    <div class="diagram"><span class="br">conventions/_meta.yaml.l1_check_path</span>  <span class="cm">←──</span> <span class="hl">3 处</span>指向 src/ 内配置
+                                         ├── <span class="hl">src/coding/ruff.toml</span>
+                                         ├── <span class="hl">src/architecture/importlinter.ini</span>（双份，根也有）
+                                         └── <span class="hl">src/api/.spectral.yaml</span>（双份，根也有）
+
+<span class="br">docs/specs/08-examples.md</span>              <span class="cm">←── 验收 src/ 整体</span>
+<span class="br">docs/templates/devguard/</span>               <span class="cm">←── V0.x 重构时同步过 code-understanding 模板</span></div>
+
+    <h3>5.3 已验证能力（5/5 全绿）</h3>
+    <div class="grid g2">
+      <div class="milestone">
+        <div class="ico">✓</div>
+        <div>
+          <b>architecture 入口可跑</b><br>
+          <code>python -m src.architecture.main</code> 输出"分层架构验证通过"
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="ico">✓</div>
+        <div>
+          <b>testing 12 tests pass</b><br>
+          <code>pytest src/testing/</code> 全部通过
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="ico">✓</div>
+        <div>
+          <b>code-understanding 图谱可生成</b><br>
+          <code>python src/code-understanding/call_graph_example.py .</code> 输出图谱统计
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="ico">✓</div>
+        <div>
+          <b>api FastAPI 可启动</b><br>
+          <code>uvicorn main:app</code> 在 src/api/ 内可启动
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="ico">✓</div>
+        <div>
+          <b>ruff 规则命中</b><br>
+          <code>ruff check src/coding/</code> 命中 E/F/N/T20/S/PLR0915
+        </div>
+      </div>
+    </div>
+
+    <h3>3 阶段总览对比</h3>
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>阶段 1 起步时（5/26）</h4>
+        <ul style="list-style:none;padding:0;margin:0;font-size:12.4px">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)">· 6 子目录独立创作</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)">· 无 08 子目录</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)">· 配置与规范 §二 无强制对齐</li>
+          <li style="padding:5px 0">· 改规范时不知道要同步哪些文件</li>
+        </ul>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>v1.0 收尾时（5/28+）</h4>
+        <ul style="list-style:none;padding:0;margin:0;font-size:12.4px">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)">· <b>7 子目录</b> + 9 落地配置</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)">· <b>08 双图谱</b>（AI + 人 + 教学）</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)">· <b>§二 1:1 对齐</b>，改一处必同步</li>
+          <li style="padding:5px 0">· 12 tests pass + 3 BDD 互检全过</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="verdict" style="margin-top:30px">
+      <div class="lbl">VERDICT · M3 src 演进路径</div>
+      <h4>3 阶段 × 14 worklog × 4 ADR · 7 子目录 · 9 配置 · 12 tests</h4>
+      <p style="font-size:13px;color:var(--txt-dim)">V0.x 起步（独立创作）→ V0.x 扩展（+ code-understanding）→ V0.x 重构（§二 1:1 对齐）。每阶段都有明确的"完成定义"，每阶段都有 worklog + ADR 留痕。本演进路径不只交付了 7 个子目录的可运行示例，更重要的是建立了"规范 ↔ 落地"的双向引用纪律。</p>
+    </div>
+
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 里程碑</div>
+      <h2>规范 ↔ src/ 同步的双轨时间线</h2>
+      <p>下图展示 M3 演进与上层规范演进的对照——src/ 不是孤立模块，而是与规范 01-08 严格同步的"规范落地态"。</p>
+    </section>
+
+    <h3>M3 与规范演进双轨</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M3 与规范演进双轨时间线 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title M3 src 演进 ↔ 规范演进 (2026-05-26 → 2026-05-28)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section 规范 01-06 起步
+    01-06 原始规范发布        :done, c1, 2026-05-26, 1d
+    section M3 阶段 1 起步
+    + 6 子目录               :done, m1, after c1, 1d
+    section 08 规范演进
+    08 v1.0 初稿              :done, c2a, 2026-05-27, 1d
+    08 v2.0 调研 (ADR 0001-0004) :done, c2b, after c2a, 1d
+    08 v3.0 双图谱定稿         :done, c2c, after c2b, 1d
+    section M3 阶段 2 扩展
+    + code-understanding/     :done, m2, after c2c, 1d
+    section 规范 v2.0 重构
+    01-06 v2.0 全文重构       :done, c3a, 2026-05-27, 1d
+    08 v3.0 落地              :done, c3b, after c3a, 1d
+    section M3 阶段 3 重构
+    §二 1:1 对齐              :done, m3a, after c3b, 1d
+    6 子目录配置重写           :done, m3b, after m3a, 1d
+    v1.0 收尾 (milestone)      :milestone, m10, 2026-05-28, 0d
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">上轨：规范演进（01-06 → 08 v1.0 → 08 v3.0 → v2.0 重构）<br>下轨：src/ 演进（阶段 1 起步 → 阶段 2 扩展 → 阶段 3 重构 → v1.0 收尾）</p>
+    </div>
+
+    <h3>关键里程碑 · 时间线视图</h3>
+    <div class="tl">
+      <div class="tl-item">
+        <h5>2026-05-26 · 规范 01-06 起步 <span class="ver">[规范发布]</span></h5>
+        <p>01-06 原始规范（architecture / coding / git / api / testing / documentation）正式发布。规范文本 + 红线 + §二 落地段全部就绪。</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-26 · M3 阶段 1 起步 <span class="ver">[src +6]</span></h5>
+        <p>6 个子目录（architecture / coding / git / api / testing / documentation）一次性创建。worklog: 2026-05-26_示例代码与仪表盘.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-27 · 08 规范 v1.0 初稿 <span class="ver">[08 v1.0]</span></h5>
+        <p>08 规范初稿：图数据库 + Cypher + Mermaid 渲染。调研方向确定。</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-27 · 08 v2.0 调研 <span class="ver">[ADR 0001-0004]</span></h5>
+        <p>双图谱方案选型。ADR 0001-0004 留痕：选 CodeGraph（AI 用）+ Understand-Anything（人用）+ 教学简化版。</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-27 · 08 v3.0 双图谱定稿 <span class="ver">[08 v3.0]</span></h5>
+        <p>08 规范升 v3.0：双图谱范式（AI + 人 + 教学）三层结构明确。</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-28 · M3 阶段 2 扩展 <span class="ver">[src +1]</span></h5>
+        <p>新增 src/code-understanding/。call_graph_example.py AST 教学实现 + README 指向真工具。worklog: 2026-05-28_08规范v3.0双图谱重构.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-27 · 01-06 规范 v2.0 重构 <span class="ver">[v2.0]</span></h5>
+        <p>01-06 规范整体升 v2.0。规范 §二 落地段重新组织。worklog: 2026-05-27_规范正文v2重构.md</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-27/28 · M3 阶段 3 重构 <span class="ver">[§二 1:1]</span></h5>
+        <p>6 子目录的落地配置 §二 1:1 对齐。naming_bad.py 加 per-file-ignores 豁免。worklog: 2026-05-27/28_规范§二对齐</p>
+      </div>
+      <div class="tl-item">
+        <h5>2026-05-28 · v1.0 收尾 <span class="ver">[milestone]</span></h5>
+        <p>7 子目录、9 落地配置、15 源文件、7 README、12 tests pass、3 BDD 互检全过。M3 模块进入 v1.0 维护期。</p>
+      </div>
+    </div>
+
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 测试策略</div>
+      <h2>3 阶段递进的测试方式</h2>
+      <p>每个阶段都引入了新的测试方式，确保 src/ 模块的可运行性可被持续验证。</p>
+    </section>
+
+    <h3>3 阶段测试方式对照</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · 阶段 1 测试方式</div>
+        <div class="mermaid">
+pie title 阶段 1 起步
+    "人工检阅" : 60
+    "入口可运行" : 40
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · 阶段 2 测试方式</div>
+        <div class="mermaid">
+pie title 阶段 2 扩展
+    "pytest" : 50
+    "call_graph AST 跑通" : 30
+    "人工检阅" : 20
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · 阶段 3 测试方式</div>
+        <div class="mermaid">
+pie title 阶段 3 重构
+    "L4 套件 (tests/conventions/)" : 50
+    "各子目录独立可跑" : 30
+    "BDD 互检" : 20
+        </div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px">阶段</th>
+            <th>测试方式</th>
+            <th>覆盖范围</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num"><b>阶段 1 起步</b></td>
+            <td>人工检阅 + 入口可运行验证</td>
+            <td>6 子目录的 main.py / pytest.ini / pre-commit / fastapi 入口</td>
+          </tr>
+          <tr>
+            <td class="num"><b>阶段 2 扩展</b></td>
+            <td><code>pytest src/testing/</code> 跑测试 + <code>python call_graph_example.py</code> 跑图谱</td>
+            <td>testing + code-understanding 两个子目录</td>
+          </tr>
+          <tr>
+            <td class="num"><b>阶段 3 重构</b></td>
+            <td>L4 测试套件（<code>tests/conventions/</code>）验证 ruff/per-file-ignores 漂移</td>
+            <td>整个 src/ 模块的"规范 ↔ 落地"对齐</td>
+          </tr>
+          <tr>
+            <td class="num"><b>当前</b></td>
+            <td>各子目录独立可跑 + 7 份 README 完整 + BDD 互检</td>
+            <td>7 子目录 + 9 配置 + 12 tests + 3 BDD</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <details class="hook" open>
+      <summary><b>测试策略的关键决策 · 为什么引入 L4 套件</b></summary>
+      <div class="body">
+        <p>阶段 1 起步时只有"入口可跑"验证——这种验证很弱，因为：</p>
+        <ul style="font-size:12.4px;padding-left:20px;margin:6px 0">
+          <li>不能防止"配置文件漏改"（规范 §二 加了规则，但 ruff.toml 没同步）</li>
+          <li>不能防止"教学豁免被滥用"（naming_bad.py 的豁免蔓延到其他文件）</li>
+          <li>不能防止"BDD 互检漂移"（specs 加了场景，但 src/ 没实现）</li>
+        </ul>
+        <p style="margin-top:6px">阶段 3 引入 L4 套件（<code>tests/conventions/</code>）后，这些问题被机器自动拦截——这是 V1.x 强制约束范式的核心改造。</p>
+      </div>
+    </details>
+
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 与红线的关系</div>
+      <h2>V1.0 时点累计触发并解决的红线</h2>
+      <p>本模块 V1.0 时点累计触发并解决的红线统计——大部分是 PR-09 规范同步类，由"改 src/ 必同步规范 §二 + worklog"约束解决。</p>
+    </section>
+
+    <h3>5 类红线触发与处理</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 5 类红线触发次数 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "M3 src 模块红线触发次数"
+    x-axis ["CR-01 跨层", "CR-03 数据", "PR-09 同步", "02 红线", "04 红线"]
+    y-axis "次数" 0 --> 8
+    bar [0, 0, 6, 0, 0]
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:200px">红线类型</th>
+            <th>触发次数</th>
+            <th>处理方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CR-01 跨层调用</td>
+            <td><span class="b-pill ok">0</span></td>
+            <td>architecture/ 设计阶段就守好（importlinter 拦截）</td>
+          </tr>
+          <tr>
+            <td>CR-03 数据模型修改</td>
+            <td><span class="b-pill ok">0</span></td>
+            <td>本模块无产品数据模型</td>
+          </tr>
+          <tr>
+            <td>PR-09 spec 同步</td>
+            <td><span class="b-pill mid">5+</span></td>
+            <td>改 §二 必同步 src/，反之亦然（worklog 留痕）</td>
+          </tr>
+          <tr>
+            <td>02 红线（print/裸 except）</td>
+            <td><span class="b-pill ok">0</span></td>
+            <td><code>naming_bad.py</code> 加 per-file-ignores 豁免</td>
+          </tr>
+          <tr>
+            <td>04 红线（URL 命名）</td>
+            <td><span class="b-pill ok">0</span></td>
+            <td>FastAPI 路由严格按 kebab-case（spectral 拦截）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">!</span>
+      <div>
+        <b>PR-09 是本模块的高频红线</b>——5+ 次触发都来自"改了 src/ 但忘了同步规范 §二"或反之。本模块用"worklog 留痕 + _meta.yaml 路径校验"两道闸门拦截。
+      </div>
+    </div>
+
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 维护清单</div>
+      <h2>5 项必做 · 守住演进纪律</h2>
+      <p>src/ 模块进入 v1.0 维护期后，5 项必做维护动作确保演进纪律不被破坏。</p>
+    </section>
+
+    <h3>5 项必做 · 状态仪表</h3>
+    <div class="grid g2">
+      <div class="card brand">
+        <h4>① 改规范 §二 → 同步 src/ + worklog</h4>
+        <p style="font-size:12.4px">改 <code>conventions/NN-*.md</code> §二 段时，同步加/改对应 <code>src/&lt;维度&gt;/</code> 配置文件，并在 worklog 注明依据。</p>
+        <div class="bar-row" style="margin-top:8px">
+          <div class="lbl" style="width:auto;font-size:11px;flex:0 0 80px">执行率</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>② 改 src/ 配置 → 同步规范 §二 + worklog</h4>
+        <p style="font-size:12.4px">改 <code>src/&lt;维度&gt;/</code> 配置时，同步改规范 §二 段（确保 §二 仍能 1:1 对应）。</p>
+        <div class="bar-row" style="margin-top:8px">
+          <div class="lbl" style="width:auto;font-size:11px;flex:0 0 80px">执行率</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>③ 新增教学示例 → 加到子目录 + 更新 README</h4>
+        <p style="font-size:12.4px">加新教学示例时，加到对应子目录 + 更新 <code>README-&lt;维度&gt;示例.md</code>，确保子目录自治。</p>
+        <div class="bar-row" style="margin-top:8px">
+          <div class="lbl" style="width:auto;font-size:11px;flex:0 0 80px">执行率</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>④ naming_bad.py 故意违规必须保留</h4>
+        <p style="font-size:12.4px">L4 测试复用 — <b>不能因为 ruff 修复就删除</b>。per-file-ignores 豁免是合法手段。</p>
+        <div class="bar-row" style="margin-top:8px">
+          <div class="lbl" style="width:auto;font-size:11px;flex:0 0 80px">保留</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card hl">
+        <h4>⑤ call_graph_example.py 顶部 # ruff: noqa</h4>
+        <p style="font-size:12.4px">改 <code>call_graph_example.py</code> 时，<b>顶部 ruff: noqa 列表要保持</b>。L4 测试断言它包含的豁免项。</p>
+        <div class="bar-row" style="margin-top:8px">
+          <div class="lbl" style="width:auto;font-size:11px;flex:0 0 80px">保留</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>5 项必做 · 进度条仪表</h3>
+    <div class="card" style="padding:14px">
+      <div class="bar-row">
+        <div class="lbl" style="width:auto;font-size:11.5px;flex:0 0 220px">① 改规范 §二 → 同步 src/</div>
+        <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl" style="width:auto;font-size:11.5px;flex:0 0 220px">② 改 src/ → 同步规范 §二</div>
+        <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl" style="width:auto;font-size:11.5px;flex:0 0 220px">③ 新增教学示例同步 README</div>
+        <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl" style="width:auto;font-size:11.5px;flex:0 0 220px">④ naming_bad.py 违规保留</div>
+        <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl" style="width:auto;font-size:11.5px;flex:0 0 220px">⑤ call_graph ruff: noqa 保留</div>
+        <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+    </div>
+
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · 已知瑕疵（非本期范围）</div>
+      <h2>3 项已识别但非本期处理的小瑕疵</h2>
+      <p>V1.0 收尾时点，本模块累计 3 项已知小瑕疵——明确"非本期范围"，列出来供后续收束节点决策是否升级处理。</p>
+    </section>
+
+    <h3>3 项已知瑕疵 · 仪表盘</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 3 项瑕疵的优先级 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "3 项瑕疵影响度 (1=低, 3=高)"
+    x-axis ["_users 模拟", "AST 单语言", "缓存偶提交"]
+    y-axis "影响度" 0 --> 4
+    bar [1, 2, 1]
+      </div>
+    </div>
+
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--warn)">
+        <h4 style="color:var(--warn)">瑕疵 ① · _users 模拟数据库</h4>
+        <p style="font-size:12.4px"><code>src/api/main.py</code> 用 <code>_users</code> 模拟数据库（无持久化）——教学用，刻意为之。真实项目用 Postgres / SQLite。</p>
+        <div class="chip-row">
+          <span class="chip">影响度 1</span>
+          <span class="chip">教学刻意</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--warn)">
+        <h4 style="color:var(--warn)">瑕疵 ② · AST 仅 1 语言</h4>
+        <p style="font-size:12.4px"><code>src/code-understanding/call_graph_example.py</code> 用纯 Python AST 实现（仅 1 语言）——真实项目用 CodeGraph（20+ 语言）。</p>
+        <div class="chip-row">
+          <span class="chip">影响度 2</span>
+          <span class="chip">教学简化</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--warn)">
+        <h4 style="color:var(--warn)">瑕疵 ③ · 缓存偶有提交</h4>
+        <p style="font-size:12.4px"><code>__pycache__</code> / <code>.ruff_cache</code> / <code>.pytest_cache</code> 偶有提交——在 <code>.gitignore</code> 中已忽略，CI 校验通过。</p>
+        <div class="chip-row">
+          <span class="chip">影响度 1</span>
+          <span class="chip">CI 拦截</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note crit">
+      <span class="ico">!</span>
+      <div>
+        <b>跨语言差异由规范正文（07 §三）说明</b>，src/ <b>不重复实现</b>——这是 BDD 互检场景 3 的硬性约束。瑕疵 ② 的"AST 仅 1 语言"不是缺陷，是 07 §三 的边界：跨语言图谱由 CodeGraph 真工具解决，src/ 只演示 Python AST 原理。
+      </div>
+    </div>
+
+    <h3>总览仪表盘 · 圆形进度</h3>
+    <div class="grid g4">
+      <div class="gauge">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#E0DCD0" stroke-width="6"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#3F6B3D" stroke-width="6" stroke-dasharray="163.36" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+          <text x="30" y="34" text-anchor="middle" font-family="serif" font-size="14" font-weight="700" fill="#1F1D17">3</text>
+        </svg>
+        <div class="text">
+          <b>3 阶段</b>
+          <span>5/26 → 5/28</span>
+        </div>
+      </div>
+      <div class="gauge">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#E0DCD0" stroke-width="6"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#8B3A1F" stroke-width="6" stroke-dasharray="163.36" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+          <text x="30" y="34" text-anchor="middle" font-family="serif" font-size="14" font-weight="700" fill="#1F1D17">7</text>
+        </svg>
+        <div class="text">
+          <b>7 子目录</b>
+          <span>6 → 7 演进</span>
+        </div>
+      </div>
+      <div class="gauge">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#E0DCD0" stroke-width="6"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#2F5061" stroke-width="6" stroke-dasharray="163.36" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+          <text x="30" y="34" text-anchor="middle" font-family="serif" font-size="14" font-weight="700" fill="#1F1D17">14</text>
+        </svg>
+        <div class="text">
+          <b>14 worklog</b>
+          <span>3 阶段产出</span>
+        </div>
+      </div>
+      <div class="gauge">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#E0DCD0" stroke-width="6"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#A87A2E" stroke-width="6" stroke-dasharray="163.36" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+          <text x="30" y="34" text-anchor="middle" font-family="serif" font-size="14" font-weight="700" fill="#1F1D17">4</text>
+        </svg>
+        <div class="text">
+          <b>4 ADR</b>
+          <span>08 双图谱选型</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict" style="margin-top:30px">
+      <div class="lbl">VERDICT · M3 src 历史演进路径</div>
+      <h4>3 阶段 × 14 worklog × 4 ADR · §二 1:1 对齐 · 12 tests pass</h4>
+      <p style="font-size:13px;color:var(--txt-dim)">V0.x 起步（独立创作 6 子目录）→ V0.x 扩展（+ code-understanding/，08 升 v3.0 双图谱）→ V0.x 重构（§二 1:1 对齐，6 子目录配置重写，naming_bad.py 豁免）。每阶段都有 worklog + ADR 留痕，最终 v1.0 收尾时点：7 子目录、9 落地配置、15 源文件、7 README、12 tests pass、3 BDD 互检全过。本演进路径的核心价值是建立"规范 ↔ 落地"的双向引用纪律，而不是单纯堆代码。</p>
+    </div>
+
+    <blockquote style="margin-top:30px">
+      "src/ 的演进轨迹，本身就是规范落地方法论的'活文档'。<b>从'独立创作'到'§二 1:1 对齐'</b>，是从'我觉得合理'到'规范要求严格对齐'的范式跃迁。演进过程中的 worklog + ADR 留痕，是后人理解为什么这样设计的最重要档案。"
+      <cite>—— 实现计划 §一 总览</cite>
+    </blockquote>
+
+    <hr class="div">
+
+    <p style="text-align:center;font-size:11px;color:var(--txt-faint);font-family:var(--mono);margin-top:20px">
+      M3 src 示例代码 · 实现计划 v1.0 · 2026-06-10 · 配套 <a href="设计.html" style="color:var(--brand)">设计.html</a>
+    </p>
+
+  </main>
+</div>
+</body>
+</html>

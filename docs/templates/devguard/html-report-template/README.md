@@ -58,6 +58,7 @@ python -m http.server 8080
 ## 集成到 CI
 
 `.github/workflows/ci.yml` 的 `build` 阶段可加：
+
 ```yaml
 - name: Render dashboard
   run: |

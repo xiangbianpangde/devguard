@@ -27,9 +27,7 @@ class DiscountCalculator:
     BULK_DISCOUNT_RATE = 0.9  # 满 5 件 9 折
     BULK_THRESHOLD = 5
 
-    def calculate(
-        self, original: float, quantity: int, is_vip: bool = False
-    ) -> DiscountResult:
+    def calculate(self, original: float, quantity: int, is_vip: bool = False) -> DiscountResult:
         """计算折扣后的最终价格。
 
         Args:
@@ -46,14 +44,12 @@ class DiscountCalculator:
 
         if is_vip:
             discount = total * (1 - self.VIP_DISCOUNT_RATE)
-            reasons.append(f"VIP {self.VIP_DISCOUNT_RATE*100:.0f}% 折扣")
+            reasons.append(f"VIP {self.VIP_DISCOUNT_RATE * 100:.0f}% 折扣")
 
         if quantity >= self.BULK_THRESHOLD:
             bulk_discount = total * (1 - self.BULK_DISCOUNT_RATE)
             discount = max(discount, bulk_discount)  # 取最优折扣
-            reasons.append(
-                f"满{self.BULK_THRESHOLD}件 {self.BULK_DISCOUNT_RATE*100:.0f}% 折扣"
-            )
+            reasons.append(f"满{self.BULK_THRESHOLD}件 {self.BULK_DISCOUNT_RATE * 100:.0f}% 折扣")
 
         if not reasons:
             reasons.append("无折扣")

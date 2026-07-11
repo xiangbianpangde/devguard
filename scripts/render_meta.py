@@ -44,6 +44,41 @@ HOOK_SORT_PRIORITY = {
 }
 
 
+def _yaml_bool(value: object) -> str:
+    return "true" if value else "false"
+
+
+def _normalize_lf(content: str) -> str:
+    """Normalize CRLF and CR to LF without changing EOF count."""
+    normalized = content.replace("\r\n", "\n")
+    return normalized.replace("\r", "\n")
+
+
+def _canonical_text(content: str) -> str:
+    """Return canonical LF text with exactly one terminal newline."""
+    normalized = _normalize_lf(content)
+    return normalized.rstrip("\n") + "\n"
+
+
+def _read_text_preserving_newlines(path: Path) -> str:
+    """Read UTF-8 without universal-newline translation so drift is detectable."""
+    with path.open(encoding="utf-8", newline="") as file_handle:
+        content = file_handle.read()
+    return content
+
+
+def _write_canonical_text(path: Path, content: str) -> None:
+    """Write UTF-8 with canonical LF and exactly one terminal newline."""
+    canonical_content = _canonical_text(content)
+    with path.open("w", encoding="utf-8", newline="\n") as file_handle:
+        file_handle.write(canonical_content)
+
+
+def _is_markdown(path: Path) -> bool:
+    """Return whether grade metadata may be rendered into this file."""
+    return path.suffix.lower() == ".md"
+
+
 def load_meta() -> dict:
     """读 _meta.yaml（UTF-8 强制，避免 Windows ANSI 损坏中文）"""
     if not META_FILE.exists():
@@ -80,7 +115,15 @@ def render_pre_commit_config(meta: dict) -> str:
                 repo_entry["rev"] = hook["rev"]
             repos[repo_key] = repo_entry
         hook_def: dict = {"id": hook["id"]}
-        for k in ("args", "stages", "config", "entry", "language", "name"):
+        for k in (
+            "args",
+            "stages",
+            "config",
+            "entry",
+            "language",
+            "name",
+            "pass_filenames",
+        ):
             if k in hook:
                 hook_def[k] = hook[k]
         repos[repo_key]["hooks"].append(hook_def)
@@ -133,9 +176,12 @@ def render_pre_commit_config(meta: dict) -> str:
                 lines.append(f"        entry: {hook['entry']}")
             if "language" in hook:
                 lines.append(f"        language: {hook['language']}")
+            if "pass_filenames" in hook:
+                lines.append(f"        pass_filenames: {_yaml_bool(hook['pass_filenames'])}")
         lines.append("")
 
-    return "\n".join(lines)
+    rendered = "\n".join(lines)
+    return _canonical_text(rendered)
 
 
 def render_convention_grade_section(conv: dict) -> str:
@@ -204,10 +250,14 @@ def render_convention_grade(meta: dict) -> list[Path]:
             # 目录型规范（如 ai-workflow）：分级存在 _meta.yaml 即可，文档不渲染
             print(f"SKIP 目录型规范（分级在 _meta.yaml，文档不渲染）: {file_rel}")
             continue
+        if not _is_markdown(path):
+            print(f"SKIP 非 Markdown 文件（不渲染分级标签）: {file_rel}")
+            continue
         if not path.exists():
             print(f"SKIP 规范文件不存在: {file_rel}", file=sys.stderr)
             continue
-        content = path.read_text(encoding="utf-8")
+        source_content = _read_text_preserving_newlines(path)
+        content = _normalize_lf(source_content)
         # 幂等：先剥离已有的
         content, _ = _strip_existing_grade_section(content)
         # 找到第一个 # 标题（顶级标题）位置
@@ -220,9 +270,7 @@ def render_convention_grade(meta: dict) -> list[Path]:
         # 生成新小节
         new_section = render_convention_grade_section(conv)
         new_lines = lines[:insert_idx] + new_section.splitlines() + lines[insert_idx:]
-        new_content = "\n".join(new_lines)
-        # 写回（用 LF 统一——跨平台一致，end-of-file-fixer 会加 1 个 \n）
-        path.write_text(new_content, encoding="utf-8", newline="\n")
+        _write_canonical_text(path, "\n".join(new_lines))
         written.append(path)
     return written
 
@@ -231,7 +279,7 @@ def render_target(target: str, meta: dict) -> list[Path] | None:
     """渲染指定 target，返回写入的文件路径列表；不支持的 target 返回 None"""
     if target == "pre-commit-config":
         content = render_pre_commit_config(meta)
-        PRE_COMMIT_CONFIG.write_text(content, encoding="utf-8")
+        _write_canonical_text(path=PRE_COMMIT_CONFIG, content=content)
         return [PRE_COMMIT_CONFIG]
     if target == "convention-grade":
         return render_convention_grade(meta)
@@ -245,7 +293,7 @@ def check_target(target: str, meta: dict) -> tuple[bool, str]:
             return False, f"{PRE_COMMIT_CONFIG.name} 不存在（跑 --render 生成）"
         try:
             expected = render_pre_commit_config(meta)
-            actual = PRE_COMMIT_CONFIG.read_text(encoding="utf-8")
+            actual = _read_text_preserving_newlines(path=PRE_COMMIT_CONFIG)
             if expected != actual:
                 return False, (
                     f"{PRE_COMMIT_CONFIG.name} 与 _meta.yaml 不一致。"
@@ -263,11 +311,14 @@ def check_target(target: str, meta: dict) -> tuple[bool, str]:
             path = REPO_ROOT / file_rel
             if path.is_dir():
                 continue
+            if not _is_markdown(path):
+                continue  # Native formats must remain untouched.
             if not path.exists():
                 mismatches.append(f"规范文件不存在: {file_rel}")
                 continue
-            content = path.read_text(encoding="utf-8")
-            content_stripped, _ = _strip_existing_grade_section(content)
+            content = _read_text_preserving_newlines(path)
+            normalized_content = _normalize_lf(content)
+            content_stripped, _ = _strip_existing_grade_section(normalized_content)
             expected_section = render_convention_grade_section(conv)
             lines = content_stripped.splitlines()
             insert_idx = 0
@@ -275,9 +326,8 @@ def check_target(target: str, meta: dict) -> tuple[bool, str]:
                 if line.startswith("# ") and not line.startswith("#!"):
                     insert_idx = i
                     break
-            expected_full = "\n".join(
-                lines[:insert_idx] + expected_section.splitlines() + lines[insert_idx:]
-            )
+            expected_lines = lines[:insert_idx] + expected_section.splitlines() + lines[insert_idx:]
+            expected_full = _canonical_text("\n".join(expected_lines))
             if content != expected_full:
                 mismatches.append(
                     f"{path.relative_to(REPO_ROOT)} 的 ## 分级标签 与 _meta.yaml 不一致"

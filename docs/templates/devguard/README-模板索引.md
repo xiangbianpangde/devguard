@@ -1,41 +1,56 @@
-# 模板索引（devguard）
+# DevGuard 模板索引
 
-> V0.1 期间已写，V0.2 清理 untracked 后丢失，V8.2 重建
-> 维护者: 袁 (xiangbianpangde) | 重建: 2026-06-07
+> 更新: 2026-07-11
 
-## 模板目录
+## 可部署入口（权威）
 
-```
-docs/templates/devguard/
-├── .github/                  # GitHub Actions workflow 模板（lint + test + ci）
-├── .markdownlint.json        # markdownlint 配置（V3.1 启用）
-├── .markdownlintignore       # markdownlint 排除（cli 兜底）
-├── conventions/              # 8 篇规范模板（01-08 + ai-workflow/）
-├── html-report-template/     # 仪表盘模板（render.py + index.html + README）
-├── importlinter.ini          # 01-architecture 架构分层契约
-├── scripts/                  # L1 检测脚本（V5+ 推广）
-│   ├── check_ai_workflow.py  # 07 章节级 L1
-│   ├── check_code_understanding.py  # 08 章节级 L1
-│   ├── collect_l4_stats.py   # V6.3 L4 自动收集
-│   ├── check_worklog_ref.py  # 03-git worklog 引用
-│   ├── check_compliance.py   # 阶段 4 合规扫描
-│   ├── lint_markdown.py      # V3.1 markdown 包装
-│   └── render_meta.py        # 真源 -> 产物渲染
-└── src/                      # 示例代码（V0.3 后清理 src/coding/）
-    └── coding/ruff.toml      # ruff 全配置（V0.3 同步）
+不要再把 `docs/templates/devguard/` 整目录复制到新项目。该目录还保存仪表盘、
+最终报告和历史兼容素材，整目录复制不等于依赖闭包。
+
+新项目只通过显式 manifest 初始化：
+
+```powershell
+py -3.11 scripts\setup_scaffold.py C:\path\to\new-project --profile core --project-name "My Project" --install
 ```
 
-## 模板使用流程
+这一条命令会创建实例化后的 `README.md`、`STATUS.md`、`CLAUDE.md`、计划文档、
+最小 CI、固定版本依赖与本地虚拟环境，并安装 `pre-commit` 和 `commit-msg` 两种
+hook。初始化结束前会执行 fail-closed 自检；任一文件、依赖或 hook 缺失都会返回
+非零退出码。
 
-1. **复制 `docs/templates/devguard/` 到新项目**
-2. **替换真源**：把 `conventions/_meta.yaml` + `STATUS.md` 改成新项目内容
-3. **跑渲染**：`python scripts/render_meta.py --render all` 生成 `.pre-commit-config.yaml`
-4. **装 hook**：`pre-commit install --hook-type commit-msg`
-5. **CI**：把 `.github/workflows/ci.yml` 复制到新项目
-6. **L1 检测**：复制 `scripts/check_*.py` 到新项目
+机器已有 ECC/其他全局 `core.hooksPath` 时，初始化器不会修改用户全局配置；它会
+把现有 `pre-commit` / `pre-push` 与 DevGuard 项目 Hook 串联，并把项目本地
+`.git/hooks` 设为有效 Hook 路径。复验会拒绝“文件已生成但 Git 实际忽略”的假安装。
+生成项目可随时运行 `.\.venv\Scripts\python.exe scripts\install_hooks.py --root .`
+重装或修复组合 Hook，无需修改用户级 Git 配置。
 
-## 版本对应
+已有目录默认拒绝写入。只有 Owner 明确确认覆盖风险后才使用 `--force`；该参数只
+覆盖 manifest 同名目标，不删除目录内其他文件。
 
-- V0.1 期间：初始 5 个钩子 + 5 阶段 CI + 35 个功能点
-- V0.3 重构：8 规范齐全 + 10 钩子 pre-commit
-- V0.8 重建：本 README + 11 个 scripts/ 脚本
+## Profile
+
+| Profile | 内容 | 适用场景 |
+|---------|------|----------|
+| `core` | 根文档、计划、Git 属性、依赖、双阶段 hooks、最小治理 CI、自检与测试 | 个人或小型项目 |
+| `optional` | `core` 全部内容 + CODEOWNERS、决策与报告目录 | 团队项目 |
+
+脚手架源文件位于 `scaffold/core/` 与 `scaffold/optional/`。复制范围由
+`scripts/setup_scaffold.py` 的 `CORE_MANIFEST` / `OPTIONAL_MANIFEST` 唯一确定，
+目录遍历不会自动把临时文件带入目标。
+
+## 只验证，不写入
+
+```powershell
+py -3.11 scripts\setup_scaffold.py C:\path\to\project --verify --require-hooks
+```
+
+profile 默认从目标的 `.devguard.json` 读取，也可显式传 `--profile optional`。
+
+## 其他模板资产
+
+- `html-report-template/`：本仓仪表盘 HTML 渲染素材；由
+  `scripts/render_dashboard.py` 跨平台入口调用。
+- `final-report-template/`：高密度最终报告素材，不属于初始化 core 闭包。
+- 目录根部旧配置/脚本：仅用于本仓历史同步与兼容，不是新项目部署入口。
+
+物理载荷禁止出现 `.tmp`、`.bak`、`.pyc` 或 `__pycache__`。

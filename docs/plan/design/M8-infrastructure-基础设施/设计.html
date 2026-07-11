@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M8 基础设施 · 现状设计</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true }
+    });
+    }
+
+    // Tab
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // Progress bar
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){ b.classList.add('armed'); });
+    }, 300);
+
+    // Counter
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  });
+
+  // Commit simulator
+  function simRun(mode){
+    var steps = document.querySelectorAll('#simSteps .sim-step');
+    var i = 0;
+    function clearAll(){
+      steps.forEach(function(s){s.classList.remove('run','fail');s.querySelector('.glyph').textContent='○'});
+    }
+    clearAll();
+    var failAt = (mode === 'good') ? -1 : (mode === 'bad-sec' ? 3 : 5);
+
+    function runOne(){
+      if (i >= steps.length){
+        var finalMsg = document.getElementById('simFinal');
+        if (finalMsg) finalMsg.textContent = (mode==='good') ? '✓ 8/8 全绿 · commit 接受 · 触发 CI' : '✗ 拦截成功 · commit 被拒';
+        return;
+      }
+      var s = steps[i];
+      if (i === failAt){
+        s.classList.add('fail');
+        s.querySelector('.glyph').textContent = '✗';
+      } else {
+        s.classList.add('run');
+        s.querySelector('.glyph').textContent = '✓';
+      }
+      i++;
+      setTimeout(runOne, 320);
+    }
+    runOne();
+  }
+  function simReset(){
+    document.querySelectorAll('#simSteps .sim-step').forEach(function(s){
+      s.classList.remove('run','fail');
+      s.querySelector('.glyph').textContent='○';
+    });
+    var fm = document.getElementById('simFinal');
+    if (fm) fm.textContent = '点击下方按钮 · 模拟一次 commit';
+  }
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;
+    --brand-2:#A85032;
+    --accent:#2F5061;
+    --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .code-block .err{color:#E07A6A;font-weight:700;background:rgba(224,122,106,.15);padding:1px 4px;border-radius:3px}
+
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line);font-family:var(--mono)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-family:var(--sans);font-weight:600}
+  .matrix td.yes{background:rgba(63,107,61,.18);color:var(--good);font-weight:700}
+  .matrix td.partial{background:rgba(176,127,34,.18);color:var(--warn);font-weight:700}
+  .matrix td.no{background:rgba(156,58,46,.13);color:var(--bad);font-weight:700}
+  .matrix td.ours{background:rgba(47,80,97,.12);color:var(--accent);font-weight:700}
+  .matrix td.ours-yes{background:rgba(63,107,61,.25);color:var(--good);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--accent)}
+
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:36px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:15px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);
+    background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;
+    font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;
+    transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);
+    z-index:100;
+  }
+  .tip .tipbox::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1F1D17;
+  }
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);margin:14px 0}
+  .sim h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .sim h4 .ind{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(63,107,61,.2);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(63,107,61,.2)}50%{box-shadow:0 0 0 6px rgba(63,107,61,.05)}}
+  .sim .sim-step{
+    padding:7px 11px;background:var(--bg-soft);border:1px solid var(--line-soft);
+    border-radius:7px;margin:5px 0;font-family:var(--mono);font-size:11.5px;
+    color:var(--txt-dim);display:flex;align-items:center;gap:8px;transition:.3s;
+  }
+  .sim .sim-step.run{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:600}
+  .sim .sim-step.fail{background:#EFD5CD;border-color:#C89589;color:var(--bad);font-weight:600}
+  .sim .sim-step .glyph{width:16px;text-align:center;flex:0 0 auto;font-weight:700}
+  .sim .btn-row{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .sim button{
+    padding:5px 12px;font-size:11.5px;background:var(--panel);border:1px solid var(--line);
+    border-radius:5px;cursor:pointer;font-family:var(--mono);transition:.18s;color:var(--txt-dim);
+  }
+  .sim button:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .sim button.danger:hover{background:var(--bad);border-color:var(--bad)}
+  .sim button.good:hover{background:var(--good);border-color:var(--good)}
+  .sim .sim-final{margin-top:10px;padding:8px 11px;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;font-size:12px;color:var(--txt-dim);font-family:var(--mono)}
+
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M8</div>
+      <div>
+        <b>基础设施</b>
+        <span>强制约束防线</span>
+      </div>
+    </div>
+    <div class="meta">5 阶段 CI<br>10 pre-commit 钩子<br>65 L4 tests<br>6 治理文件</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 模块定位</a>
+      <a href="#s2"><span class="n">02</span> 目录结构</a>
+      <a href="#s3"><span class="n">03</span> CI 5 阶段</a>
+      <a href="#s4"><span class="n">04</span> 10 钩子</a>
+      <a href="#s5"><span class="n">05</span> L4 65 tests</a>
+      <a href="#s6"><span class="n">06</span> 治理矩阵</a>
+      <a href="#s7"><span class="n">07</span> 钩子×CI 覆盖</a>
+      <a href="#s8"><span class="n">08</span> 完整防线</a>
+      <a href="#s9"><span class="n">09</span> 边界降级</a>
+      <a href="#s10"><span class="n">10</span> 收束标准</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill br">M8 基础设施</span>
+        <span class="b-pill inf">5 阶段 CI</span>
+        <span class="b-pill inf">10 钩子</span>
+        <span class="b-pill inf">65 L4 tests</span>
+        <span class="b-pill inf">6 治理文件</span>
+        <span class="b-pill ok">86 组件协同</span>
+      </div>
+      <h1>M8 infrastructure · 现状设计</h1>
+      <p class="sub">devguard 强制约束防线——把 M1 conventions/ 的 34 条红线以可执行形态落到 3 个地方：本地拦截（pre-commit 10 钩子）、服务端拦截（CI 5 阶段）、规范自检（L4 65 tests）。</p>
+      <div class="meta-row">
+        <span>版本 v1.0</span>
+        <span>•</span>
+        <span>2026-06-10</span>
+        <span>•</span>
+        <span>同步纪律：[infra] 标记 + templates 同步</span>
+        <span>•</span>
+        <span>dogfood 已 8 次拦截</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>模块定位</b><span style="font-size:11px;color:var(--txt-faint)">是什么 / 不是什么</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>CI 5 阶段详解</b><span style="font-size:11px;color:var(--txt-faint)">lint / test / l4 / compliance / build</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>10 钩子详解</b><span style="font-size:11px;color:var(--txt-faint)">pre-commit + commit-msg 双层</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>L4 65 tests 概览</b><span style="font-size:11px;color:var(--txt-faint)">8 规范 + 2 meta 文件</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>治理矩阵</b><span style="font-size:11px;color:var(--txt-faint)">6 治理文件 × 4 防线</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>钩子×CI 覆盖</b><span style="font-size:11px;color:var(--txt-faint)">3 防线冗余设计</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>完整防线流程</b><span style="font-size:11px;color:var(--txt-faint)">commit → push → CI 端到端</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>边界与降级</b><span style="font-size:11px;color:var(--txt-faint)">7 场景 + 3 明确不做</span></div></a>
+      <a href="#s10"><div class="ix">10</div><div><b>验收标准</b><span style="font-size:11px;color:var(--txt-faint)">6 维硬指标 + dogfood</span></div></a>
+    </div>
+
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · 核心数据 · 一眼可读</div>
+      <h2>M8 设施数据看板</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="5">0</span></div>
+        <div class="lbl">CI 阶段</div>
+        <div class="sub">lint / test / l4 / compliance / build</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="10">0</span></div>
+        <div class="lbl">pre-commit 钩子</div>
+        <div class="sub">pre-commit 9 + commit-msg 1</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="65">0</span></div>
+        <div class="lbl">L4 测试</div>
+        <div class="sub">tests/conventions/ 10 个文件</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="86">0</span></div>
+        <div class="lbl">组件数</div>
+        <div class="sub">5+10+65+6 协同集合</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="34">0</span></div>
+        <div class="lbl">规范红线</div>
+        <div class="sub">17 规范 累计 34 条</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="6">0</span></div>
+        <div class="lbl">治理文件</div>
+        <div class="sub">CODEOWNERS / commitlint / ...</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="8">0</span></div>
+        <div class="lbl">dogfood 拦截</div>
+        <div class="sub">V2.0.1 实证 8 次</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="100">0</span><span style="font-size:18px;color:var(--txt-faint);margin-left:2px">%</span></div>
+        <div class="lbl">强制开启</div>
+        <div class="sub">禁用需走 ADR</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">M8 防线健康度 · 5 维仪表</h3>
+    <div class="grid g5">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">本地拦截</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val">10/10</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">服务端兜底</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill"></div></div>
+          </div>
+          <div class="val">5/5</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">L4 自证</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div>
+          </div>
+          <div class="val">65/65</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">治理覆盖</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div>
+          </div>
+          <div class="val">6/6</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">dogfood</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val">8 拦</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">▌</span>
+      <div>
+        <b>核心范式</b>：M8 把 M1 规范从"<b>人读的文件</b>"转化为"<b>机器可拦截的可执行网</b>"。
+        5+10+65+6 = <b>86 组件</b>协同：<b>本地拦截</b>（pre-commit 10 钩子）→ <b>服务端兜底</b>（CI 5 阶段）→ <b>规范自证</b>（L4 65 tests）→ <b>治理闭环</b>（6 治理文件）。
+      </div>
+    </div>
+
+    <section id="s1" class="sec-head" style="margin-top:50px">
+      <div class="tag">01 · 模块定位</div>
+      <h2>它是什么 / 不是什么</h2>
+      <p class="lead">M8 infrastructure 是 devguard 的强制约束防线。
+      把 M1 conventions/ 定义的 34 条红线以可执行形态落到 3 个地方：本地拦截、服务端拦截、规范自检。</p>
+    </section>
+
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4 style="color:var(--good)">它是什么</h4>
+        <p>devguard 强制约束防线的<b>基础设施层</b>，由 86 个组件协同构成：</p>
+        <div class="chip-row">
+          <span class="chip gd">5 阶段 CI 流水线</span>
+          <span class="chip gd">10 pre-commit 钩子</span>
+          <span class="chip gd">65 L4 测试</span>
+          <span class="chip gd">6 治理配置文件</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">它不是什么</h4>
+        <p><b>不是</b>规范定义地（规范在 conventions/ M1），<b>不是</b>单一文件，<b>不是</b>可选开关（禁用需走 ADR）：</p>
+        <div class="chip-row">
+          <span class="chip no">规范定义：M1 管辖</span>
+          <span class="chip no">单文件：5+10+65+6 集合</span>
+          <span class="chip no">可选：默认全开</span>
+        </div>
+      </div>
+      <div class="card hl">
+        <h4>三道防线</h4>
+        <p>Fast-fail / 服务端兜底 / 自证正确——<b>纵深防御</b>：</p>
+        <div class="chip-row">
+          <span class="chip b">本地拦截 (秒级)</span>
+          <span class="chip b">CI 兜底 (分钟级)</span>
+          <span class="chip b">L4 自证 (持续)</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>三道防线 · Mermaid 架构图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M8 强制约束范式三层架构 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    subgraph SRC["规范源 M1"]
+        CON["conventions/ 01-17<br/>34 条红线"]
+    end
+    subgraph L1["L1 · 本地拦截 (pre-commit)"]
+        PC["10 钩子<br/>pre-commit 9 + commit-msg 1<br/>秒级 fail-fast"]
+    end
+    subgraph L2["L2 · 服务端兜底 (CI)"]
+        CI["5 阶段流水线<br/>lint / test / l4 / compliance / build"]
+    end
+    subgraph L3["L3 · 规范自证 (L4)"]
+        L4["65 tests / 10 文件<br/>tests/conventions/"]
+    end
+    subgraph GOV["治理层"]
+        GF["6 治理文件<br/>CODEOWNERS / commitlint<br/>markdownlint / gitleaks<br/>spectral / importlinter"]
+    end
+
+    CON -. "红线落地" .-> PC
+    CON -. "红线落地" .-> CI
+    CON -. "红线落地" .-> L4
+    GF -. "配置支撑" .-> PC
+    GF -. "配置支撑" .-> CI
+
+    PC -- "✓ pass" --> CI
+    CI -- "✓ 5/5 pass" --> L4
+    L4 -- "闭环：违规→改规范<br/>→改钩子→加测试" --> CON
+
+    classDef gateNode fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    classDef testNode fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef passNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class CI gateNode
+    class L4 testNode
+    class PC passNode
+      </div>
+    </div>
+
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · 目录结构</div>
+      <h2>仓库根分散布局 · 6 大类文件</h2>
+      <p>infra 相关文件分散在仓库根的 6 个位置，<b>同步纪律</b>：改根目录任一配置 → 必须同步 docs/templates/devguard/ 对应文件 → commit message 加 <code>[infra]</code> 标记。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card">
+        <h4>.github/ · CI 与治理</h4>
+        <p><code>workflows/ci.yml</code>（5 阶段 · 173 行）+ <code>CODEOWNERS</code>（14 行 · PR 自动 assign 审查者）。</p>
+        <div class="chip-row">
+          <span class="chip br">ci.yml 173 行</span>
+          <span class="chip br">CODEOWNERS 14 行</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>.pre-commit-config.yaml · 钩子清单</h4>
+        <p>10 钩子（54 行）—— 由 <code>render_meta.py</code> 从 <code>_meta.yaml</code> 渲染而来。</p>
+        <div class="chip-row">
+          <span class="chip br">10 钩子</span>
+          <span class="chip br">render_meta 产物</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>6 治理文件 · 散落根目录</h4>
+        <p>commitlint / markdownlint / gitleaks / spectral / importlinter / CODEOWNERS —— 各自服务一个规范。</p>
+        <div class="chip-row">
+          <span class="chip">commitlint.config.js</span>
+          <span class="chip">.markdownlint.json</span>
+          <span class="chip">.gitleaks.toml</span>
+          <span class="chip">.spectral.yaml</span>
+          <span class="chip">importlinter.ini</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>tests/conventions/ · L4 套件</h4>
+        <p>10 个测试文件 / 65 条 tests / ~2s 跑完。AST 静态分析 + 配置存在性 + 正则匹配红线。</p>
+        <div class="chip-row">
+          <span class="chip b">8 spec</span>
+          <span class="chip b">+ meta_l1</span>
+          <span class="chip b">+ perf_baseline</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>scripts/ · 钩子可执行后端（M4 管辖）</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">7 个 Python 脚本——由 M4 模块管理，本模块是它们的使用方。</p>
+    <div class="grid g3">
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">render_meta.py</h4>
+        <p style="font-size:11.5px">渲染 <code>.pre-commit-config.yaml</code> + <code>dashboard.html</code>，CI test 阶段调 --check 防漂移。</p>
+        <div class="chip-row">
+          <span class="chip b">CI test</span>
+          <span class="chip b">build</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">check_compliance.py</h4>
+        <p style="font-size:11.5px">CI compliance 阶段用，验证 6 治理类文件存在性 + 格式。</p>
+        <div class="chip-row">
+          <span class="chip b">CI compliance</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">check_worklog_ref.py</h4>
+        <p style="font-size:11.5px">pre-commit 钩子用，校验 commit message 引用 worklog。</p>
+        <div class="chip-row">
+          <span class="chip br">commit-msg 钩子</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">lint_markdown.py</h4>
+        <p style="font-size:11.5px">pre-commit 钩子 + CI lint 阶段用，调 pymarkdownlnt。</p>
+        <div class="chip-row">
+          <span class="chip br">pre-commit</span>
+          <span class="chip b">CI lint</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">check_ai_workflow.py</h4>
+        <p style="font-size:11.5px">CI l4 阶段用（V6.1 章节级 L1），扫 07-ai-workflow §一 红线数。</p>
+        <div class="chip-row">
+          <span class="chip b">CI l4</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">check_code_understanding.py</h4>
+        <p style="font-size:11.5px">CI l4 阶段用（V6.1 章节级 L1），验证 08 双图谱文件存在。</p>
+        <div class="chip-row">
+          <span class="chip b">CI l4</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">⚠</span>
+      <div>
+        <b>同步纪律</b>：所有根目录配置（除 tests/ 与 scripts/）在 <code>docs/templates/devguard/</code> 下都有<b>权威副本</b>。
+        改任一配置 → 必须同步 templates → commit 加 <code>[infra]</code> 标记 → 触发 V0.1 CI 兜底。
+      </div>
+    </div>
+
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · CI 5 阶段详解</div>
+      <h2>服务端兜底：5 阶段串行 · 1 fail 全 fail</h2>
+      <p><code>.github/workflows/ci.yml</code> 5 阶段流水线（173 行），<b>build 阶段依赖前 4 阶段全部 PASS</b>。PR 合并前必须全部绿。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · CI 5 阶段依赖图 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    L["阶段1 lint<br/>ruff / gitleaks / markdownlint"]:::stage
+    T["阶段2 test<br/>render_meta --check + pytest --co"]:::stage
+    L4["阶段3 l4-conventions<br/>pytest tests/conventions/ 65 tests"]:::stage
+    CMP["阶段4 compliance<br/>check_compliance.py"]:::stage
+    B["阶段5 build<br/>compileall + render + diff"]:::gate
+
+    L --> B
+    T --> L4
+    T --> CMP
+    L4 --> B
+    CMP --> B
+
+    classDef stage fill:#E8E1D2,stroke:#5A5447,color:#1F1D17
+    classDef gate fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    class L,T,L4,CMP stage
+    class B gate
+      </div>
+    </div>
+
+    <h3>阶段 1 · lint（L1 自动检查）</h3>
+    <div class="code-block"><span class="cm"># .github/workflows/ci.yml · lint job</span>
+<span class="fn">lint</span>:
+  <span class="kw">name</span>: L1 lint (ruff + gitleaks)
+  <span class="kw">steps</span>:
+    - <span class="kw">run</span>: ruff check . --config src/coding/ruff.toml
+    - <span class="kw">run</span>: gitleaks detect --source . --config .gitleaks.toml
+    - <span class="kw">run</span>: python scripts/lint_markdown.py</div>
+    <div class="grid g2" style="margin-top:10px">
+      <div class="card">
+        <h4>做什么</h4>
+        <p>跑 02 编码 + 06 文档 + 14 安全的 L1 检测。</p>
+        <div class="chip-row">
+          <span class="chip">F401 未用 import</span>
+          <span class="chip">T201 print</span>
+          <span class="chip">N806 命名</span>
+          <span class="chip">AWS Key 检测</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>阻断什么</h4>
+        <p>代码风格 / 密钥泄漏 / 文档格式问题——<b>最先跑，独立</b>。</p>
+        <div class="chip-row">
+          <span class="chip no">代码风格违规</span>
+          <span class="chip no">密钥泄漏</span>
+          <span class="chip no">文档格式</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>阶段 2 · test（pytest 收集 + 真源校验）</h3>
+    <div class="code-block"><span class="cm"># .github/workflows/ci.yml · test job</span>
+<span class="fn">test</span>:
+  <span class="kw">name</span>: pytest + cov gate
+  <span class="kw">steps</span>:
+    - <span class="kw">run</span>: python scripts/render_meta.py --render convention-grade
+    - <span class="kw">run</span>: python scripts/render_meta.py --check
+    - <span class="kw">run</span>: pytest -q --co</div>
+    <div class="grid g2" style="margin-top:10px">
+      <div class="card">
+        <h4>做什么</h4>
+        <p>渲染工作区 + 校验真源产物无漂移 + pytest 收集。</p>
+        <div class="chip-row">
+          <span class="chip b">render --render</span>
+          <span class="chip b">render --check</span>
+          <span class="chip b">pytest --co</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>阻断什么</h4>
+        <p>_meta.yaml 改了没渲染 / pytest 不可收集。</p>
+        <div class="chip-row">
+          <span class="chip no">真源漂移</span>
+          <span class="chip no">pytest 不可收集</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>阶段 3 · l4-conventions（L4 规范测试）</h3>
+    <div class="code-block"><span class="cm"># .github/workflows/ci.yml · l4-conventions job</span>
+<span class="fn">l4-conventions</span>:
+  <span class="kw">name</span>: L4 convention tests
+  <span class="kw">needs</span>: test
+  <span class="kw">steps</span>:
+    - <span class="kw">run</span>: pytest tests/conventions/ -v
+    - <span class="kw">run</span>: python scripts/check_ai_workflow.py
+    - <span class="kw">run</span>: python scripts/check_code_understanding.py</div>
+    <div class="grid g2" style="margin-top:10px">
+      <div class="card">
+        <h4>做什么</h4>
+        <p>跑 65 条 L4 测试 + V6.1 章节级 L1（07/08）。</p>
+        <div class="chip-row">
+          <span class="chip gd">65 L4 tests</span>
+          <span class="chip gd">07 §一 红线数</span>
+          <span class="chip gd">08 双图谱文件</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>阻断什么</h4>
+        <p>规范文件结构错误 / 章节缺失 / L1 工具名漂移。</p>
+        <div class="chip-row">
+          <span class="chip no">结构错误</span>
+          <span class="chip no">章节缺失</span>
+          <span class="chip no">工具名漂移</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>阶段 4 · compliance（合规扫描）</h3>
+    <div class="code-block"><span class="cm"># .github/workflows/ci.yml · compliance job</span>
+<span class="fn">compliance</span>:
+  <span class="kw">name</span>: Compliance scan
+  <span class="kw">needs</span>: test
+  <span class="kw">steps</span>:
+    - <span class="kw">run</span>: python scripts/check_compliance.py</div>
+    <div class="grid g2" style="margin-top:10px">
+      <div class="card">
+        <h4>做什么</h4>
+        <p>验证 6 治理类文件存在性 + 格式（11-17 规范产物）。</p>
+        <div class="chip-row">
+          <span class="chip gl">CODEOWNERS</span>
+          <span class="chip gl">LICENSE</span>
+          <span class="chip gl">CHANGELOG</span>
+          <span class="chip gl">SECURITY</span>
+          <span class="chip gl">SUPPORT</span>
+          <span class="chip gl">CONTRIBUTING</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>阻断什么</h4>
+        <p>治理类规范文件缺失或格式错误。</p>
+        <div class="chip-row">
+          <span class="chip no">文件缺失</span>
+          <span class="chip no">格式错误</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>阶段 5 · build（构建验证）</h3>
+    <div class="code-block"><span class="cm"># .github/workflows/ci.yml · build job</span>
+<span class="fn">build</span>:
+  <span class="kw">name</span>: Build verification
+  <span class="kw">needs</span>: [lint, test, l4-conventions, compliance]
+  <span class="kw">steps</span>:
+    - <span class="kw">run</span>: python -m compileall src/ -q
+    - <span class="kw">run</span>: python render.py --meta _meta.yaml --status STATUS.md --out dashboard.html
+    - <span class="kw">run</span>: git diff --exit-code dashboard.html</div>
+    <div class="grid g2" style="margin-top:10px">
+      <div class="card">
+        <h4>做什么</h4>
+        <p>Python 编译 + 渲染 dashboard + git diff 防漂移。</p>
+        <div class="chip-row">
+          <span class="chip b">compileall src/</span>
+          <span class="chip b">render.py</span>
+          <span class="chip b">diff --exit-code</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>阻断什么</h4>
+        <p>语法错 / dashboard 与真源漂移。</p>
+        <div class="chip-row">
+          <span class="chip no">Python 语法错</span>
+          <span class="chip no">dashboard 漂移</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div>
+        <b>V0.1 跳过 ruff-format check</b>：跨平台 newline 差异会误报，<b>V2 修 newline 处理后启用</b>（技术债 #1）。
+        <b>阶段 3 (L4 套件)</b>是 V1.x 范式跃迁的关键——它<b>不是测业务代码</b>，而是测"<b>规范本身</b>"被正确实施。
+      </div>
+    </div>
+
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 10 钩子详解（pre-commit 双层）</div>
+      <h2>本地拦截：违规代码 0 概率进仓库</h2>
+      <p>10 个钩子分两层触发：<b>pre-commit 阶段</b> 9 个管文件内容，<b>commit-msg 阶段</b> 1 个管 commit message。任一失败 = 拒绝提交。</p>
+    </section>
+
+    <div class="h-tl">
+      <div class="ev">git commit</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">pre-commit 阶段</div>
+      <div class="arrow">▶</div>
+      <div class="ev">① trailing-ws</div>
+      <div class="ev">② EOF-fixer</div>
+      <div class="ev">③ check-yaml/json</div>
+      <div class="ev">④ large-files</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">ruff / gitleaks / markdownlint</div>
+      <div class="arrow">▶</div>
+      <div class="ev brand">commit-msg 阶段</div>
+      <div class="arrow">▶</div>
+      <div class="ev">⑤ commitlint</div>
+      <div class="ev">⑥ worklog-ref</div>
+      <div class="arrow">▶</div>
+      <div class="ev ok">✓ 接受 commit</div>
+    </div>
+
+    <h3>4.1 pre-commit 阶段 · 9 钩子</h3>
+    <div class="grid g3">
+      <details class="hook" open>
+        <summary>① trailing-whitespace <span class="b-pill inf">pre-commit-hooks v4.6.0</span></summary>
+        <div class="body">
+          <b>作用</b>：删除行尾空格。<br>
+          <b>阻断示例</b>：自动 trim 后报错（不阻断 commit 本身）。<br>
+          <b>对应规范</b>：02-coding §格式化（行尾零空格）。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>② end-of-file-fixer <span class="b-pill inf">pre-commit-hooks v4.6.0</span></summary>
+        <div class="body">
+          <b>作用</b>：文件末尾补换行。<br>
+          <b>对应规范</b>：02-coding §格式化（POSIX 文件结尾）。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>③ check-yaml / check-json <span class="b-pill inf">pre-commit-hooks v4.6.0</span></summary>
+        <div class="body">
+          <b>作用</b>：YAML/JSON 语法校验。<br>
+          <b>阻断示例</b>：<code>yaml.safe_load</code> 失败即阻断。<br>
+          <b>对应规范</b>：_meta.yaml 是真值源——任何破坏性 commit 立即被挡。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>④ check-added-large-files <span class="b-pill inf">pre-commit-hooks v4.6.0</span></summary>
+        <div class="body">
+          <b>作用</b>：检查 &gt; 10MB 文件意外入仓。<br>
+          <b>配置</b>：<code>args: ['--maxkb=10000']</code>。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>⑤ ruff (lint) <span class="b-pill br">ruff-pre-commit v0.6.0</span></summary>
+        <div class="body">
+          <b>作用</b>：Python 静态检查。<br>
+          <b>阻断示例</b>：F401 未用 import / T201 print / N806 命名风格。<br>
+          <b>对应规范</b>：02-coding 全章。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>⑥ ruff-format <span class="b-pill br">ruff-pre-commit v0.6.0</span></summary>
+        <div class="body">
+          <b>作用</b>：自动格式化（行宽 / 引号 / import 排序）。<br>
+          <b>对应规范</b>：02-coding §格式化。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>⑦ gitleaks <span class="b-pill br">gitleaks v8.18.0</span></summary>
+        <div class="body">
+          <b>作用</b>：密钥扫描。<br>
+          <b>阻断示例</b>：检测到 AWS Key / GitHub Token / 高熵字符串即阻断。<br>
+          <b>对应规范</b>：14-security + 02-coding §密钥走环境变量。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>⑧ markdownlint <span class="b-pill br">local · scripts/lint_markdown.py</span></summary>
+        <div class="body">
+          <b>作用</b>：Markdown 格式校验。<br>
+          <b>阻断示例</b>：MD024 重复标题 / MD013 行长 / MD041 标题首字符。<br>
+          <b>对应规范</b>：06-documentation 全文。
+        </div>
+      </details>
+      <details class="hook">
+        <summary>⑨ 备用 local 钩子 <span class="b-pill br">local · 预留</span></summary>
+        <div class="body">
+          <b>作用</b>：为后续扩展预留（如 secretlint / shellcheck）。<br>
+          <b>当前</b>：未启用，技术债 #5。
+        </div>
+      </details>
+    </div>
+
+    <h3>4.2 commit-msg 阶段 · 1 钩子 + commitlint</h3>
+    <div class="grid g2">
+      <details class="hook" open>
+        <summary>⑩ commit-msg-worklog-ref <span class="b-pill br">local · scripts/check_worklog_ref.py</span></summary>
+        <div class="body">
+          <b>作用</b>：worklog 引用校验。<br>
+          <b>阻断示例</b>：commit message 必须引用 <code>worklogs/YYYY-MM-DD_*.md</code>，否则 commit 拒绝。<br>
+          <b>效果</b>：V1.x 范式跃迁的标志——"无记录提交 = 不能 commit"成铁律。<br>
+          <b>对应规范</b>：07-ai-workflow §汇报。
+        </div>
+      </details>
+      <div class="card">
+        <h4>commitlint (Conventional Commits)</h4>
+        <p><b>作用</b>：验证 commit message 符合 Conventional Commits 规范。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>阻断示例</b>：type 不在 enum（feat/fix/chore/docs/...）/ subject &lt; 5 字符 / 首字母大写 / 句末句号。</p>
+        <div class="chip-row">
+          <span class="chip br">commitlint-pre-commit-hook v9.16.0</span>
+          <span class="chip br">stages: [commit-msg]</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>4.3 双层设计原因</h3>
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>pre-commit 阶段</h4>
+        <ul style="list-style:none;padding:0;margin:0;font-size:12.5px">
+          <li style="padding:4px 0"><b>适用</b>：文件内容相关</li>
+          <li style="padding:4px 0"><b>原因</b>：此时文件已写入工作区，可读可改可 lint</li>
+          <li style="padding:4px 0"><b>钩子</b>：9 个（trailing-ws / EOF / yaml / json / large-files / ruff / ruff-format / gitleaks / markdownlint）</li>
+        </ul>
+      </div>
+      <div class="vs-mid">⇄</div>
+      <div class="vs-col new">
+        <h4>commit-msg 阶段</h4>
+        <ul style="list-style:none;padding:0;margin:0;font-size:12.5px">
+          <li style="padding:4px 0"><b>适用</b>：commit message 相关</li>
+          <li style="padding:4px 0"><b>原因</b>：commit 还未生成，message 可校验可阻断</li>
+          <li style="padding:4px 0"><b>钩子</b>：2 个（commitlint + worklog-ref）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note crit">
+      <span class="ico">!</span>
+      <div>
+        <b>不能放错阶段</b>：<code>gitleaks</code> 必须 pre-commit（要扫文件内容）；<code>commitlint</code> 必须 commit-msg（要扫 message）。放错阶段 → 钩子永远跑不到对应数据。
+      </div>
+    </div>
+
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · L4 测试 65 条概览</div>
+      <h2>用"测试规范"的方式约束"规范本身"</h2>
+      <p>tests/conventions/ 共 10 个测试文件 / 65 条 tests，验证 17 规范的实施一致性，100% 通过。</p>
+    </section>
+
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · L4 测试按规范分布 (mermaid pie)</div>
+        <div class="mermaid">
+pie title 65 L4 tests 分布
+    "01 architecture" : 8
+    "02 coding" : 11
+    "03 git" : 9
+    "04 api" : 7
+    "05 testing" : 6
+    "06 documentation" : 5
+    "07 ai-workflow" : 12
+    "08 code-understanding" : 4
+    "meta_l1_check" : 2
+    "perf_baseline" : 1
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · L4 测试按测法分布 (mermaid xychart)</div>
+        <div class="mermaid">
+xychart-beta
+    title "测法分布 (条)"
+    x-axis ["AST 静态", "配置文件存在", "正则匹配红线", "章节级 L1"]
+    y-axis "条数" 0 --> 35
+    bar [28, 18, 12, 7]
+        </div>
+      </div>
+    </div>
+
+    <h3>10 个测试文件 · 关键内容</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>test_01_architecture.py</h4>
+        <p>验证 importlinter 配置存在 / 领域层禁框架 / 分层单向 / 4 条红线。</p>
+        <div class="chip-row">
+          <span class="chip b">contract:layers</span>
+          <span class="chip b">FORBIDDEN_FRAMEWORKS</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_02_coding.py</h4>
+        <p>验证 ruff 配置存在 / 7 条红线（含 print / SQL 参数化 / 密钥 / 异常 / 日志脱敏）。</p>
+        <div class="chip-row">
+          <span class="chip b">ruff.toml</span>
+          <span class="chip b">5 红线</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_03_git.py</h4>
+        <p>验证 commitlint / pre-commit 钩子 / worklog-ref / 5 条红线。</p>
+        <div class="chip-row">
+          <span class="chip b">commitlint.config.js</span>
+          <span class="chip b">worklog-ref</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_04_api.py</h4>
+        <p>验证 spectral 配置 / URL 路径含动词检测 / 7 条红线。</p>
+        <div class="chip-row">
+          <span class="chip b">spectral.yaml</span>
+          <span class="chip b">no-verb-in-path</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_05_testing.py</h4>
+        <p>验证 pytest 配置 / 覆盖率门禁 / 4 条红线。</p>
+        <div class="chip-row">
+          <span class="chip b">pytest.ini</span>
+          <span class="chip b">--cov-fail-under</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_06_documentation.py</h4>
+        <p>验证 markdownlint 配置 / 5 条红线。</p>
+        <div class="chip-row">
+          <span class="chip b">.markdownlint.json</span>
+          <span class="chip b">CHANGELOG.md</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_07_ai_workflow.py</h4>
+        <p>验证 ai-workflow 目录结构 / 10 篇流程 / V6.1 章节级 L1。</p>
+        <div class="chip-row">
+          <span class="chip b">01-07 流程</span>
+          <span class="chip b">§一 红线 ≥ N</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_08_code_understanding.py</h4>
+        <p>验证双图谱文件 / V6.1 章节级 L1 / 2 条红线。</p>
+        <div class="chip-row">
+          <span class="chip b">CodeGraph JSON</span>
+          <span class="chip b">Understand-Anything</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_meta_l1_check.py</h4>
+        <p>验证 _meta.yaml 17 条目 l1_check_path / l3_route 完整性。</p>
+        <div class="chip-row">
+          <span class="chip b">l1_check_path</span>
+          <span class="chip b">l3_route</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>test_perf_baseline.py</h4>
+        <p>性能基线：L4 套件运行时间 &lt; 5s / 钩子 &lt; 1s。</p>
+        <div class="chip-row">
+          <span class="chip b">~2s 跑完</span>
+          <span class="chip b">回归告警</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>测试策略 · 3 种测法</h3>
+    <div class="grid g3">
+      <div class="card hl">
+        <h4>① AST 静态分析</h4>
+        <p>不实际 import，避免 sys.path 问题。<b>~28 条</b> L4 tests 用此法。</p>
+        <div class="chip-row">
+          <span class="chip b">ast.parse</span>
+          <span class="chip b">无副作用</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>② 配置文件存在性 + 内容匹配</h4>
+        <p>如 <code>importlinter.ini</code> 存在 + 含 <code>contract:layers</code>。<b>~18 条</b>。</p>
+        <div class="chip-row">
+          <span class="chip gl">importlinter.ini</span>
+          <span class="chip gl">spectral.yaml</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>③ 正则匹配红线</h4>
+        <p>如 <code>FORBIDDEN_FRAMEWORKS = frozenset({"fastapi", "sqlalchemy", ...})</code>。<b>~12 条</b>。</p>
+        <div class="chip-row">
+          <span class="chip br">frozenset</span>
+          <span class="chip br">re.match</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div>
+        <b>执行证据</b>：<code>pytest tests/conventions/ -v</code> 输出 <code>65 passed in 4.21s</code>——10 文件全绿，平均单测 ~65ms。
+        详见 STATUS.md "L4 套件"段。
+      </div>
+    </div>
+
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 治理文件作用矩阵</div>
+      <h2>6 治理文件 × 4 防线 · 卡片网格</h2>
+      <p>6 治理类文件（commitlint / markdownlint / gitleaks / spectral / importlinter / CODEOWNERS）分别服务不同规范，运行在不同防线层。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>.github/CODEOWNERS <span class="b-pill br" style="margin-left:4px">12-codeowners</span></h4>
+        <p><b>作用</b>：PR 自动 assign 审查者（GitHub Web UI 用）。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill no" style="font-size:9px">CI ✗</span> <span class="b-pill no" style="font-size:9px">pre-commit ✗</span> <span class="b-pill no" style="font-size:9px">L4 ✗</span></p>
+        <div class="chip-row">
+          <span class="chip b">GitHub Web UI</span>
+          <span class="chip b">PR 强制 review</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>commitlint.config.js <span class="b-pill br" style="margin-left:4px">03-git</span></h4>
+        <p><b>作用</b>：Conventional Commits 校验规则（23 行）。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill no" style="font-size:9px">CI ✗</span> <span class="b-pill ok" style="font-size:9px">pre-commit ✓</span> <span class="b-pill ok" style="font-size:9px">L4 ✓</span></p>
+        <div class="chip-row">
+          <span class="chip b">commitlint 钩子</span>
+          <span class="chip b">test_03_git</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>.markdownlint.json <span class="b-pill br" style="margin-left:4px">06-documentation</span></h4>
+        <p><b>作用</b>：markdownlint 规则（32 行 / 关闭 MD013 等 25 条易误报规则）。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok" style="font-size:9px">CI ✓ lint 阶段</span> <span class="b-pill ok" style="font-size:9px">pre-commit ✓</span> <span class="b-pill ok" style="font-size:9px">L4 ✓</span></p>
+        <div class="chip-row">
+          <span class="chip b">lint 阶段</span>
+          <span class="chip b">markdownlint 钩子</span>
+          <span class="chip b">test_06</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>.gitleaks.toml <span class="b-pill br" style="margin-left:4px">14-security</span></h4>
+        <p><b>作用</b>：密钥扫描白名单（17 行 / 教学反例 src/coding/security_demo.py 放行）。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok" style="font-size:9px">CI ✓ lint 阶段</span> <span class="b-pill ok" style="font-size:9px">pre-commit ✓</span> <span class="b-pill no" style="font-size:9px">L4 ✗</span></p>
+        <div class="chip-row">
+          <span class="chip b">lint 阶段</span>
+          <span class="chip b">gitleaks 钩子</span>
+          <span class="chip b">allowlist</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>.spectral.yaml <span class="b-pill br" style="margin-left:4px">04-api</span></h4>
+        <p><b>作用</b>：OpenAPI Lint 规则（37 行 / 路径命名 / 响应格式）。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok" style="font-size:9px">CI ✓ lint 阶段</span> <span class="b-pill no" style="font-size:9px">pre-commit ✗</span> <span class="b-pill ok" style="font-size:9px">L4 ✓</span></p>
+        <div class="chip-row">
+          <span class="chip b">lint 阶段</span>
+          <span class="chip b">test_04_api</span>
+        </div>
+      </div>
+
+      <div class="card gold">
+        <h4>importlinter.ini <span class="b-pill br" style="margin-left:4px">01-architecture</span></h4>
+        <p><b>作用</b>：架构依赖契约（36 行 / contract:layers 4 条红线）。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok" style="font-size:9px">CI ✓ lint 阶段</span> <span class="b-pill no" style="font-size:9px">pre-commit ✗</span> <span class="b-pill ok" style="font-size:9px">L4 ✓</span></p>
+        <div class="chip-row">
+          <span class="chip gl">lint 阶段</span>
+          <span class="chip gl">test_01</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>矩阵解读</b>：横轴是"防线"（CI / pre-commit / L4），纵轴是"治理文件"。空格表示该防线不使用此文件。
+        <b>冗余设计</b>：markdownlint / gitleaks / importlinter 至少在两防线都跑——pre-commit 拦截失败的成本最低，CI 是服务端兜底。
+      </div>
+    </div>
+
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 钩子×CI 覆盖关系</div>
+      <h2>34 条红线 · 3 防线 · 冗余设计</h2>
+      <p>17 规范 34 条红线不是平均分配到 3 防线——而是按"<b>成本最小优先</b>"原则：<b>pre-commit 拦截秒级</b>，<b>CI 兜底分钟级</b>，<b>L4 持续自证</b>。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 34 条红线 → 3 防线 分配 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    SRC["17 规范 · 34 条红线<br/>conventions/ 01-17"]:::src
+    PC["pre-commit 拦截<br/>17+ 条 (秒级)"]:::pc
+    CI["CI 兜底<br/>24+ 条 (分钟级)"]:::ci
+    L4["L4 自证<br/>65 条 (持续)"]:::l4
+
+    SRC -- "本地优先" --> PC
+    SRC -- "服务端兜底" --> CI
+    SRC -- "自证正确" --> L4
+
+    PC -- "失败重试成本低" --> DEV[Developer]
+    CI -- "阻止 merge" --> DEV
+    L4 -- "规范漂移立即 fail" --> DEV
+
+    classDef src fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef pc fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef ci fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14
+    classDef l4 fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17
+    class SRC src
+    class PC pc
+    class CI ci
+    class L4 l4
+      </div>
+    </div>
+
+    <h3>按规范 × 防线 矩阵</h3>
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>01 architecture · 4 红线</h4>
+        <p>禁循环依赖 / 领域层不依赖框架 / 禁跨层调用 / 分层单向。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">CI lint</span> (importlinter) · <span class="b-pill ok">L4</span> (test_01)</p>
+        <div class="chip-row">
+          <span class="chip b">importlinter</span>
+          <span class="chip b">test_01_architecture</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>02 coding · 5 红线</h4>
+        <p>禁 print / SQL 参数化 / 密钥走环境变量 / 禁静默吞异常 / 日志脱敏。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">pre-commit</span> (ruff) · <span class="b-pill ok">CI lint</span> (ruff) · <span class="b-pill ok">L4</span> (test_02)</p>
+        <div class="chip-row">
+          <span class="chip b">ruff × 2 防线</span>
+          <span class="chip b">gitleaks</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>03 git · 3 红线</h4>
+        <p>main 禁直推 / Conventional Commits / 禁 force push 共享分支。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">pre-commit</span> (commitlint) · <span class="b-pill ok">commit-msg</span> (worklog-ref) · <span class="b-pill ok">L4</span></p>
+        <div class="chip-row">
+          <span class="chip b">commitlint</span>
+          <span class="chip b">worklog-ref</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>04 api · 3 红线</h4>
+        <p>名词复数 / 统一响应 / 默认认证。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">CI lint</span> (spectral) · <span class="b-pill ok">L4</span> (test_04)</p>
+        <div class="chip-row">
+          <span class="chip b">spectral</span>
+          <span class="chip b">test_04_api</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>05 testing · 3 红线</h4>
+        <p>测试独立 / Mock 边界 / 覆盖 3 维度。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">L4</span> (test_05) + 未来 <code>--cov-fail-under</code></p>
+        <div class="chip-row">
+          <span class="chip b">test_05_testing</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>06 documentation · 5 红线</h4>
+        <p>必有 README / CHANGELOG / 文档随码同 PR / 跨文件引用 / 章节级 L1。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">pre-commit</span> (markdownlint) · <span class="b-pill ok">CI lint</span> (lint_markdown.py) · <span class="b-pill ok">CI compliance</span> · <span class="b-pill ok">L4</span></p>
+        <div class="chip-row">
+          <span class="chip b">markdownlint × 2 防线</span>
+          <span class="chip b">check_compliance</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>07 ai-workflow · 4 红线</h4>
+        <p>角色分离 / 收束硬闸门 / 汇报落盘 / 不越界不断档。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">pre-commit</span> (worklog-ref) · <span class="b-pill ok">CI l4</span> (check_ai_workflow) · <span class="b-pill ok">L4</span> (test_07)</p>
+        <div class="chip-row">
+          <span class="chip b">worklog-ref</span>
+          <span class="chip b">check_ai_workflow</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>08 code-understanding · 2 红线</h4>
+        <p>CodeGraph JSON 完整 / Understand-Anything 文档存在。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">CI l4</span> (check_code_understanding) · <span class="b-pill ok">L4</span> (test_08)</p>
+        <div class="chip-row">
+          <span class="chip b">双图谱</span>
+          <span class="chip b">test_08</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>14 security · 1 红线</h4>
+        <p>SECURITY.md 必填 + 密钥扫描。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>防线</b>：<span class="b-pill ok">pre-commit</span> (gitleaks) · <span class="b-pill ok">CI lint</span> (gitleaks) · <span class="b-pill ok">CI compliance</span></p>
+        <div class="chip-row">
+          <span class="chip gl">gitleaks × 2 防线</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>覆盖度 · 5 维柱状图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 3 防线拦截能力 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "3 防线拦截能力对比"
+    x-axis ["拦截速度(秒)", "覆盖红线(条)", "误报率(%)", "可绕过难度(0-10)", "可观测性(0-10)"]
+    y-axis "指标" 0 --> 35
+    bar [1, 17, 5, 7, 6]
+    bar [60, 24, 3, 9, 8]
+    bar [300, 65, 2, 10, 10]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">图例: <span style="color:var(--good)">■ pre-commit (快/中覆盖)</span> · <span style="color:var(--warn)">■ CI (中/高覆盖)</span> · <span style="color:var(--brand)">■ L4 (慢/全自证)</span></p>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div>
+        <b>冗余设计的代价</b>：<b>部分钩子跑 2 次</b>（pre-commit + CI）。代价 = 几秒 CI 时间，收益 = <b>pre-commit 未装的开发者也被拦截</b>。
+        这是 V1.x 范式跃迁的核心——<b>纵深防御 &gt; 单点拦截</b>。
+      </div>
+    </div>
+
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 完整防线 · 端到端流程</div>
+      <h2>commit → 钩子 → push → CI → L4 · 一次代码改动的全旅程</h2>
+      <p>从开发者敲下 <code>git commit</code> 那一刻到 PR merge，每一关都有具体拦截。下面用 mermaid 描绘完整流程 + 9 步关键节点。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 端到端防线 · 9 步拦截旅程 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    D["开发者<br/>git add + git commit"]:::dev
+    S1{"1. pre-commit 阶段<br/>9 钩子"}:::gate
+    S2{"2. commit-msg 阶段<br/>2 钩子"}:::gate
+    S3["3. commit 入仓<br/>(本地 .git)"]:::ok
+    S4["4. git push origin"]:::dev
+    S5{"5. CI lint 阶段<br/>ruff + gitleaks + markdownlint"}:::gate
+    S6{"6. CI test 阶段<br/>render_meta --check"}:::gate
+    S7{"7. CI l4-conventions<br/>65 tests + 章节级 L1"}:::gate
+    S8{"8. CI compliance<br/>check_compliance.py"}:::gate
+    S9{"9. CI build<br/>compileall + render + diff"}:::gate
+    OK["✓ 9/9 全绿 · 可 merge<br/>(任意 1 fail 即拦截)"]:::done
+
+    D -- "1. git commit" --> S1
+    S1 -- "✓ 9 钩子全绿" --> S2
+    S2 -- "✓ commitlint + worklog-ref" --> S3
+    S3 -- "2. git push" --> S4
+    S4 -- "3. 触发 CI" --> S5
+    S5 -- "✓" --> S6
+    S6 -- "✓" --> S7
+    S7 -- "✓" --> S8
+    S8 -- "✓" --> S9
+    S9 -- "✓ 5/5 阶段全绿" --> OK
+
+    S1 -. "✗ 任意 1 钩子 fail" .-> FAIL["拦截 · 修复后重试"]
+    S2 -. "✗" .-> FAIL
+    S5 -. "✗ 任意 1 阶段 fail" .-> FAIL
+    S6 -. "✗" .-> FAIL
+    S7 -. "✗" .-> FAIL
+    S8 -. "✗" .-> FAIL
+    S9 -. "✗" .-> FAIL
+
+    classDef dev fill:#E8E1D2,stroke:#5A5447,color:#1F1D17
+    classDef gate fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    classDef ok fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef done fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17,stroke-width:3px
+    class D,S3,S4 dev
+    class S1,S2,S5,S6,S7,S8,S9 gate
+    class OK done
+      </div>
+    </div>
+
+    <h3>时序图 · 一次 commit 走完 8 拦截点</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 端到端时序 (mermaid sequence)</div>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Dev as 开发者
+    participant Git as git
+    participant PC as pre-commit 钩子
+    participant CM as commit-msg 钩子
+    participant GH as GitHub
+    participant CI as GitHub Actions
+    participant L4 as L4 套件
+
+    Dev->>Git: git commit -m "feat: 加新功能"
+    Git->>PC: 触发 pre-commit 阶段
+    PC->>PC: ① trailing-ws / ② EOF / ③ yaml / ④ large-files
+    PC->>PC: ⑤ ruff / ⑥ ruff-format / ⑦ gitleaks / ⑧ markdownlint
+    PC-->>Git: 阶段1 ✓ pass
+    Git->>CM: 触发 commit-msg 阶段
+    CM->>CM: ⑨ commitlint (Conventional)
+    CM->>CM: ⑩ worklog-ref
+    CM-->>Git: 阶段2 ✓ pass · 接受 commit
+    Dev->>GH: git push origin
+    GH->>CI: 触发 5 阶段流水线
+    CI->>CI: 阶段1 lint (ruff/gitleaks/markdownlint)
+    CI->>CI: 阶段2 test (render_meta --check)
+    CI->>L4: 阶段3 l4-conventions (65 tests)
+    L4-->>CI: ✓ 65/65 pass
+    CI->>CI: 阶段4 compliance (跨文件引用)
+    CI->>CI: 阶段5 build (render + diff)
+    CI-->>Dev: ✓ 5/5 全绿 · 可 merge
+      </div>
+    </div>
+
+    <h3>交互模拟器 · 看一次 commit 如何被逐层拦截</h3>
+    <div class="sim">
+      <h4><span class="ind"></span>commit 拦截流程模拟（M8 实际钩子）</h4>
+      <div id="simSteps">
+        <div class="sim-step" data-step="1"><span class="glyph">○</span> 1 · git commit -m "feat: 加新功能"</div>
+        <div class="sim-step" data-step="2"><span class="glyph">○</span> 2 · pre-commit · ① trailing-ws / ② EOF / ③ yaml / ④ large-files</div>
+        <div class="sim-step" data-step="3"><span class="glyph">○</span> 3 · pre-commit · ⑤ ruff / ⑥ ruff-format</div>
+        <div class="sim-step" data-step="4"><span class="glyph">○</span> 4 · pre-commit · ⑦ gitleaks (密钥扫描)</div>
+        <div class="sim-step" data-step="5"><span class="glyph">○</span> 5 · pre-commit · ⑧ markdownlint</div>
+        <div class="sim-step" data-step="6"><span class="glyph">○</span> 6 · commit-msg · ⑨ commitlint (Conventional)</div>
+        <div class="sim-step" data-step="7"><span class="glyph">○</span> 7 · commit-msg · ⑩ worklog-ref</div>
+        <div class="sim-step" data-step="8"><span class="glyph">○</span> 8 · CI · 5/5 阶段全绿 (lint→test→l4→compliance→build)</div>
+      </div>
+      <div class="btn-row">
+        <button class="good" onclick="simRun('good')">▶ 8 步全绿</button>
+        <button class="danger" onclick="simRun('bad-sec')">▶ 第 4 步 gitleaks 拦截 (含 AWS key)</button>
+        <button class="danger" onclick="simRun('bad-fmt')">▶ 第 6 步 worklog-ref 拦截 (无 worklog 引用)</button>
+        <button onclick="simReset()">↺ 重置</button>
+      </div>
+      <div class="sim-final" id="simFinal">点击下方按钮 · 模拟一次 commit</div>
+    </div>
+
+    <h3>9 拦截点 · 失败信息速查</h3>
+    <div class="grid g3">
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">① trailing-ws</h4>
+        <p style="font-size:11.5px;margin:0"><code>files were modified by this hook</code> + 自动 trim</p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">② EOF-fixer</h4>
+        <p style="font-size:11.5px;margin:0"><code>No newline at end of file</code> + 自动补换行</p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">③ check-yaml/json</h4>
+        <p style="font-size:11.5px;margin:0"><code>yaml.safe_load failed at line N</code></p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">⑤ ruff</h4>
+        <p style="font-size:11.5px;margin:0"><code>F401 're' imported but unused</code> / <code>T201 print found</code></p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">⑦ gitleaks</h4>
+        <p style="font-size:11.5px;margin:0"><code>Finding: AWS_SECRET_KEY=xxx</code> + commit 拒绝</p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">⑧ markdownlint</h4>
+        <p style="font-size:11.5px;margin:0"><code>MD024 Multiple headings with same content</code></p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">⑨ commitlint</h4>
+        <p style="font-size:11.5px;margin:0"><code>type may not be empty [type-empty]</code></p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">⑩ worklog-ref</h4>
+        <p style="font-size:11.5px;margin:0"><code>worklog 文件未在 commit message 中被引用</code></p>
+      </div>
+      <div class="card" style="padding:12px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">CI 5 阶段</h4>
+        <p style="font-size:11.5px;margin:0"><code>1/5 fail · 红 X 标记具体阶段</code></p>
+      </div>
+    </div>
+
+    <blockquote>
+      "9 拦截点的设计哲学：<b>成本最小优先</b>——pre-commit 拦截秒级失败，CI 兜底分钟级失败，L4 持续自证。
+      任何一关都不是"建议"而是"硬闸门"——违规代码不会进 main 分支。"
+      <cite>—— M8 设计原则</cite>
+    </blockquote>
+
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 边界与降级</div>
+      <h2>7 降级场景 + 3 明确不做</h2>
+      <p>工程化防线不是"<b>零容忍</b>"，而是"<b>明确知道何时宽容</b>"。7 个降级场景 + 3 个明确不做，构成完整的边界声明。</p>
+    </section>
+
+    <h3>9 个边界声明 · 卡片网格</h3>
+    <div class="grid g3">
+      <div class="card" style="padding:14px">
+        <h4 style="font-size:12.8px">① Windows shell=True bug</h4>
+        <p style="font-size:11.5px">Python 脚本在 Windows shell=True 报错。V2.0.1.2 修复：分批调用 + N806 命名风格。</p>
+        <div class="chip-row">
+          <span class="chip br">V2.0.1.2 已修</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-size:12.8px">② render_meta --check 失败</h4>
+        <p style="font-size:11.5px">_meta.yaml 与渲染产物漂移。pre-commit 钩子阻断 + CI test 阶段阻断（双重兜底）。</p>
+        <div class="chip-row">
+          <span class="chip br">双重拦截</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-size:12.8px">③ markdownlint MD013 误报</h4>
+        <p style="font-size:11.5px">行长误报。.markdownlint.json 关闭 <code>MD013: false</code>。</p>
+        <div class="chip-row">
+          <span class="chip br">配置关闭</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-size:12.8px">④ gitleaks 教学反例</h4>
+        <p style="font-size:11.5px">02-coding 教学文件含"硬编码密钥"反例。.gitleaks.toml allowlist <code>src/coding/security_demo.py</code>。</p>
+        <div class="chip-row">
+          <span class="chip br">allowlist</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-size:12.8px">⑤ commitlint config warning 噪音</h4>
+        <p style="font-size:11.5px">不阻断但污染输出。<b>技术债 #2</b>——待统一 commitlint 规则版本。</p>
+        <div class="chip-row">
+          <span class="chip warn">技术债 #2</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-size:12.8px">⑥ L4 测试 fail</h4>
+        <p style="font-size:11.5px">CI l4-conventions 阶段阻断 PR。无降级开关——必须修复。</p>
+        <div class="chip-row">
+          <span class="chip no">无降级</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-size:12.8px">⑦ 钩子不工作（未安装）</h4>
+        <p style="font-size:11.5px">开发者没装 pre-commit，钩子不跑。CI 兜底。</p>
+        <div class="chip-row">
+          <span class="chip b">CI 兜底</span>
+        </div>
+      </div>
+      <div class="card hl" style="padding:14px">
+        <h4 style="font-size:12.8px">⑧ 不做 · husky 替代</h4>
+        <p style="font-size:11.5px">用 husky 替代 pre-commit——避免引入 Node 工具链。</p>
+        <div class="chip-row">
+          <span class="chip no">不做</span>
+          <span class="chip no">Node-free</span>
+        </div>
+      </div>
+      <div class="card gold" style="padding:14px">
+        <h4 style="font-size:12.8px">⑨ 不做 · 服务端 hook</h4>
+        <p style="font-size:11.5px">把钩子放服务端 hook。pre-commit 必须本地——保证拦截在 push 之前。</p>
+        <div class="chip-row">
+          <span class="chip no">不做</span>
+          <span class="chip no">本地优先</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">⚠</span>
+      <div>
+        <b>明确不做</b>（再强调）：<b>不引入 husky</b>（避免 Node）/ <b>不放服务端 hook</b>（pre-commit 必须本地）/ <b>不提供 L4 跳过开关</b>（必须跑）。
+        这 3 条是 V1.x 范式的硬约束，<b>违反要写 ADR</b>。
+      </div>
+    </div>
+
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · 验收标准</div>
+      <h2>6 维硬指标 + 1 实证 · devguard dogfood</h2>
+      <p>M8 模块的"完成"不是"代码能跑"，而是 6 个硬指标全部达标 + 1 个 dogfood 实证。</p>
+    </section>
+
+    <h3>6 维硬指标 · 雷达图</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · 6 维验收指标 (mermaid radar)</div>
+        <div class="mermaid">
+radar-beta
+    title M8 验收 6 维 (0-100)
+    axis "CI 阶段", "钩子数", "L4 测试", "治理文件", "真源同步", "dashboard 无漂移"
+    "M8 v1.0" : 100, 100, 100, 100, 100, 100
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · 验收指标对比 (mermaid xychart)</div>
+        <div class="mermaid">
+xychart-beta
+    title "6 维验收 (目标值 vs 实际)"
+    x-axis ["CI阶段", "钩子", "L4测试", "治理", "真源", "dashboard"]
+    y-axis "数量" 0 --> 80
+    bar [5, 10, 65, 6, 1, 1]
+        </div>
+      </div>
+    </div>
+
+    <h3>6 维验收 · 速查</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>① CI 5 阶段 <span class="b-pill ok" style="margin-left:4px">达标</span></h4>
+        <p><b>验收方式</b>：.github/workflows/ci.yml job 数。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>通过标准</b>：<code>= 5</code>（lint / test / l4-conventions / compliance / build）。</p>
+      </div>
+      <div class="card">
+        <h4>② 10 钩子 <span class="b-pill ok" style="margin-left:4px">达标</span></h4>
+        <p><b>验收方式</b>：.pre-commit-config.yaml hooks 项数。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>通过标准</b>：<code>= 10</code>（含 commitlint）。</p>
+      </div>
+      <div class="card">
+        <h4>③ L4 65 tests <span class="b-pill ok" style="margin-left:4px">达标</span></h4>
+        <p><b>验收方式</b>：<code>pytest tests/conventions/</code>。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>通过标准</b>：<code>65/65 passed</code>。</p>
+      </div>
+      <div class="card">
+        <h4>④ 6 治理文件 <span class="b-pill ok" style="margin-left:4px">达标</span></h4>
+        <p><b>验收方式</b>：根目录扫描。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>通过标准</b>：CODEOWNERS / commitlint / markdownlint / gitleaks / spectral / importlinter 全部存在。</p>
+      </div>
+      <div class="card">
+        <h4>⑤ 真源同步 <span class="b-pill ok" style="margin-left:4px">达标</span></h4>
+        <p><b>验收方式</b>：<code>python scripts/render_meta.py --check</code>。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>通过标准</b>：<b>退出码 0</b>。</p>
+      </div>
+      <div class="card">
+        <h4>⑥ dashboard 无漂移 <span class="b-pill ok" style="margin-left:4px">达标</span></h4>
+        <p><b>验收方式</b>：<code>git diff --exit-code dashboard.html</code>。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>通过标准</b>：<b>无输出</b>。</p>
+      </div>
+    </div>
+
+    <h3>1 实证 · devguard dogfood 8 次拦截</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>dogfood 8 次拦截明细</h4>
+        <p>V1.5-V2.0.1 期间，devguard 用自己的规范约束自己，<b>被钩子拦截 8 次</b>。</p>
+        <div class="chip-row">
+          <span class="chip b">3 × ruff</span>
+          <span class="chip b">1 × worklog-ref</span>
+          <span class="chip b">1 × gitleaks</span>
+          <span class="chip b">1 × lint_markdown</span>
+          <span class="chip b">2 × markdownlint</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>核心意义</h4>
+        <p>dogfood 是 V1.x "<b>100% 闭环</b>"的最强证据——devguard 自己的代码也得遵守自己定义的规范。</p>
+        <div class="chip-row">
+          <span class="chip gl">比测试套件更直接</span>
+          <span class="chip gl">比外部 fork 更省事</span>
+          <span class="chip gl">比单元测试更可信</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 8 次拦截分布 (mermaid pie)</div>
+      <div class="mermaid">
+pie title devguard dogfood 8 次拦截
+    "ruff (F401/T201)" : 3
+    "markdownlint (MD024)" : 3
+    "worklog-ref (正则)" : 1
+    "lint_markdown (Windows bug)" : 1
+        </div>
+      </div>
+
+    <div class="verdict" style="margin-top:36px">
+      <div class="lbl">M8 v1.0 验收 · 一句话</div>
+      <h4>5 CI 阶段 + 10 钩子 + 65 L4 tests + 6 治理文件 = 86 组件协同强制约束范式</h4>
+      <p style="margin:0">M8 infrastructure 把 M1 conventions/ 的 34 条红线以可执行形态落到 3 个地方：
+      <b>本地拦截</b>（pre-commit 10 钩子秒级 fail-fast）→ <b>服务端兜底</b>（CI 5 阶段分钟级 fail）→ <b>规范自证</b>（L4 65 tests 持续验证）→ <b>治理闭环</b>（6 治理文件配套）。
+      <br><br>
+      <b>dogfood 实证</b>：V1.5-V2.0.1 期间 devguard 自己被拦截 8 次，证明"<b>违规代码不会进 main 分支</b>"不是理论口号，是真实拦截记录。
+      <br><br>
+      <b>核心范式</b>：<b>纵深防御 &gt; 单点拦截</b>，<b>机器可执行 &gt; 人读自觉</b>，<b>违规必拦 &gt; 期望自觉</b>。
+      </p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

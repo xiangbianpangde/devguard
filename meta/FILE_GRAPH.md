@@ -2,7 +2,7 @@
 
 > 本文件是仓库的**文件归类权威**。新增文件前先在此找到对应节点，按节点放置——禁止在仓库根目录随意堆放散文件。
 >
-> 更新: 2026-05-27 | 维护规则：新增/移动文件或目录时同步更新本图谱。
+> 更新: 2026-07-11 | 维护规则：新增/移动文件或目录时同步更新本图谱。
 > 注：规范正文 v2.0 重构（功能点 #34）仅改内容、未增删/移动文件，故本图谱结构不变；conventions/ 各篇现为 ai-workflow 对应步骤的细化，调用图主题统一收拢于 08。
 
 ---
@@ -60,7 +60,12 @@
 │       ├── AI协作提示词模板.md
 │       ├── AI会话启动模板.md
 │       ├── 规范文档模板.md
-│       └── devguard/                   #     devguard 项目专属模板（fork 时整组复制）
+│       └── devguard/                   #     devguard 项目专属资产（新项目只走 scaffold manifest）
+│           ├── scaffold/               #       一键初始化权威载荷（core/optional 显式 manifest）
+│           │   ├── core/AGENTS.md.tmpl #       Codex 项目入口（skills-first 路由）
+│           │   ├── core/.agents/skills/devguard/ # canonical workflow skill + OpenAI 元数据
+│           │   ├── core/.codex/config.toml #    credential-free 项目本地安全基线
+│           │   └── core/scripts/install_hooks.py # ECC/全局 Hook 与项目 Hook 的可重入组合安装器
 │           ├── html-report-template/   #       自动 dashboard 渲染（_meta.yaml + STATUS.md）
 │           └── final-report-template/  #       高密度学术风 HTML 报告（Mermaid+Tab+交互，V1.x 收尾定型）
 │
@@ -78,16 +83,24 @@
 │   └── decisions/                    #   ADR 架构决策记录（收束节点产出，见 ADR 0006）
 │
 ├── scripts/                          # 【工具脚本】仪表盘启动等辅助脚本
+│   ├── setup_scaffold.py             #   自包含治理基线一键初始化/复验
+│   ├── render_dashboard.py           #   Windows/POSIX 共用 dashboard 渲染入口
+│   ├── check_consistency.py          #   一致性事实矩阵（阈值 >=80%）
+│   ├── check_enforcement.py          #   隔离 Git 故障注入矩阵（阈值 >=90%）
+│   ├── check_ecc_alignment.py        #   ECC 十域能力对标矩阵（阈值 >=80%）
+│   ├── check_*_*.py                  #   worklog/STATUS/放置/豁免/日期/同步/收束闸门
 │   ├── start_server.py               #   本地预览服务器（dashboard 入口）
 │   └── 打开仪表盘.bat                 #   双击启动 dashboard
 │
 ├── meta/                             # 【元信息】描述仓库自身的文件
-│   └── FILE_GRAPH.md                 #   本文件：文件归类权威
+│   ├── FILE_GRAPH.md                 #   本文件：文件归类权威
+│   └── 豁免清单.md                    #   [skip-*] 合法目录与逐次使用账
 │
 ├── CLAUDE.md                         # 顶层：AI 项目上下文（仅供 AI 读取，新会话自动加载）
 ├── README.md                         # 顶层：人类使用指南（仅供人类阅读）
 ├── STATUS.md                         # 顶层：进度仪表盘数据源（dashboard 解析它）
 ├── dashboard.html                    # 顶层：可视化进度面板
+├── .gitattributes                    # Python 行尾统一 LF，保证 Windows/Ubuntu formatter 同值
 └── .gitignore                        # 顶层：忽略规则
 ```
 

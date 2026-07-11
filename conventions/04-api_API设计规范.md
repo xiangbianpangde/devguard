@@ -1,6 +1,3 @@
-
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -22,6 +19,7 @@
 > **本规范是 [ai-workflow 04-长程开发·实现](ai-workflow_AI协作开发流程/04-长程开发.md) 的细化**，约束「提供 HTTP API 的功能点」的接口设计；[§2.2 可观测验证](ai-workflow_AI协作开发流程/04-长程开发.md) 中「API 接口」一类的证据（Swagger / curl 输出）即对照本规范。
 >
 > **档位裁剪**：内部小工具可裁剪版本管理与限流；对外 / 多端服务守全部。
+> 更新: 2026-07-11
 
 ---
 
@@ -75,6 +73,7 @@ GET /api/v1/users          列表      POST   /api/v1/users        创建
 GET /api/v1/users/:id      详情      PUT/PATCH /api/v1/users/:id 更新
 DELETE /api/v1/users/:id   删除      GET /api/v1/users/:id/orders 子资源
 ```
+
 层级 ≤ 3 层；特殊操作用 `POST /orders/:id/cancel`。
 
 ### 响应结构

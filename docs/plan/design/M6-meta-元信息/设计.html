@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M6 meta 元信息 · 现状设计</title>
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#F5F0E4',
+          primaryTextColor: '#1F1D17',
+          primaryBorderColor: '#8B3A1F',
+          lineColor: '#5A5447',
+          secondaryColor: '#E8E1D2',
+          tertiaryColor: '#FAF7F0',
+          fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+          fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+        sequence: { useMaxWidth: true, diagramMarginX: 20 },
+        pie: { useMaxWidth: true },
+        gantt: { useMaxWidth: true }
+      });
+    }
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){ b.classList.add('armed'); });
+    }, 300);
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+    var navLinks = document.querySelectorAll('nav a');
+    var sections = [];
+    navLinks.forEach(function(a){
+      var id = a.getAttribute('href').replace('#','');
+      var el = document.getElementById(id);
+      if (el) sections.push({a:a, el:el});
+    });
+    function onScroll(){
+      var y = window.scrollY + 120;
+      var cur = null;
+      for (var i=0;i<sections.length;i++){
+        if (sections[i].el.offsetTop <= y) cur = sections[i];
+      }
+      navLinks.forEach(function(a){a.classList.remove('active')});
+      if (cur) cur.a.classList.add('active');
+    }
+    window.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+  });
+
+  function jumpToBranch(n){
+    var el = document.getElementById('branch-' + n);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    document.querySelectorAll('.branch-card').forEach(function(c){c.classList.remove('hl-jump')});
+    if (el) el.classList.add('hl-jump');
+  }
+
+  function findPath(){
+    var ans = document.getElementById('findAns');
+    var v = document.getElementById('findInput').value.trim();
+    if (!v){ ans.innerHTML = '<span style="color:var(--txt-faint)">请先输入描述...</span>'; return; }
+    var l = v.toLowerCase();
+    var path = '', tip = '', branch = 0;
+    if (/(规范|怎么写|应该|standard|convention)/.test(l)) { path='conventions/NN-<name>_<中文名>.md'; tip='规范正文 — 红线 + 落地 + L4'; branch=1; }
+    else if (/(bdd|验收|spec|测试.*规范)/.test(l)) { path='docs/specs/NN-<name>.md'; tip='BDD 验收 — Given-When-Then'; branch=2; }
+    else if (/(adr|决策|为什么|选型)/.test(l)) { path='worklogs/decisions/NNNN-<标题>.md'; tip='ADR — 仅收束节点产出'; branch=3; }
+    else if (/(计划|清单|plan)/.test(l)) { path='docs/plan/背景.md + 开发清单.md'; tip='项目级计划 + 功能点清单'; branch=4; }
+    else if (/(设计文档|design|复杂功能)/.test(l)) { path='docs/plan/design/设计文档-<功能名>.md'; tip='复杂功能 五段式'; branch=5; }
+    else if (/(汇报|报告|report|收束)/.test(l)) { path='docs/reports/...'; tip='收束报告 / 收束节点'; branch=6; }
+    else if (/(调研|research|对比|benchmark)/.test(l)) { path='docs/research/<主题>.md'; tip='调研笔记'; branch=7; }
+    else if (/(模板|template|可复用)/.test(l)) { path='docs/templates/<类型>模板.md'; tip='可复用模板 — 跨项目复制'; branch=8; }
+    else if (/(示例|src|可运行配置)/.test(l)) { path='src/<对应规范维度>/...'; tip='规范的落地配置可运行版'; branch=9; }
+    else if (/(worklog|日志|开发记录)/.test(l)) { path='worklogs/YYYY-MM-DD_<简短描述>.md'; tip='功能点日志 — 必带 commit 引用'; branch=10; }
+    else if (/(脚本|tools|启动|部署|build|start)/.test(l)) { path='scripts/<name>.py|.bat|.sh'; tip='构建/启动/部署辅助'; branch=11; }
+    else if (/(元|meta|仓库自身|描述仓库)/.test(l)) { path='meta/<name>.md'; tip='描述仓库自身'; branch=12; }
+    else if (/(根目录|入口)/.test(l)) { path='CLAUDE.md / README.md / STATUS.md / dashboard.html (4 选 1)'; tip='仅 4 类根目录文件'; branch=13; }
+    else { path='未识别 — 请查 meta/FILE_GRAPH.md §三 决策树'; tip='决策树末端警告：禁止根目录堆散文件'; branch=0; }
+    ans.innerHTML =
+      '<div class="verdict" style="margin:8px 0 0">' +
+      '<div class="lbl">推荐路径</div>' +
+      '<h4 style="font-family:var(--mono);font-size:14px;color:var(--brand)">' + path + '</h4>' +
+      '<p style="margin:6px 0 0;font-size:12.5px">' + tip + '</p>' +
+      '</div>';
+    if (branch) jumpToBranch(branch);
+  }
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       --brand-2:#A85032;
+    --accent:#2F5061;      --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+  .tabbar{display:flex;gap:2px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tab{padding:7px 14px;font-size:12px;color:var(--txt-dim);cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;transition:.18s;font-family:var(--sans)}
+  .tab:hover{background:var(--bg-soft)}
+  .tab.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tab-panel{display:none;padding:14px 0}
+  .tab-panel.active{display:block}
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line);font-family:var(--mono)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-family:var(--sans);font-weight:600}
+  .matrix td.yes{background:rgba(63,107,61,.18);color:var(--good);font-weight:700}
+  .matrix td.partial{background:rgba(176,127,34,.18);color:var(--warn);font-weight:700}
+  .matrix td.no{background:rgba(156,58,46,.13);color:var(--bad);font-weight:700}
+  .matrix td.ours{background:rgba(47,80,97,.12);color:var(--accent);font-weight:700}
+  .matrix td.ours-yes{background:rgba(63,107,61,.25);color:var(--good);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--accent)}
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:repeat(3,1fr)}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);
+    background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;
+    font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;
+    transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);
+    z-index:100;
+  }
+  .tip .tipbox::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1F1D17;
+  }
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+  .branch-card{transition:.3s}
+  .branch-card.hl-jump{box-shadow:0 0 0 3px var(--brand), var(--shadow);border-color:var(--brand)}
+  .find-tool{
+    background:linear-gradient(135deg,#FCF6EE,#F8F0E0);
+    border:1px solid var(--brand);border-radius:13px;padding:18px 22px;margin:14px 0;box-shadow:var(--shadow);
+  }
+  .find-tool input{
+    width:100%;padding:10px 14px;font-size:13px;font-family:var(--sans);
+    border:1px solid var(--line);border-radius:8px;background:#fff;outline:none;
+  }
+  .find-tool input:focus{border-color:var(--brand)}
+  .find-tool button{
+    margin-top:8px;padding:8px 18px;font-size:12.5px;background:var(--brand);color:#fff;
+    border:none;border-radius:7px;cursor:pointer;font-weight:700;letter-spacing:.5px;
+  }
+  .find-tool button:hover{background:var(--brand-2)}
+  .find-hint{font-size:11.5px;color:var(--txt-dim);margin-top:6px}
+  .find-hint code{background:rgba(139,58,31,.1);padding:1px 5px;border-radius:3px;color:var(--brand);font-size:10.5px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M6</div>
+      <div>
+        <b>meta 元信息</b>
+        <span>FILE_GRAPH · 现状设计</span>
+      </div>
+    </div>
+    <div class="meta">1 核心文件 · 13 决策分支<br>3 大职能 · 100% 覆盖率<br>170 行 · 300 行阈值</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 模块定位</a>
+      <a href="#s2"><span class="n">02</span> 单文件判断</a>
+      <a href="#s3"><span class="n">03</span> 三大职能</a>
+      <a href="#s4"><span class="n">04</span> 13 决策分支</a>
+      <a href="#s5"><span class="n">05</span> 互为索引</a>
+      <a href="#s6"><span class="n">06</span> 维护规则</a>
+      <a href="#s7"><span class="n">07</span> 边界与降级</a>
+      <a href="#s8"><span class="n">08</span> 验收标准</a>
+      <div class="grp">交互工具</div>
+      <a href="#finder"><span class="n">F1</span> 找文件该放哪</a>
+      <a href="#xref"><span class="n">F2</span> 引用关系图</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">M6 模块</span>
+        <span class="b-pill inf">单文件权威</span>
+        <span class="b-pill inf">13 决策分支</span>
+        <span class="b-pill inf">3 大职能</span>
+        <span class="b-pill br">FILE_GRAPH.md</span>
+        <span class="b-pill inf">互为索引 CLAUDE.md</span>
+      </div>
+      <h1>M6 meta 元信息 —— 仓库的"治理中枢"</h1>
+      <p class="sub">整个 devguard 仓库的目录结构、文件归类、引用关系全部由 <code>meta/FILE_GRAPH.md</code> 这<b>唯一一份</b>文件权威定义。它不是文档库的成员——它是<b>描述文档库自身</b>的元信息。</p>
+      <div class="meta-row">
+        <span>版本 v1.0 · 2026-06-10</span>
+        <span>•</span>
+        <span>单文件 ~170 行 / 阈值 300 行</span>
+        <span>•</span>
+        <span>覆盖率 100% (13/13 文件类型)</span>
+        <span>•</span>
+        <span>配套: README.md / 简报.md / 实现计划.md / 阅读笔记.md</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>模块定位</b><span style="font-size:11px;color:var(--txt-faint)">它是什么 / 它不是什么</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>单文件判断</b><span style="font-size:11px;color:var(--txt-faint)">3 备选方案对比</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>三大职能</b><span style="font-size:11px;color:var(--txt-faint)">目录树 / 引用图 / 决策树</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>13 决策分支</b><span style="font-size:11px;color:var(--txt-faint)">新文件放哪决策树</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>互为索引</b><span style="font-size:11px;color:var(--txt-faint)">FILE_GRAPH ↔ CLAUDE.md</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>维护规则</b><span style="font-size:11px;color:var(--txt-faint)">6 个触发同步动作</span></div></a>
+    </div>
+
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>M6 核心数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="1">0</span></div>
+        <div class="lbl">核心文件</div>
+        <div class="sub">FILE_GRAPH.md</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="3">0</span></div>
+        <div class="lbl">大职能</div>
+        <div class="sub">目录树 / 引用 / 决策</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="13">0</span></div>
+        <div class="lbl">决策分支</div>
+        <div class="sub">100% 覆盖现存文件</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="170">0</span></div>
+        <div class="lbl">当前行数</div>
+        <div class="sub">阈值 300 / 余量 130</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="4">0</span></div>
+        <div class="lbl">关键同步约束</div>
+        <div class="sub">引用关系 §二</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="6">0</span></div>
+        <div class="lbl">维护触发</div>
+        <div class="sub">必做动作清单</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="5">0</span></div>
+        <div class="lbl">明确不做</div>
+        <div class="sub">边界与降级</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="2">0</span></div>
+        <div class="lbl">权威源</div>
+        <div class="sub">FILE_GRAPH / CLAUDE.md</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">M6 健康度 · 6 维仪表</h3>
+    <div class="grid g3">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:120px;font-size:11.5px">决策树覆盖率</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:120px;font-size:11.5px">目录树一致性</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:120px;font-size:11.5px">与 CLAUDE.md 同步</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:98%"><div class="fill brand"></div></div></div>
+          <div class="val">98%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:120px;font-size:11.5px">引用关系正确性</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:120px;font-size:11.5px">行数距阈值</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:57%"><div class="fill good"></div></div></div>
+          <div class="val">57%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:120px;font-size:11.5px">维护成本</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:15%"><div class="fill gold"></div></div></div>
+          <div class="val">极低</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div><b>模块设计原则</b>：M6 不描述"代码应该怎么写"（那是 M1），不描述"过程日志"（那是 M5），不描述"决策原因"（那是 ADR）。M6 只描述一件事——<b>现在仓库长什么样 + 新文件该放哪</b>。</div>
+    </div>
+
+    <section id="s1" class="sec-head" style="margin-top:50px">
+      <div class="tag">01 · 模块定位</div>
+      <h2>它是什么 · 它不是什么</h2>
+      <p class="lead"><code>meta/</code> 是 devguard 的<b>文件治理中枢</b>。它不是文档库的成员——它是<b>描述文档库自身</b>的元信息。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card brand">
+        <h4>它是什么</h4>
+        <p>仓库的"地图 + 调用图 + 路由器"三合一：</p>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0 0">
+          <li><b>地图</b>：目录树 + 每个节点的职责注释</li>
+          <li><b>调用图</b>：规范 ↔ BDD ↔ 落地 ↔ 钩子 的引用关系</li>
+          <li><b>路由器</b>：新文件 → 13 个决策分支 → 唯一归位路径</li>
+        </ul>
+        <div class="chip-row">
+          <span class="chip br">目录树 §一</span>
+          <span class="chip br">引用关系 §二</span>
+          <span class="chip br">决策树 §三</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>它不是什么</h4>
+        <div class="tbl-wrap" style="margin:6px 0">
+          <table>
+            <thead><tr><th>不是</th><th>而是</th><th>在</th></tr></thead>
+            <tbody>
+              <tr><td>规范正文</td><td>代码应该怎么写</td><td><code>conventions/</code> M1</td></tr>
+              <tr><td>README</td><td>人类使用指南</td><td><code>README.md</code></td></tr>
+              <tr><td>工作日志</td><td>过程记录</td><td><code>worklogs/</code> M5</td></tr>
+              <tr><td>ADR</td><td>为什么这样设计</td><td><code>worklogs/decisions/</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M6 在 devguard 8 大模块中的位置 (mermaid graph)</div>
+      <div class="mermaid">
+graph LR
+    M1["M1 conventions<br/>规范正文"]:::core
+    M2["M2 docs<br/>文档 (BDD/模板/计划)"]:::core
+    M3["M3 src<br/>可运行示例"]:::core
+    M4["M4 scripts<br/>工具脚本"]:::core
+    M5["M5 worklogs<br/>工作日志 + ADR"]:::core
+    M6["M6 meta<br/>FILE_GRAPH · 元信息"]:::self
+    M7["M7 tests<br/>L4 套件"]:::core
+    M8["M8 dashboard<br/>可视化"]:::core
+
+    M1 -. "被描述" .-> M6
+    M2 -. "被描述" .-> M6
+    M3 -. "被描述" .-> M6
+    M4 -. "被描述" .-> M6
+    M5 -. "被描述" .-> M6
+    M7 -. "被描述" .-> M6
+    M8 -. "被描述" .-> M6
+    M6 -. "反过来约束<br/>(决策树)" .-> M1
+    M6 -. "约束" .-> M2
+    M6 -. "约束" .-> M3
+    M6 -. "约束" .-> M4
+    M6 -. "约束" .-> M5
+    M6 -. "约束" .-> M7
+    M6 -. "约束" .-> M8
+
+    classDef core fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:1.5px
+    classDef self fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2.5px
+      </div>
+    </div>
+
+    <blockquote>
+      "元信息是描述自身的指针。它不在体系内——它是关于体系本身的那份文档。"
+      <cite>—— M6 设计原则</cite>
+    </blockquote>
+
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · 为什么单文件就够了</div>
+      <h2>设计判断 · 3 备选方案的对比</h2>
+      <p>为什么不拆 3 份（tree.md / refs.md / decision.md）？因为<b>目录树是底座</b>，拆开就失去上下文。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 单文件 vs 拆分的引用关系复杂度对比 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    subgraph A["方案 A · 拆 3 份 ❌"]
+        A1["tree.md<br/>目录树"]
+        A2["refs.md<br/>引用关系"]
+        A3["decision.md<br/>决策树"]
+        A1 -. "被引用" .-> A2
+        A2 -. "被引用" .-> A3
+        A3 -. "引用节点" .-> A1
+    end
+    subgraph B["方案 B · 拆 2 份 ❌"]
+        B1["tree+refs.md"]
+        B2["decision.md"]
+        B1 -. "被引用" .-> B2
+        B2 -. "引用节点" .-> B1
+    end
+    subgraph C["方案 C · 单文件 ✅"]
+        C0["FILE_GRAPH.md<br/>§一 目录树 + §二 引用 + §三 决策"]
+        C0a["§一 目录树<br/>(底座)"]:::base
+        C0b["§二 引用关系"]:::mid
+        C0c["§三 决策树"]:::mid
+        C0a --- C0b
+        C0b --- C0c
+    end
+
+    classDef base fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14,stroke-width:2px
+    classDef mid fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>备选</th><th>优点</th><th>缺点</th><th>结论</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>拆 3 份：tree / refs / decision</td>
+            <td>各职能可独立维护</td>
+            <td>决策树要引用目录树节点、引用关系要看完整结构，拆开<b>上下文断裂</b></td>
+            <td><span class="b-pill no">拒绝</span></td>
+          </tr>
+          <tr>
+            <td>拆 2 份：tree+refs / decision</td>
+            <td>决策树相对独立</td>
+            <td>引用关系与目录树紧耦合，拆开仍需互引</td>
+            <td><span class="b-pill no">拒绝</span></td>
+          </tr>
+          <tr style="background:rgba(63,107,61,.05)">
+            <td><b>单文件 FILE_GRAPH.md</b></td>
+            <td>三职能在同一上下文、读者一处读完</td>
+            <td>文件长但 ~170 行<b>可控</b></td>
+            <td><span class="b-pill ok">采纳</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>规模约束 · 仪表</h3>
+    <div class="grid g3">
+      <div class="card">
+        <h4>当前规模</h4>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:80px">行数</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:57%"><div class="fill"></div></div></div>
+          <div class="val">170</div>
+        </div>
+        <p style="font-size:11.5px;margin:6px 0 0">~170 行 — 章节清晰，速读可达</p>
+      </div>
+      <div class="card gold">
+        <h4>触发拆分阈值</h4>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:80px">阈值</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+          <div class="val">300</div>
+        </div>
+        <p style="font-size:11.5px;margin:6px 0 0">参考 ADR 0005「长文拆目录」标准</p>
+      </div>
+      <div class="card good">
+        <h4>余量</h4>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:80px">余量</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:43%"><div class="fill good"></div></div></div>
+          <div class="val">130</div>
+        </div>
+        <p style="font-size:11.5px;margin:6px 0 0">未来 2 年内不太可能突破</p>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div><b>核心理由</b>：决策树的每个分支的"目标路径"必须出现在 §一 目录树里；引用关系的每个节点也必须出现在 §一 目录树里。<b>目录树是底座</b>，其他两章是底座上的衍生视图——拆开就会失去底座。</div>
+    </div>
+
+    <h3>目录结构（单文件目录）</h3>
+    <div class="diagram"><span class="cm">meta/</span>
+└── <span class="br">FILE_GRAPH.md</span>    <span class="cm"># 文件归类权威（目录树 + 引用关系 + 决策树）</span>
+
+<span class="cm">对比：</span>
+  <span class="hl">conventions/</span>  <span class="cm"># 17 篇规范正文 + ai-workflow_*/ 流程（多文件）</span>
+  <span class="hl">docs/</span>         <span class="cm"># plan / reports / research / specs / templates（5 个子目录）</span>
+  <span class="br">meta/</span>        <span class="cm"># 仅 1 份核心文件（单文件目录）</span></div>
+
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · 核心设计 · 三大职能</div>
+      <h2>§一 目录树 · §二 引用关系 · §三 决策树</h2>
+      <p>三职能合一文件、同上下文、按章节切片。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 三大职能 章节切片视图 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    FG["FILE_GRAPH.md<br/>(170 行 · 唯一权威)"]:::root
+
+    FG --> S1["§一 目录树<br/>带职责标注的目录树<br/>回答：这个文件是干嘛的"]:::s1
+    FG --> S2["§二 引用关系图谱<br/>单向同步链 + 4 条关键约束<br/>回答：改了 A 要同步哪些"]:::s2
+    FG --> S3["§三 新文件决策树<br/>13 个分支 + 末端警告<br/>回答：新文件该放哪"]:::s3
+
+    S1 -. "底座" .-> S2
+    S1 -. "底座" .-> S3
+    S2 -. "约束" .-> S3
+
+    classDef root fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17,stroke-width:2.5px
+    classDef s1 fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef s2 fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef s3 fill:#F0E2C5,stroke:#A87A2E,color:#1F1D17
+      </div>
+    </div>
+
+    <h3>§一 目录树 · 仓库的"地图"</h3>
+    <div class="grid g2">
+      <div>
+        <h4>职责</h4>
+        <p>带职责标注的目录树，回答"这个文件是干嘛的"。</p>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0">
+          <li>不显示行数（行数是动态的，结构才是稳定的）</li>
+          <li>每个节点有职责注释（"仓库根"、"规范正文"、"模板权威来源"）</li>
+          <li>顶层入口文件单列（CLAUDE.md / README.md / STATUS.md / dashboard.html）</li>
+        </ul>
+      </div>
+      <div class="diagram"><span class="cm"># §一 目录树片段（节选）</span>
+开发规范/
+├── <span class="br">conventions/</span>           <span class="cm"># 规范正文 (17 篇)</span>
+│   ├── 01-architecture_*.md
+│   ├── 02-coding_*.md          <span class="hl">← src/coding/ruff.toml</span>
+│   └── 07-ai-workflow_*/       <span class="cm"># 7 篇流程</span>
+├── <span class="br">docs/</span>                  <span class="cm"># BDD/模板/计划/调研/报告</span>
+│   ├── specs/                  <span class="cm"># 8 份 BDD</span>
+│   ├── templates/              <span class="cm"># 模板权威</span>
+│   └── plan/                   <span class="cm"># 设计文档 + 清单</span>
+├── <span class="br">src/&lt;维度&gt;/</span>            <span class="cm"># 规范 §二落地配置</span>
+├── <span class="br">worklogs/</span>              <span class="cm"># 工作日志 + decisions/</span>
+└── <span class="br">meta/FILE_GRAPH.md</span>     <span class="cm"># 本文件 (权威)</span></div>
+    </div>
+
+    <h3>§二 引用关系图谱 · 仓库的"调用图"</h3>
+    <div id="xref"></div>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 仓库核心引用关系图谱 (mermaid graph)</div>
+      <div class="mermaid">
+graph LR
+    CV["conventions/<br/>规范正文"]:::cv
+    SP["docs/specs/<br/>BDD 验收"]:::sp
+    SRC["src/&lt;维度&gt;/<br/>落地配置"]:::src
+    TPL["docs/templates/<br/>可复用模板"]:::tpl
+    PL["docs/plan/<br/>项目计划"]:::pl
+    ST["STATUS.md<br/>进度数据源"]:::st
+    DB["dashboard.html<br/>可视化"]:::db
+    WL["worklogs/<br/>工作日志"]:::wl
+    SCR["scripts/<br/>工具脚本"]:::scr
+    NP["新项目<br/>(复制 templates/)"]:::np
+
+    CV <-- "互检<br/>(双向)" --> SP
+    CV -- "落地为可运行" --> SRC
+    CV -- "实例化为模板" --> TPL
+    SP -- "验收" --> SRC
+    PL -- "清单条目" --> ST
+    ST -- "解析" --> DB
+    CV -- "改规范触发" --> WL
+    SCR -- "执行" --> CV
+    TPL -- "复制到" --> NP
+
+    classDef cv fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef sp fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef src fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef tpl fill:#F0E2C5,stroke:#A87A2E,color:#1F1D17
+    classDef pl fill:#EDE8DD,stroke:#5A5447,color:#1F1D17
+    classDef st fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef db fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17
+    classDef wl fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef scr fill:#EDE8DD,stroke:#5A5447,color:#1F1D17
+    classDef np fill:#F0E2C5,stroke:#A87A2E,color:#1F1D17
+      </div>
+    </div>
+
+    <h4>关键同步约束（4 条）</h4>
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>① 单向同步链</h4>
+        <p><code>conventions → specs → src</code>，下游跟着上游改。</p>
+      </div>
+      <div class="card brand">
+        <h4>② 循环引用只发生在 conventions ↔ specs</h4>
+        <p>互检机制——规范与 BDD 互为可信源。</p>
+      </div>
+      <div class="card gold">
+        <h4>③ dashboard 改表头需同步改解析器</h4>
+        <p><code>STATUS.md</code> → <code>dashboard.html</code> 是单向解析链。</p>
+      </div>
+      <div class="card good">
+        <h4>④ 模板复制要带"出处注释"</h4>
+        <p><code>docs/templates/</code> 复制到新项目时注明来源。</p>
+      </div>
+    </div>
+
+    <h3>§三 新文件决策树 · 仓库的"路由器"</h3>
+    <div class="note info">
+      <span class="ico">i</span>
+      <div><b>设计要点</b>：以问题开头（"要新增一个文件，它是……"）；每个分支给出确切目标路径（不只是原则，而是 <code>conventions/NN-*.md</code>）；末端是警告（"根目录不接受新散文件"）。</div>
+    </div>
+
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 13 个文件类型决策分支</div>
+      <h2>M6 的灵魂 · 13 分支完整决策树</h2>
+      <p>经 V0.x 重整后，仓库所有现存文件都能在这 13 个分支中找到归宿。覆盖率 100%。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 13 决策分支完整 flowchart (mermaid)</div>
+      <div class="mermaid">
+flowchart TD
+    Q{"要新增一个文件<br/>它是..."}
+    Q -->|"代码应该<br/>怎么写"| B1["1. 规范正文<br/><b>conventions/NN-*.md</b>"]:::b
+    Q -->|"验收标准"| B2["2. BDD 验收<br/><b>docs/specs/NN-*.md</b>"]:::b
+    Q -->|"为什么选 A<br/>不选 B"| B3["3. ADR 决策<br/><b>worklogs/decisions/NNNN-*.md</b><br/>(仅收束节点)"]:::b
+    Q -->|"项目计划"| B4["4. 项目计划<br/><b>docs/plan/背景.md + 开发清单.md</b>"]:::b
+    Q -->|"复杂功能设计"| B5["5. 设计文档<br/><b>docs/plan/design/设计文档-*.md</b>"]:::b
+    Q -->|"进度汇报"| B6["6. 汇报<br/><b>docs/reports/...</b>"]:::b
+    Q -->|"调研产出"| B7["7. 调研笔记<br/><b>docs/research/&lt;主题&gt;.md</b>"]:::b
+    Q -->|"可复用模板"| B8["8. 模板<br/><b>docs/templates/&lt;类型&gt;模板.md</b>"]:::b
+    Q -->|"规范的可运行<br/>配置示例"| B9["9. 示例代码<br/><b>src/&lt;对应规范维度&gt;/...</b>"]:::b
+    Q -->|"功能点日志"| B10["10. 功能点日志<br/><b>worklogs/YYYY-MM-DD_*.md</b>"]:::b
+    Q -->|"构建/启动脚本"| B11["11. 工具脚本<br/><b>scripts/&lt;name&gt;.py|.bat|.sh</b>"]:::b
+    Q -->|"描述仓库自身"| B12["12. 仓库元信息<br/><b>meta/&lt;name&gt;.md</b>"]:::b
+    Q -->|"项目级入口"| B13["13. 根目录入口<br/><b>CLAUDE.md / README.md<br/>STATUS.md / dashboard.html</b><br/>(4 选 1)"]:::b
+    Q -->|未识别| W["⚠ 禁止<br/>先在 §三 决策树增 1 个分支<br/>再创建文件"]:::warn
+
+    classDef b fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef warn fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17,stroke-width:2px
+      </div>
+    </div>
+
+    <h3>13 分支详细对照表</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:42px">#</th>
+            <th>文件类型</th>
+            <th>目标路径</th>
+            <th>触发条件</th>
+            <th>当前实例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="branch-1" class="branch-card"><td class="num">1</td><td>规范正文</td><td><code>conventions/NN-&lt;name&gt;_&lt;中文名&gt;.md</code></td><td>某个开发维度的"应该怎么做"</td><td>01-architecture / 02-coding / ... / 17-contributing</td></tr>
+          <tr id="branch-2" class="branch-card"><td class="num">2</td><td>BDD 验收标准</td><td><code>docs/specs/NN-&lt;name&gt;.md</code></td><td>某规范/功能点的可执行验收</td><td>specs/01-08 + specs/00-10</td></tr>
+          <tr id="branch-3" class="branch-card"><td class="num">3</td><td>ADR 决策</td><td><code>worklogs/decisions/NNNN-&lt;标题&gt;.md</code></td><td>架构/技术选型"为什么选 A 不选 B"（仅收束节点）</td><td>0001-0006 共 6 个</td></tr>
+          <tr id="branch-4" class="branch-card"><td class="num">4</td><td>项目计划</td><td><code>docs/plan/背景.md</code> + <code>开发清单.md</code></td><td>项目级计划与功能点清单</td><td>背景.md + 开发清单.md</td></tr>
+          <tr id="branch-5" class="branch-card"><td class="num">5</td><td>设计文档</td><td><code>docs/plan/design/设计文档-&lt;功能名&gt;.md</code></td><td>复杂功能（背景/目标/方案/影响/风险）</td><td>M1-M8 模块设计 + 本文件</td></tr>
+          <tr id="branch-6" class="branch-card"><td class="num">6</td><td>进度汇报</td><td><code>docs/reports/...</code></td><td>功能点完成 / 收束报告</td><td>13 收束报告 + INDEX</td></tr>
+          <tr id="branch-7" class="branch-card"><td class="num">7</td><td>调研笔记</td><td><code>docs/research/&lt;主题&gt;.md</code></td><td>调研产出</td><td>图谱与代码理解工具调研</td></tr>
+          <tr id="branch-8" class="branch-card"><td class="num">8</td><td>可复用模板</td><td><code>docs/templates/&lt;类型&gt;模板.md</code></td><td>新项目可复制的文件模板</td><td>devguard/ 通用/ + 索引</td></tr>
+          <tr id="branch-9" class="branch-card"><td class="num">9</td><td>规范示例代码</td><td><code>src/&lt;对应规范维度&gt;/...</code></td><td>规范的可运行配置示例</td><td>7 个维度子目录</td></tr>
+          <tr id="branch-10" class="branch-card"><td class="num">10</td><td>功能点日志</td><td><code>worklogs/YYYY-MM-DD_&lt;简短描述&gt;.md</code></td><td>一次功能点的开发记录</td><td>worklogs/2026-*</td></tr>
+          <tr id="branch-11" class="branch-card"><td class="num">11</td><td>工具脚本</td><td><code>scripts/&lt;name&gt;.py|.bat|.sh</code></td><td>构建/启动/部署辅助脚本</td><td>start_server.py + 打开仪表盘.bat + 6 个 L1/L4 钩子</td></tr>
+          <tr id="branch-12" class="branch-card"><td class="num">12</td><td>仓库元信息</td><td><code>meta/&lt;name&gt;.md</code></td><td>描述仓库自身的文件</td><td>本 FILE_GRAPH.md</td></tr>
+          <tr id="branch-13" class="branch-card" style="background:rgba(63,107,61,.05)"><td class="num">13</td><td><b>项目级入口</b></td><td>根目录 4 类文件</td><td><b>仅 4 类</b>：CLAUDE.md / README.md / STATUS.md / dashboard.html</td><td>已占用，禁新散文件</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verdict" style="margin-top:20px">
+      <div class="lbl">覆盖率核验</div>
+      <h4>经 V0.x 重整后（worklogs/2026-05-27_文件夹重整与plan-design合并.md），仓库所有现存文件都能在 13 个分支中找到归宿</h4>
+      <p style="margin:0">覆盖率 = 13/13 分支命中现存文件类型；未来新增文件类型必须先在 §三 决策树增 1 个分支再创建——这就是"<b>决策树先于文件</b>"的纪律。</p>
+    </div>
+
+    <h3>13 分支 · 关键判定细节（点击展开）</h3>
+    <details class="hook" open>
+      <summary>分支 1 · 规范正文 · 详解</summary>
+      <div class="body">
+        <b>判定</b>：当文档讲"某个开发维度应该怎么做"时。<br>
+        <b>路径</b>：<code>conventions/NN-&lt;name&gt;_&lt;中文名&gt;.md</code>，NN = 两位数字编号。<br>
+        <b>实例</b>：01-architecture / 02-coding / 08-code-understanding v3.0 双图谱。<br>
+        <b>注意</b>：每条规范配 ① 规范正文 ② BDD ③ 落地配置 ④ 钩子 ⑤ L4 测试。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>分支 3 · ADR 决策 · 详解</summary>
+      <div class="body">
+        <b>判定</b>：当记录"为什么选 A 不选 B"时——<b>仅收束节点产出</b>。<br>
+        <b>路径</b>：<code>worklogs/decisions/NNNN-&lt;标题&gt;.md</code>，NNNN = 4 位编号。<br>
+        <b>实例</b>：0001-0006 共 6 个 ADR。<br>
+        <b>不产出场景</b>：常规功能点、调研笔记、子决策——这些走 worklog 关键决策段。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>分支 5 · 设计文档 · 详解</summary>
+      <div class="body">
+        <b>判定</b>：当描述"复杂功能"时（背景/目标/方案/影响/风险 五段式）。<br>
+        <b>路径</b>：<code>docs/plan/design/设计文档-&lt;功能名&gt;.md</code>。<br>
+        <b>实例</b>：M1-M8 模块设计文档 + 本文件（meta 元信息）。<br>
+        <b>放错位置</b>：如果放进 <code>meta/</code> → 违反分支 5，应移到本路径。
+      </div>
+    </details>
+    <details class="hook">
+      <summary>分支 13 · 项目级入口 · 详解</summary>
+      <div class="body">
+        <b>判定</b>：当文件"必须放在根目录"时——<b>仅 4 类</b>。<br>
+        <b>路径</b>：<code>CLAUDE.md / README.md / STATUS.md / dashboard.html</code>。<br>
+        <b>已占用</b>：4 类文件均已存在，禁新散文件。<br>
+        <b>反模式</b>：临时笔记、实验脚本、配置 dump 等任何根目录散文件都禁止。
+      </div>
+    </details>
+
+    <h3>13 分支按场景聚类</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 13 分支按职能聚类 (mermaid graph)</div>
+      <div class="mermaid">
+graph TB
+    subgraph SPEC["规范侧"]
+        B1["1. 规范正文"]:::spec
+        B2["2. BDD 验收"]:::spec
+        B3["3. ADR 决策"]:::spec
+    end
+    subgraph DOC["文档侧"]
+        B4["4. 项目计划"]:::doc
+        B5["5. 设计文档"]:::doc
+        B6["6. 进度汇报"]:::doc
+        B7["7. 调研笔记"]:::doc
+        B8["8. 可复用模板"]:::doc
+    end
+    subgraph CODE["代码侧"]
+        B9["9. 示例代码"]:::code
+        B11["11. 工具脚本"]:::code
+    end
+    subgraph PROC["过程侧"]
+        B10["10. 功能点日志"]:::proc
+    end
+    subgraph META["元信息侧"]
+        B12["12. 仓库元信息"]:::meta
+        B13["13. 项目级入口"]:::meta
+    end
+    SPEC --> DOC --> CODE
+    DOC --> PROC
+    SPEC --> META
+
+    classDef spec fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef doc fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef code fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17
+    classDef proc fill:#F0E2C5,stroke:#A87A2E,color:#1F1D17
+    classDef meta fill:#EDE8DD,stroke:#5A5447,color:#1F1D17
+      </div>
+    </div>
+
+    <h3>13 分支占比</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 13 分支按职能聚类占比 (mermaid pie)</div>
+      <div class="mermaid">
+pie title 13 决策分支按职能聚类
+    "规范侧 (3)" : 3
+    "文档侧 (5)" : 5
+    "代码侧 (2)" : 2
+    "过程侧 (1)" : 1
+    "元信息侧 (2)" : 2
+      </div>
+    </div>
+
+    <h3>分支 × 维护触发矩阵</h3>
+    <div class="tbl-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width:120px;text-align:left">分支</th>
+            <th>改规范</th>
+            <th>加功能点</th>
+            <th>新文件类型</th>
+            <th>移动路径</th>
+            <th>CLAUDE 同步</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="lbl">1 规范正文</td><td class="yes">✓</td><td class="partial">◐</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td class="lbl">2 BDD 验收</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="partial">◐</td><td class="partial">◐</td></tr>
+          <tr><td class="lbl">3 ADR 决策</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td class="lbl">4 项目计划</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐</td></tr>
+          <tr><td class="lbl">5 设计文档</td><td class="partial">◐</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐</td></tr>
+          <tr><td class="lbl">6 进度汇报</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td class="lbl">7 调研笔记</td><td class="no">✗</td><td class="partial">◐</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td class="lbl">8 可复用模板</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐</td><td class="partial">◐</td><td class="partial">◐</td></tr>
+          <tr><td class="lbl">9 示例代码</td><td class="yes">✓</td><td class="partial">◐</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐</td></tr>
+          <tr><td class="lbl">10 功能点日志</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td class="lbl">11 工具脚本</td><td class="no">✗</td><td class="partial">◐</td><td class="no">✗</td><td class="partial">◐</td><td class="partial">◐</td></tr>
+          <tr><td class="lbl">12 仓库元信息</td><td class="partial">◐</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td class="lbl">13 项目级入口</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section id="finder" class="sec-head" style="margin-top:50px">
+      <div class="tag">交互 · 找文件该放哪</div>
+      <h2>决策树交互器 · 输入描述 → 推荐路径</h2>
+      <p>点击下方 13 个分支的标签快速跳转，或在搜索框中输入关键词查询对应路径。</p>
+    </section>
+
+    <div class="find-tool">
+      <label style="font-size:12.5px;font-weight:700;color:var(--brand);letter-spacing:1px">FIND MY FILE</label>
+      <input type="text" id="findInput" placeholder="例：规范 / BDD / ADR / 设计文档 / 调研 / 模板 / 脚本 / 入口..." />
+      <button onclick="findPath()">查询目标路径</button>
+      <div class="find-hint">支持关键词：<code>规范</code> <code>BDD</code> <code>ADR</code> <code>计划</code> <code>设计</code> <code>汇报</code> <code>调研</code> <code>模板</code> <code>src</code> <code>worklog</code> <code>脚本</code> <code>meta</code> <code>根目录</code></div>
+      <div id="findAns" style="margin-top:8px;font-size:13px"></div>
+    </div>
+
+    <h3>13 分支快速跳转</h3>
+    <div class="tag-cloud">
+      <span class="tag-item" onclick="jumpToBranch(1)">1 规范</span>
+      <span class="tag-item" onclick="jumpToBranch(2)">2 BDD</span>
+      <span class="tag-item" onclick="jumpToBranch(3)">3 ADR</span>
+      <span class="tag-item" onclick="jumpToBranch(4)">4 计划</span>
+      <span class="tag-item" onclick="jumpToBranch(5)">5 设计</span>
+      <span class="tag-item" onclick="jumpToBranch(6)">6 汇报</span>
+      <span class="tag-item" onclick="jumpToBranch(7)">7 调研</span>
+      <span class="tag-item" onclick="jumpToBranch(8)">8 模板</span>
+      <span class="tag-item" onclick="jumpToBranch(9)">9 示例</span>
+      <span class="tag-item" onclick="jumpToBranch(10)">10 日志</span>
+      <span class="tag-item" onclick="jumpToBranch(11)">11 脚本</span>
+      <span class="tag-item" onclick="jumpToBranch(12)">12 meta</span>
+      <span class="tag-item" onclick="jumpToBranch(13)">13 入口</span>
+    </div>
+
+    <h3>决策树 · 三种提问视角 Tab</h3>
+    <div class="tabs" id="qtabs">
+      <div class="tb active" data-tab="q1">按文件类型 <span class="badge">13</span></div>
+      <div class="tb" data-tab="q2">按场景 <span class="badge">5</span></div>
+      <div class="tb" data-tab="q3">按反模式 <span class="badge">3</span></div>
+    </div>
+
+    <div class="tab-pane active" data-pane="q1">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>我想要...</th><th>目标路径</th><th>分支</th></tr></thead>
+          <tbody>
+            <tr><td>写一份规范"应该怎么做"</td><td><code>conventions/NN-*.md</code></td><td><span class="b-pill br">1</span></td></tr>
+            <tr><td>写验收标准</td><td><code>docs/specs/NN-*.md</code></td><td><span class="b-pill br">2</span></td></tr>
+            <tr><td>记录"为什么选 A 不选 B"</td><td><code>worklogs/decisions/NNNN-*.md</code></td><td><span class="b-pill br">3</span></td></tr>
+            <tr><td>项目级计划与功能点清单</td><td><code>docs/plan/背景.md + 开发清单.md</code></td><td><span class="b-pill br">4</span></td></tr>
+            <tr><td>复杂功能的设计文档</td><td><code>docs/plan/design/设计文档-*.md</code></td><td><span class="b-pill br">5</span></td></tr>
+            <tr><td>进度汇报 / 收束报告</td><td><code>docs/reports/...</code></td><td><span class="b-pill br">6</span></td></tr>
+            <tr><td>调研笔记</td><td><code>docs/research/&lt;主题&gt;.md</code></td><td><span class="b-pill br">7</span></td></tr>
+            <tr><td>可复用模板</td><td><code>docs/templates/&lt;类型&gt;模板.md</code></td><td><span class="b-pill br">8</span></td></tr>
+            <tr><td>规范的可运行配置示例</td><td><code>src/&lt;对应规范维度&gt;/</code></td><td><span class="b-pill br">9</span></td></tr>
+            <tr><td>功能点开发日志</td><td><code>worklogs/YYYY-MM-DD_*.md</code></td><td><span class="b-pill br">10</span></td></tr>
+            <tr><td>构建/启动/部署脚本</td><td><code>scripts/&lt;name&gt;.py|.bat|.sh</code></td><td><span class="b-pill br">11</span></td></tr>
+            <tr><td>描述仓库自身的文件</td><td><code>meta/&lt;name&gt;.md</code></td><td><span class="b-pill br">12</span></td></tr>
+            <tr><td>项目级入口文件</td><td>根目录 4 类文件之一</td><td><span class="b-pill br">13</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="q2">
+      <div class="grid g3">
+        <div class="card hl">
+          <h4>场景 A · 改规范时</h4>
+          <p>改 <code>conventions/NN-*.md</code> → 同步 <code>docs/specs/NN-*.md</code>（BDD 互检）→ 同步 <code>src/&lt;维度&gt;/</code>（落地配置）</p>
+          <div class="chip-row"><span class="chip b">1+2+9</span></div>
+        </div>
+        <div class="card brand">
+          <h4>场景 B · 加功能点时</h4>
+          <p>更新 <code>STATUS.md</code> + <code>开发清单.md</code>（4）→ 写 <code>worklogs/</code>（10）→ 完成后 <code>docs/reports/</code>（6）</p>
+          <div class="chip-row"><span class="chip br">4+10+6</span></div>
+        </div>
+        <div class="card gold">
+          <h4>场景 C · 收束节点时</h4>
+          <p>落盘 <code>docs/reports/收束节点-V*.*.md</code>（6）→ 如有架构/技术选型变更，写 ADR（3）</p>
+          <div class="chip-row"><span class="chip gl">6+3</span></div>
+        </div>
+        <div class="card good">
+          <h4>场景 D · 新增文件类型时</h4>
+          <p>先在 §三 决策树增 1 个分支（12）→ 再创建文件——<b>决策树先于文件</b></p>
+          <div class="chip-row"><span class="chip gd">12</span></div>
+        </div>
+        <div class="card">
+          <h4>场景 E · 跨项目复制时</h4>
+          <p>从 <code>docs/templates/</code>（8）复制到新项目 → 注明来源 → 在新项目根建 <code>meta/FILE_GRAPH.md</code>（12）</p>
+          <div class="chip-row"><span class="chip">8+12</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="q3">
+      <div class="grid g2">
+        <div class="card" style="border-top:3px solid var(--bad)">
+          <h4 style="color:var(--bad)">反模式 1 · 根目录堆散文件</h4>
+          <p>新增"临时笔记"、"实验脚本"等文件到根目录。<b>违反分支 13</b>。应先看 §三 决策树是否需要增分支。</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--bad)">
+          <h4 style="color:var(--bad)">反模式 2 · 设计文档放 meta/</h4>
+          <p>把"设计文档-*.md"放 <code>meta/</code>。<b>违反分支 5</b>。设计文档属于"项目计划"——<code>docs/plan/design/</code>。</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--bad)">
+          <h4 style="color:var(--bad)">反模式 3 · ADR 放 meta/</h4>
+          <p>把"决策记录-*.md"放 <code>meta/</code>。<b>违反分支 3</b>。ADR 是决策记录——<code>worklogs/decisions/</code>。</p>
+        </div>
+      </div>
+    </div>
+
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · 与 CLAUDE.md 的"互为索引"</div>
+      <h2>FILE_GRAPH.md ↔ CLAUDE.md · 互为索引</h2>
+      <p>两份文档职能不同（AI 上下文 vs 文件归类权威），保留"双份正文"，内容上必须保持一致——<b>互为索引</b>表示两边互为可信源。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 互为索引关系图 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    FG["meta/FILE_GRAPH.md<br/>详细版<br/>§一 目录树 + §二 引用 + §三 决策"]:::det
+    CL["CLAUDE.md<br/>精简版<br/>目录索引段 (直接摘抄)"]:::brief
+
+    CL -- "摘抄 §一" --> FG
+    FG -- "扩充 §一" --> CL
+    CL -. "互为索引<br/>(同步纪律)" .-> FG
+
+    FG --> OUT1["回答：<br/>目录结构 + 引用关系 + 决策树"]
+    CL --> OUT2["回答：<br/>目录结构 + 引用关系 + 核心规则"]
+
+    classDef det fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef brief fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+      </div>
+    </div>
+
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>FILE_GRAPH.md (M6 权威)</h4>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>职能</b>：文件归类权威</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>读者</b>：所有读者（细读）</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>内容</b>：详细版（§一/§二/§三 全展开）</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>行数</b>：~170 行</li>
+          <li style="padding:5px 0;font-size:12.4px"><b>权威性</b>：<span style="color:var(--brand);font-weight:700">最高</span></li>
+        </ul>
+      </div>
+      <div class="vs-mid">↔</div>
+      <div class="vs-col new">
+        <h4>CLAUDE.md (AI 速读)</h4>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>职能</b>：AI 上下文入口</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>读者</b>：AI（启动会话自动加载）</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>内容</b>：精简版（直接摘抄 §一）</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px"><b>行数</b>：~150 行</li>
+          <li style="padding:5px 0;font-size:12.4px"><b>权威性</b>：<span style="color:var(--good);font-weight:700">可信源（与 FILE_GRAPH 同步）</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>同步纪律 · 触发矩阵</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>触发</th><th>同步动作</th><th>阻断机制</th></tr></thead>
+        <tbody>
+          <tr><td><code>FILE_GRAPH.md</code> §一 目录树改了</td><td><code>CLAUDE.md</code> "目录索引"段<b>必须</b>同步摘抄</td><td rowspan="2">CI 阶段 <code>compliance</code> 应阻断<br/>（暂未自动化，靠人工纪律）</td></tr>
+          <tr><td><code>CLAUDE.md</code> "目录索引"段改了</td><td><code>FILE_GRAPH.md</code> §一 必须同步扩充</td></tr>
+          <tr><td>任一边改完未同步另一边</td><td colspan="2" style="color:var(--bad);font-weight:700">CI 应阻断（暂靠人工 review）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote>
+      "为什么是'互为索引'而不是'双向同步'？因为职能不同——CLAUDE.md 给 AI 速读用、精简；FILE_GRAPH.md 给所有读者细读用、详尽。保留双份正文但内容一致——这是<b>用冗余换职能清晰</b>的设计取舍。"
+      <cite>—— M6 设计原则</cite>
+    </blockquote>
+
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 维护规则</div>
+      <h2>何时更新 FILE_GRAPH.md</h2>
+      <p>6 个触发场景 + 维护原则 = 最小维护成本。</p>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>触发场景</th><th>必做动作</th><th>频次预估</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>新增任何文件/目录</td><td>§一 目录树 + §三 决策树核验</td><td>~5 次/月</td></tr>
+          <tr><td>移动任何文件/目录</td><td>§一 目录树 + §二 引用关系</td><td>~1 次/月</td></tr>
+          <tr><td>改 <code>conventions/</code> 规范</td><td>§二 引用关系（约束 1）→ 同步 specs</td><td>~2 次/月</td></tr>
+          <tr><td>新增功能点</td><td>§二 引用关系（约束 2）→ 同步 STATUS + 开发清单</td><td>~5 次/月</td></tr>
+          <tr><td>新增一类文件类型</td><td>§三 决策树增 1 个分支</td><td>~1 次/季度</td></tr>
+          <tr><td><code>CLAUDE.md</code> 改了目录段</td><td>§一 目录树同步扩充</td><td>~1 次/月</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>维护原则 · 3 条铁律</h3>
+    <div class="grid g3">
+      <div class="card brand">
+        <h4>① 不维护细节</h4>
+        <p>不在图谱里维护"具体行数、临时状态"——细节漂移会拖垮维护。</p>
+      </div>
+      <div class="card gold">
+        <h4>② 不维护历史</h4>
+        <p>不在图谱里维护"V0.x 增加了什么"——历史在 worklog。</p>
+      </div>
+      <div class="card good">
+        <h4>③ 只维护当下</h4>
+        <p>只在图谱里维护"现在长什么样"——目录结构 + 引用关系 + 归位规则。</p>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">⚠</span>
+      <div><b>明确不做</b>：把 §一 目录树拆出去成单独 <code>TREE.md</code>（失去上下文）；在 §三 决策树里维护"具体放哪个子目录"（如 <code>conventions/01-</code> 还是 <code>conventions/02-</code>）——那是规范的编号；在 §二 引用关系里画"功能点 ↔ worklog"的具体线条（粒度太细，维护成本高）；把 <code>docs/reports/</code> 拆成 <code>reports/per-feature/</code> 子目录（违反 ADR 0005 拆目录阈值 300 行）。</div>
+    </div>
+
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 边界与降级</div>
+      <h2>5 个明确不做 · 4 个降级行为</h2>
+      <p>M6 有明确边界——避免无限制扩张。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card brand">
+        <h4>5 个明确不做</h4>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0">
+          <li>不把 §一 目录树拆出 <code>TREE.md</code></li>
+          <li>不在 §三 维护"具体子目录编号"</li>
+          <li>不在 §二 画"功能点 ↔ worklog"线条</li>
+          <li>不拆 <code>docs/reports/</code> 子目录</li>
+          <li>不重复 M1 的真源（_meta.yaml 已在 M1 维护）</li>
+        </ul>
+      </div>
+      <div class="card gold">
+        <h4>4 个降级行为</h4>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0">
+          <li>新文件类型未在决策树 → <b>禁止</b>新增，先增分支</li>
+          <li>FILE_GRAPH 与 CLAUDE.md 不一致 → 以 FILE_GRAPH 为准</li>
+          <li>FILE_GRAPH 与实际仓库不一致 → 以实际为准</li>
+          <li>ADR / 设计文档误放进 <code>meta/</code> → 移走</li>
+        </ul>
+      </div>
+    </div>
+
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 验收标准</div>
+      <h2>6 维度验收 · 全绿状态</h2>
+      <p>M6 模块的可验收指标——所有维度当前 100% 达标。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card">
+        <h4>6 维度验收矩阵</h4>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:140px">决策树覆盖率</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:140px">目录树准确性</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:140px">引用关系正确性</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:140px">与 CLAUDE.md 一致性</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:98%"><div class="fill brand"></div></div></div>
+          <div class="val">98%</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:140px">分支数 = 13</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+          <div class="val">13/13</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:140px">单文件行数</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:57%"><div class="fill"></div></div></div>
+          <div class="val">170/300</div>
+        </div>
+      </div>
+      <div class="card hl">
+        <h4>验收方式</h4>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0">
+          <li>枚举所有现存文件 → 逐一对照 §三 13 分支 → <b>100% 命中</b></li>
+          <li><code>tree -L 2</code> 对照 §一 → 节点完全一致</li>
+          <li>抽查 3 条引用链（如改规范→改 specs）→ 全部成立</li>
+          <li>人工 diff "目录索引"段 vs §一 → 仅详略差异</li>
+          <li>静态计数决策树分支数 → = 13</li>
+          <li><code>wc -l FILE_GRAPH.md</code> → ≤ 300 行</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>FILE_GRAPH 章节级 L1 检测 · Mermaid</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M6 自检链路 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    A["FILE_GRAPH.md<br/>170 行"]:::root
+    A --> A1["§一 目录树<br/>~50 行"]:::s
+    A --> A2["§二 引用关系<br/>~30 行"]:::s
+    A --> A3["§三 决策树<br/>~70 行"]:::s
+    A1 --> C1["L1 检测<br/>tree -L 2 对照"]
+    A2 --> C2["L1 检测<br/>抽查引用链"]
+    A3 --> C3["L1 检测<br/>13 分支计数"]
+    C1 --> R1{"100% 一致?"}
+    C2 --> R2{"3/3 成立?"}
+    C3 --> R3{"= 13?"}
+    R1 --> DONE["✓ M6 验收通过"]
+    R2 --> DONE
+    R3 --> DONE
+
+    classDef root fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef s fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+      </div>
+    </div>
+
+    <section class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · FILE_GRAPH.md 章节级 L1 检测脚本</div>
+      <h2>scripts/check_meta_l1.py · 自动化验收（候选）</h2>
+      <p>当前靠人工 + L1 检测，未来可自动化（详见 §十 未来扩展）。</p>
+    </section>
+
+    <div class="code-block"><span class="cm"># 候选脚本：scripts/check_meta_l1.py（暂未实现）</span>
+<span class="kw">def</span> <span class="fn">check_file_graph</span>():
+    <span class="cm"># ① 决策树分支数 = 13</span>
+    branches = <span class="fn">parse_decision_tree</span>(<span class="str">"meta/FILE_GRAPH.md"</span>)
+    <span class="kw">assert</span> <span class="fn">len</span>(branches) == <span class="num">13</span>, <span class="str">f"分支数 {len(branches)} ≠ 13"</span>
+
+    <span class="cm"># ② 目录树节点 vs 实际 tree -L 2</span>
+    tree = <span class="fn">subprocess</span>.<span class="fn">check_output</span>([<span class="str">"tree"</span>, <span class="str">"-L"</span>, <span class="num">2</span>, <span class="str">"--noreport"</span>])
+    <span class="kw">assert</span> <span class="fn">diff</span>(tree, <span class="fn">parse_tree_section</span>()) == <span class="str">""</span>
+
+    <span class="cm"># ③ 引用关系正确性（抽查 3 条）</span>
+    <span class="kw">assert</span> <span class="fn">check_chain</span>(<span class="str">"conventions/02 → docs/specs/02"</span>)
+    <span class="kw">assert</span> <span class="fn">check_chain</span>(<span class="str">"docs/plan/开发清单 → STATUS.md"</span>)
+    <span class="kw">assert</span> <span class="fn">check_chain</span>(<span class="str">"STATUS.md → dashboard.html"</span>)
+
+    <span class="cm"># ④ 与 CLAUDE.md 一致性</span>
+    <span class="kw">assert</span> <span class="fn">diff</span>(
+        <span class="fn">parse_claude_index</span>(),
+        <span class="fn">parse_file_graph_tree</span>()
+    ).<span class="fn">is_structural_only</span>()
+
+    <span class="kw">return</span> <span class="str">"✓ M6 6 维验收全绿"</span></div>
+
+    <section class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · 未来扩展提示（非本期范围）</div>
+      <h2>2 个候选 · 留待后续</h2>
+      <p>本模块"少而精"已稳定——以下为未来可选扩展，不在 V1.x 范围。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>候选 A · meta/STRUCTURE.md</h4>
+        <p>新增"仓库设计哲学"文档（与 FILE_GRAPH 区分：前者说哲学，后者说结构）。</p>
+        <div class="chip-row"><span class="chip b">+ 1 文件</span></div>
+      </div>
+      <div class="card gold">
+        <h4>候选 B · pre-commit 自动校验</h4>
+        <p>把 FILE_GRAPH 与 CLAUDE.md 一致性做成 pre-commit 钩子（暂靠人工纪律）。</p>
+        <div class="chip-row"><span class="chip gl">+ 自动化</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div><b>实际取舍</b>：<code>docs/plan/design/INDEX.md</code> 已存在并描述"devguard 8 个模块设计文档"的总图，但因跨模块放于 <code>docs/</code> 而非 <code>meta/</code>——这是<b>设计取舍</b>（跨模块文档放 docs/，单模块放 meta/）。</div>
+    </div>
+
+    <div class="verdict" style="margin-top:36px">
+      <div class="lbl">M6 现状 · 一句话</div>
+      <h4>FILE_GRAPH.md 用 1 份文件承载 3 大职能（目录树 / 引用关系 / 决策树）——决策树先于文件、覆盖 13 种文件类型、与 CLAUDE.md 互为索引。</h4>
+      <p style="margin:0">本模块"少而精"已稳定，~170 行远低于 300 行阈值；新增文件类型必须先在 §三 决策树增 1 个分支再创建文件——这是"<b>决策树先于文件</b>"的纪律，也是 M6 唯一的"硬规则"。<br><br><b>下一步</b>：候选 A（STRUCTURE.md）— 区分"哲学"与"结构"两份元信息；候选 B（pre-commit 校验）— 把互为索引纪律自动化。</p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

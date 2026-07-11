@@ -1,0 +1,7 @@
+interface:
+  display_name: "DevGuard"
+  short_description: "Executable project standards and verification"
+  brand_color: "#2563EB"
+  default_prompt: "Use $devguard to implement and verify this change against the project standards."
+policy:
+  allow_implicit_invocation: true

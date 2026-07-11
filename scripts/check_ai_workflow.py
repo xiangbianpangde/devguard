@@ -52,9 +52,7 @@ def main() -> int:
         # 必须含 §一 红线关键词（任一即通过）
         found = [k for k in keywords if k in text]
         if not found:
-            errors.append(
-                f"{filename} 缺 §一 红线关键词（期望含以下任一关键词: {keywords}）"
-            )
+            errors.append(f"{filename} 缺 §一 红线关键词（期望含以下任一关键词: {keywords}）")
 
         # §一 标题必须存在（章节级 L1 强制）
         if "## 一" not in text and "## §一" not in text and "## 1." not in text:

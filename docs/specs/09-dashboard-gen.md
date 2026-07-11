@@ -1,6 +1,8 @@
 # BDD 规格: 仪表盘自动生成脚本
 
+> 更新: 2026-07-11
 > 对应 `dashboard.html` 的数据生成
+> 更新: 2026-05-26
 
 ---
 
@@ -47,3 +49,14 @@
 - 预期结果：
   - 新状态立即反映在仪表盘上
   - 无需重启 HTTP 服务
+
+### 场景 5：Windows 与 POSIX 使用同一入口
+
+- 前置条件：Python 3.10+ 可用
+- 操作步骤：
+  1. 运行 `python scripts/render_dashboard.py`
+  2. 运行 `npm run dashboard`
+- 预期结果：
+  - 两种入口都调用同一 Python 实现，不依赖 Bash
+  - Windows PowerShell 与 POSIX shell 的结果一致
+  - L4 统计来自实际测试收集，不使用写死数字

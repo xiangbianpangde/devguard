@@ -123,7 +123,17 @@ conventions:
         - scripts/check_report.py
         - scripts/check_doc_quality.py
         - scripts/check_consistency.py
-    l1_check: check_ai_workflow + check_report + check_doc_quality + check_consistency（汇报一致性）
+        - scripts/check_enforcement.py
+        - scripts/check_ecc_alignment.py
+        - scripts/check_worklog_ref.py
+        - scripts/check_status_updated.py
+        - scripts/check_worklog_structure.py
+        - scripts/check_file_placement.py
+        - scripts/check_exemption_log.py
+        - scripts/check_updated_tag.py
+        - scripts/check_doc_sync.py
+        - scripts/check_convergence_gate.py
+    l1_check: 工作流契约 + 一致性事实矩阵 >=80% + 故障注入拦截率 >=90% + 8 个 commit-msg 治理闸门
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
@@ -317,6 +327,7 @@ pre_commit:
     grade: red_line
     maps_to: 02-coding
     description: 格式化（取代 black）
+    args: ["--config=src/coding/ruff.toml"]
 
   - id: gitleaks
     source: gitleaks/gitleaks
@@ -336,13 +347,25 @@ pre_commit:
     entry: python scripts/lint_markdown.py
     language: system
 
+  - id: ecc-alignment
+    name: ECC capability alignment must stay above 80 percent
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "ECC 全项目对标能力面必须具备可执行证据，得分不得低于 80%"
+    entry: python scripts/check_ecc_alignment.py --threshold 80
+    language: system
+    pass_filenames: false
+
   - id: commitlint
-    source: alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.16.0
+    name: commit message must follow Conventional Commits
+    source: local
     grade: red_line
     maps_to: 03-git
     description: "03 红线 2：commit message 符合 Conventional Commits"
     stages: [commit-msg]
+    entry: npx --no -- commitlint --edit
+    language: system
 
   - id: commit-msg-worklog-ref
     name: commit-msg must reference worklog file
@@ -353,6 +376,76 @@ pre_commit:
     stages: [commit-msg]
     entry: python scripts/check_worklog_ref.py
     language: python
+
+  - id: commit-msg-status-updated
+    name: worklog and STATUS must stay synchronized
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "修改 worklog 时必须同步 STATUS.md，且日期与最新 worklog 一致"
+    stages: [commit-msg]
+    entry: python scripts/check_status_updated.py
+    language: system
+
+  - id: commit-msg-worklog-structure
+    name: staged worklogs must contain evidence sections
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "worklog 必须含完成内容、验证结果、交接和已完成项"
+    stages: [commit-msg]
+    entry: python scripts/check_worklog_structure.py
+    language: system
+
+  - id: commit-msg-file-placement
+    name: new files must follow FILE_GRAPH
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "新增文件必须落入 FILE_GRAPH 允许的位置，根目录默认拒绝"
+    stages: [commit-msg]
+    entry: python scripts/check_file_placement.py
+    language: system
+
+  - id: commit-msg-exemption-log
+    name: skip markers must be registered and auditable
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "任何 [skip-*] 必须登记并在本次提交新增完整使用记录"
+    stages: [commit-msg]
+    entry: python scripts/check_exemption_log.py
+    language: system
+
+  - id: commit-msg-updated-tag
+    name: managed documents must refresh update tags
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "受管 Markdown 修改时必须把 > 更新: 日期刷新为当天"
+    stages: [commit-msg]
+    entry: python scripts/check_updated_tag.py
+    language: system
+
+  - id: commit-msg-doc-sync
+    name: STATUS plan and AI context must stay structurally synchronized
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "功能点结构改动必须同步 STATUS、开发清单与 CLAUDE"
+    stages: [commit-msg]
+    entry: python scripts/check_doc_sync.py
+    language: system
+
+  - id: commit-msg-convergence-gate
+    name: delivery cannot cross an unconverged node
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "越过预设但未收束节点时拒绝提交"
+    stages: [commit-msg]
+    entry: python scripts/check_convergence_gate.py
+    language: system
 
 # ============================================================
 # 3. CI 配置（#2 任务专用）
@@ -378,19 +471,19 @@ ci:
       runner: ubuntu-latest
       needs: []
       tools:
-        - pip: ruff
+        - pip: ruff==0.6.0 pyyaml
         - pip: import-linter   # V10: 01-architecture L1（分层依赖契约 + 领域层纯净）
         - bin: gitleaks
         - bin: markdownlint   # V3.1 启用：markdownlint-cli + npm + Python 包装脚本 lint_markdown.py
         - bin: spectral        # V10: 04-api L1（npx @stoplight/spectral-cli）
 
     - id: test
-      name: pytest + 覆盖率门禁
+      name: 仓库全量 pytest（失败闭合）
       runner: ubuntu-latest
       needs: []
       tools:
-        - pip: pytest pytest-cov
-      cmd: pytest -q --cov=src --cov-fail-under=80 --cov-branch
+        - pip: pytest pyyaml
+      cmd: python scripts/render_meta.py --check && pytest -q
 
     - id: l4-conventions
       name: L4 规范测试（#3 任务产出后自动激活）
@@ -404,13 +497,13 @@ ci:
       runner: ubuntu-latest
       needs: []
       conditional: "test -f scripts/check_compliance.py"
-      cmd: python scripts/check_compliance.py
+      cmd: python scripts/check_compliance.py && python scripts/check_consistency.py --threshold 80
 
     - id: build
       name: 构建验证
       runner: ubuntu-latest
       needs: [lint, test, l4-conventions, compliance]
-      cmd: python -m compileall src/ -q
+      cmd: python -m compileall src/ -q && python scripts/collect_l4_stats.py
 
 # ============================================================
 # 4. L4 规范测试（#3 任务专用 / v0.1 占位）

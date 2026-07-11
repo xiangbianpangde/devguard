@@ -21,6 +21,37 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [V2.2.0] - 2026-07-11
+
+### Added
+
+- **ECC 十域对标闸门**——skills-first、规则真源、跨 Harness、profiles、hooks、安全、CI/TDD、事务部署、回执与量化治理均绑定可执行事实，门槛 80%
+- **Codex/Claude 双入口**——core scaffold 生成 `AGENTS.md`、`CLAUDE.md`、canonical DevGuard skill、OpenAI 元数据与 credential-free 项目 Codex 配置
+- **安装预演与事务回滚**——`--dry-run` 零写入列出完整载荷；逐文件唯一临时文件 + fsync + 原子替换，任一步失败恢复旧字节
+- **生成项目 gitleaks**——密钥扫描进入 core pre-commit，不再依赖用户是否安装 ECC 全局 Hook
+
+### Changed
+
+- 合入所有本地/远程功能分支历史，冲突以 24 项一致性事实矩阵、10 项故障注入和跨平台 Python 实现为准
+- 全量测试增至 163 项；仓外真实 E2E 生成 22 个 manifest 文件并通过 9 个 pre-commit 检查
+
+## [V2.1.0] - 2026-07-11
+
+### Added
+
+- **可测治理**——`check_consistency.py` 以 24 个跨文件/可执行事实计算一致性，默认门槛 80%；`check_enforcement.py` 在隔离 Git 仓库执行 10 项故障注入，默认门槛 90%
+- **8 个 commit-msg 治理闸门**——真实 worklog 引用、worklog↔STATUS、日志结构、文件放置、豁免登记、更新时间、三文档同步与收束节点
+- **一键初始化**——`setup_scaffold.py <target> --install` 用 core/optional 显式 manifest 生成自包含治理项目，安装隔离依赖与双阶段 hooks，并在返回前 fail-closed 复验
+- **跨平台 dashboard**——统一 Python 入口，L4 统计来自真实 pytest；详细功能表和机器进度标记保持同源
+
+### Fixed
+
+- 渲染器只向 Markdown 注入分级标签，恢复合法 MIT LICENSE 与 CODEOWNERS；所有渲染文本统一 LF + 单一 EOF 换行
+- CI 不再先渲染后检查或吞掉 pytest 失败；L4 收集无法解析时失败，不再伪造 `0/0`
+- STATUS/开发清单/CLAUDE 的 49/46/35 漂移统一为连续编号和同值机器标记
+- 合规扫描从“文件存在即通过”提升为非空、可解析配置、可编译 Python 和真实 test 定义校验
+- ECC/用户级全局 `core.hooksPath` 不再污染故障注入或阻断一键安装；临时测量使用空 Hook 隔离，新项目则保留并串联既有 `pre-commit` / `pre-push` 与 DevGuard Hook
+
 ## [V2.0.1] - 2026-06-08
 
 ### Fixed

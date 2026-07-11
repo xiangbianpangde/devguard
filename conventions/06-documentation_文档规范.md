@@ -1,6 +1,3 @@
-
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -25,6 +22,7 @@
 >
 > **模板权威在 [docs/templates/](../docs/templates/README-模板索引.md)**——本规范只定标准与红线，模板正文不在此重抄。
 > **档位裁剪**：轻量（README + worklog）/ 标准（+ CHANGELOG + 设计文档）/ 团队（+ CONTRIBUTING + 代码地图）。
+> 更新: 2026-07-11
 
 ---
 

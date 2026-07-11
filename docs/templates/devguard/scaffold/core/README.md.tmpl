@@ -1,0 +1,51 @@
+# {{PROJECT_NAME}}
+
+> DevGuard profile: `{{PROFILE}}` · initialized: {{DATE}}
+
+This repository starts with a minimal, self-contained governance baseline. The
+same checks run locally and in `.github/workflows/devguard.yml`.
+
+Codex starts from `AGENTS.md` and the canonical `.agents/skills/devguard/`
+skill; Claude starts from `CLAUDE.md`. Both route to `conventions/README.md` as
+the single rules authority. The project-local `.codex/config.toml` contains no
+MCP credentials and keeps delegation opt-in.
+
+## PowerShell quick start
+
+Run these commands from the project root:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+git init
+.\.venv\Scripts\python.exe scripts\install_hooks.py --root .
+.\.venv\Scripts\python.exe scripts\devguard.py verify --require-hooks
+```
+
+The fourth command installs **both** the normal `pre-commit` gate and the
+`commit-msg` gate. It also composes existing ECC/global `pre-commit` and
+`pre-push` hooks without changing user-level Git configuration, so the same
+command is safe for later hook repair. A successful verification prints
+`DEVGUARD OK`; every missing dependency, file, configuration link, or required
+hook returns a non-zero exit.
+
+## Daily commands
+
+```powershell
+.\.venv\Scripts\python.exe -m pre_commit run --all-files
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe scripts\devguard.py verify --require-hooks
+```
+
+## Project records
+
+- Current state: `STATUS.md`
+- Work plan: `docs/plan/开发清单.md`
+- Decisions and constraints: `CLAUDE.md`
+- Codex workflow entry: `AGENTS.md`
+- Canonical workflow skill: `.agents/skills/devguard/SKILL.md`
+- Per-change evidence: `worklogs/`
+
+Keep documentation and implementation in the same pull request. Protect the
+default branch in the hosting service and require the `governance` CI check;
+local hooks alone are intentionally not presented as server-side enforcement.

@@ -1,0 +1,37 @@
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=10000]
+      - id: check-json
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.7
+    hooks:
+      - id: ruff
+      - id: ruff-format
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: devguard-verify
+        name: DevGuard fail-closed verification
+        entry: python scripts/devguard.py verify
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: conventional-commit
+        name: Conventional Commit message
+        entry: python scripts/devguard.py commit-msg
+        language: system
+        stages: [commit-msg]

@@ -11,7 +11,7 @@
 # ============================================================
 [project]
 name = "devguard"
-version = "2.0.1"
+version = "2.2.0"
 description = "通用开发规范 — 可复制到新项目的规范 + AI 协作流程模板"
 readme = "README.md"
 license = { text = "MIT" }
@@ -24,9 +24,10 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "ruff>=0.6",
+    "ruff==0.6.0",
     "coverage>=7.0",
     "pre-commit>=3.0",
+    "import-linter>=2.0",
 ]
 
 [tool.pytest.ini_options]

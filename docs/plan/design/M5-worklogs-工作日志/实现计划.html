@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M5 工作日志 · 历史演进路径</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true },
+      timeline: { useMaxWidth: true }
+    });
+    }
+
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  });
+
+  function syncActive(){
+    var links = document.querySelectorAll('nav a');
+    var hash = (location.hash || '#hero').replace('#','');
+    links.forEach(function(a){
+      var k = a.getAttribute('href').replace('#','');
+      a.classList.toggle('active', k === hash);
+    });
+  }
+  window.addEventListener('hashchange', syncActive);
+  window.addEventListener('load', syncActive);
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       --brand-2:#A85032;
+    --accent:#2F5061;      --accent-2:#3F6A82;
+    --gold:#A87A2E;        --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px;line-height:1.7}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .code-block .err{color:#E07A6A;font-weight:700;background:rgba(224,122,106,.15);padding:1px 4px;border-radius:3px}
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tabs .tb .badge{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;background:rgba(139,58,31,.12);color:var(--brand)}
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line);font-family:var(--mono)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-family:var(--sans);font-weight:600}
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{content:"";width:18px;height:1.5px;background:var(--accent)}
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1)}
+  .anim-bar .fill::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shimmer 2.4s linear infinite}
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);z-index:100}
+  .tip .tipbox::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1F1D17}
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);margin:14px 0}
+  .sim h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .sim h4 .ind{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(63,107,61,.2);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(63,107,61,.2)}50%{box-shadow:0 0 0 6px rgba(63,107,61,.05)}}
+  .sim .sim-step{padding:7px 11px;background:var(--bg-soft);border:1px solid var(--line-soft);border-radius:7px;margin:5px 0;font-family:var(--mono);font-size:11.5px;color:var(--txt-dim);display:flex;align-items:center;gap:8px;transition:.3s}
+  .sim .sim-step.run{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:600}
+  .sim .sim-step.fail{background:#EFD5CD;border-color:#C89589;color:var(--bad);font-weight:600}
+  .sim .sim-step .glyph{width:16px;text-align:center;flex:0 0 auto;font-weight:700}
+  .sim .btn-row{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .sim button{padding:5px 12px;font-size:11.5px;background:var(--panel);border:1px solid var(--line);border-radius:5px;cursor:pointer;font-family:var(--mono);transition:.18s;color:var(--txt-dim)}
+  .sim button:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .sim button.danger:hover{background:var(--bad);border-color:var(--bad)}
+  .sim button.good:hover{background:var(--good);border-color:var(--good)}
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+  .freq{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
+  .freq .day{padding:8px 6px;background:var(--panel);border:1px solid var(--line);border-radius:7px;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--txt-dim);box-shadow:var(--shadow)}
+  .freq .day b{font-size:18px;font-family:var(--serif);color:var(--brand);display:block;line-height:1.2}
+  .freq .day.zero b{color:var(--txt-faint)}
+  .stage-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);position:relative}
+  .stage-card::before{content:"";position:absolute;top:0;left:16px;width:30px;height:3px;background:var(--brand);border-radius:0 0 3px 3px}
+  .stage-card.s2::before{background:var(--accent)}
+  .stage-card.s3::before{background:var(--gold)}
+  .stage-card.s4::before{background:var(--good)}
+  .stage-card.s5::before{background:var(--warn)}
+  .stage-card h4{margin:4px 0 4px;font-family:var(--serif);font-size:14.5px}
+  .stage-card p{font-size:12.2px}
+  .curve{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);font-family:var(--mono);font-size:11px;line-height:1.45;overflow-x:auto;white-space:pre;color:var(--txt-dim);margin:12px 0}
+  .lesson{padding:11px 14px;border-left:3px solid var(--warn);background:var(--panel);border-radius:0 9px 9px 0;margin:10px 0;font-size:12.5px}
+  .lesson b{color:var(--warn);font-family:var(--sans)}
+  .checklist{list-style:none;padding:0;margin:10px 0}
+  .checklist li{padding:5px 0;font-size:12.4px;color:var(--txt-dim);display:flex;align-items:center;gap:8px}
+  .checklist li::before{content:"✓";color:var(--good);font-weight:700;font-family:var(--serif)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M5</div>
+      <div>
+        <b>实现路径</b>
+        <span>WORKLOG · ROADMAP</span>
+      </div>
+    </div>
+    <div class="meta">5 阶段演进<br>V0.x → V1.5<br>31 worklog + 6 ADR<br>ADR 0006 决定路径</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 总览 5 阶段</a>
+      <a href="#s2"><span class="n">02</span> V0.x 起步</a>
+      <a href="#s3"><span class="n">03</span> V0.x 扩展</a>
+      <a href="#s4"><span class="n">04</span> V0.x 重构</a>
+      <a href="#s5"><span class="n">05</span> V0.6-V1.4</a>
+      <a href="#s6"><span class="n">06</span> V1.5 收束</a>
+      <div class="grp">关键证据</div>
+      <a href="#s7"><span class="n">07</span> 里程碑</a>
+      <a href="#s8"><span class="n">08</span> 数量曲线</a>
+      <a href="#s9"><span class="n">09</span> 红线关系</a>
+      <a href="#s10"><span class="n">10</span> 未来扩展</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">M5 实现计划</span>
+        <span class="b-pill inf">5 阶段</span>
+        <span class="b-pill inf">V0.x → V1.5</span>
+        <span class="b-pill br">已交付</span>
+        <span class="b-pill br">v1.0 · 2026-06-10</span>
+      </div>
+      <h1>M5 工作日志 · 历史演进路径</h1>
+      <p class="sub">worklogs/ 模块从 V0.x 起步建立目录 → V1.5 补齐 31 份 worklog + 6 份 ADR，历经 5 个阶段。ADR 0006 决定"仅收束节点产出"是本模块的关键转折点；V1.5 大量补登 V0.2-V1.4 断档 worklog 是流程教训。</p>
+      <div class="meta-row">
+        <span>周期 2026-05-26 → 06-10</span>
+        <span>·</span>
+        <span>5 个阶段</span>
+        <span>·</span>
+        <span>31 份 worklog 累计</span>
+        <span>·</span>
+        <span>6 份 ADR</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>5 阶段总览</b><span style="font-size:11px;color:var(--txt-faint)">worklog / ADR 数量</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>V0.x 起步</b><span style="font-size:11px;color:var(--txt-faint)">worklogs/ 创立</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>V0.x 扩展</b><span style="font-size:11px;color:var(--txt-faint)">worklog 定型 + ADR 0001-0002</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>V0.x 重构</b><span style="font-size:11px;color:var(--txt-faint)">decisions/ 移入 + ADR 0006</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>V0.6-V1.4</b><span style="font-size:11px;color:var(--txt-faint)">收尾 worklog</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>V1.5 收束</b><span style="font-size:11px;color:var(--txt-faint)">9 份集中产出 + 1 份断档补登</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>里程碑</b><span style="font-size:11px;color:var(--txt-faint)">5 阶段时间线</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>数量曲线</b><span style="font-size:11px;color:var(--txt-faint)">30+ worklog 时间分布</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>红线关系</b><span style="font-size:11px;color:var(--txt-faint)">5 类红线触发与处理</span></div></a>
+    </div>
+
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 5 阶段全览</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="5">0</span></div>
+        <div class="lbl">演进阶段数</div>
+        <div class="sub">V0.x 起步 → V1.5 收束</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="31">0</span></div>
+        <div class="lbl">worklog 累计</div>
+        <div class="sub">2026-05-26 → 06-10</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="6">0</span></div>
+        <div class="lbl">ADR 决策记录</div>
+        <div class="sub">worklogs/decisions/</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="16">0</span></div>
+        <div class="lbl">5/26 + 5/27 worklog 数</div>
+        <div class="sub">日峰值两日</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="9">0</span></div>
+        <div class="lbl">05-27 单日峰值</div>
+        <div class="sub">worklog 体系定型日</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="8">0</span></div>
+        <div class="lbl">06-08 V1.5 收束</div>
+        <div class="sub">集中产出日</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="1">0</span></div>
+        <div class="lbl">断档补登 worklog</div>
+        <div class="sub">v15-backfill-*</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="1">0</span></div>
+        <div class="lbl">ADR 路径变更决策</div>
+        <div class="sub">ADR 0006 固化</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">5 阶段进度 · 仪表</h3>
+    <div class="grid g5">
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">V0.x 起步</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">8 份</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">V0.x 扩展</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">9+2</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">V0.x 重构</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">3+4</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">V0.6-V1.4</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">2 份</div>
+        </div>
+      </div>
+      <div class="card" style="padding:11px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:88px;font-size:10.5px">V1.5 收束</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val" style="font-size:10.5px">9+1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>5 阶段总览</b>：① <b>V0.x 起步</b>（5/26）建目录 + 8 份 ② <b>V0.x 扩展</b>（5/27）worklog 定型 + ADR 0001-0002 ③ <b>V0.x 重构</b>（5/27-28）<code>decisions/</code> 移入 + ADR 0003-0006 ④ <b>V0.6-V1.4</b>（6/7）收尾 2 份 ⑤ <b>V1.5 收束</b>（6/8-10）9 份集中产出 + 1 份断档补登。
+      </div>
+    </div>
+
+    <!-- § 01 总览 -->
+    <section id="s1" class="sec-head" style="margin-top:50px">
+      <div class="tag">01 · 5 阶段总览</div>
+      <h2>worklog / ADR 数量演进</h2>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>时间</th><th>worklog</th><th>ADR</th><th>关键产出</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="b-pill br">V0.x 起步</span></td><td>2026-05-26</td><td class="num"><b>8</b></td><td class="num">0</td><td><code>worklogs/</code> 目录创建 + 6 份基础设施 worklog</td></tr>
+          <tr><td><span class="b-pill br">V0.x 扩展</span></td><td>2026-05-27</td><td class="num"><b>9</b></td><td class="num">2</td><td>worklog 体系定型 + ADR 0001-0002 落地</td></tr>
+          <tr><td><span class="b-pill br">V0.x 重构</span></td><td>2026-05-27/28</td><td class="num"><b>3</b></td><td class="num">4</td><td><code>decisions/</code> 移入 worklog + ADR 0003-0006</td></tr>
+          <tr><td><span class="b-pill inf">V0.6-V1.4 治理</span></td><td>2026-06-07</td><td class="num"><b>2</b></td><td class="num">0</td><td>收尾 worklog（添加 markdownlint / 完成剩余任务）</td></tr>
+          <tr><td><span class="b-pill ok">V1.5 收束</span></td><td>2026-06-08 → 06-10</td><td class="num"><b>9</b></td><td class="num">0</td><td>收束节点 worklog + 断档补登 + V2.0.1 收尾</td></tr>
+          <tr style="background:var(--bg-soft)"><td><b>合计</b></td><td>—</td><td class="num"><b style="color:var(--brand)">31</b></td><td class="num"><b style="color:var(--brand)">6</b></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5 阶段工作流演进 · Mermaid 流程图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 5 阶段演进流程 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    S1["V0.x 起步<br/>5/26 · 8 WL"] --> S2["V0.x 扩展<br/>5/27 · 9 WL + 2 ADR"]
+    S2 --> S3["V0.x 重构<br/>5/27-28 · 3 WL + 4 ADR"]
+    S3 --> S4["V0.6-V1.4<br/>6/7 · 2 WL"]
+    S4 --> S5["V1.5 收束<br/>6/8-10 · 9 WL + 1 断档补登"]
+
+    S1 -- "worklog 五段式定型" --> S2
+    S2 -- "ADR 0006 关键决策" --> S3
+    S3 -- "decisions/ 移入 worklog" --> S4
+    S4 -- "静默期 · 治理类收尾" --> S5
+    S5 -- "V1.5 收束触发 + 断档补登" --> DONE[("模块成熟<br/>31 WL + 6 ADR")]
+
+    S2 -. "ADR 0001-0002" .-> DEC["worklogs/<br/>decisions/"]
+    S3 -. "ADR 0003-0006" .-> DEC
+    S5 -. "回溯 V0.2-V1.4" .-> BF["断档补登 worklog"]
+
+    classDef s1Node fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    classDef s2Node fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    classDef s3Node fill:#F0E2C5,stroke:#A87A2E,color:#1F1D17
+    classDef s4Node fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef s5Node fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class S1 s1Node
+    class S2 s2Node
+    class S3 s3Node
+    class S4 s4Node
+    class S5 s5Node
+      </div>
+    </div>
+
+    <!-- § 02 V0.x 起步 -->
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · V0.x 起步（2026-05-26）</div>
+      <h2>建立 worklogs/ 目录 · 单日 8 份</h2>
+    </section>
+
+    <div class="stage-card">
+      <h4>目标</h4>
+      <p>把"每天做了什么"沉淀为可追溯的 Markdown 日流，配合 6 维度规范正文 + 模板化改造。</p>
+    </div>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="br">worklogs/ 目录不存在</span>
+    │
+    ▼
+<span class="hl">创建 8 份 worklog</span>（2026-05-26 一日内）
+    ├── <span class="gl">2026-05-26_基础设施搭建.md</span>            <span class="cm"># 仓库初始化</span>
+    ├── <span class="gl">2026-05-26_基础设施修正.md</span>            <span class="cm"># 修正：路径 / 文件名</span>
+    ├── <span class="gl">2026-05-26_02-06模板改造.md</span>            <span class="cm"># 6 维度规范模板化</span>
+    ├── <span class="gl">2026-05-26_模板化改造.md</span>              <span class="cm"># 模板体系</span>
+    ├── <span class="gl">2026-05-26_模板规约与汇报模板.md</span>       <span class="cm"># 模板规约</span>
+    ├── <span class="gl">2026-05-26_二轮审查修复.md</span>            <span class="cm"># 自我审查 + 修复</span>
+    ├── <span class="gl">2026-05-26_文件图谱与仪表盘优化.md</span>     <span class="cm"># dashboard 雏形</span>
+    └── <span class="gl">2026-05-26_示例代码与仪表盘.md</span>         <span class="cm"># src/ 落地</span>
+    │
+    ▼
+<span class="br">docs/templates/worklog模板.md</span>（首次定型五段式骨架）</div>
+
+    <h3>改动清单</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>模块</th><th>改什么</th><th style="width:60px">状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>worklogs/</code></td><td>新建 8 份 worklog</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>docs/templates/</code></td><td>新建 <code>worklog模板.md</code></td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>conventions/06-documentation</code></td><td>worklog 模板索引</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>关键发现</h3>
+    <div class="lesson">
+      <b>关键发现 ①</b>：单日多份 worklog 用下划线后缀区分（如 <code>_二轮审查修复</code> 是当日第二份）
+    </div>
+    <div class="lesson">
+      <b>关键发现 ②</b>：worklog 五段式骨架（做了什么 / 验证 / 决策 / 问题 / 交接）在第 1 天即定型
+    </div>
+
+    <!-- § 03 V0.x 扩展 -->
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · V0.x 扩展（2026-05-27）</div>
+      <h2>worklog 体系定型 · 单日 9 份 + 2 ADR</h2>
+    </section>
+
+    <div class="stage-card s2">
+      <h4>目标</h4>
+      <p>把"worklog = 过程证据" + "ADR = 决策记录" 两条文档流统一，工作流 + 角色分离 + 决策规则全部以 worklog 沉淀。</p>
+    </div>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="hl">2026-05-27 一日内 9 份 worklog</span>
+    ├── <span class="gl">2026-05-27_规范正文v2重构.md</span>                 <span class="cm"># 7 篇规范正文 v2.0 重构</span>
+    ├── <span class="gl">2026-05-27_ai-workflow流程修订与README命名规范化.md</span>
+    ├── <span class="gl">2026-05-27_decisions移入worklog与约束节点决策规则.md</span>  <span class="br">← ADR 0006 雏形</span>
+    ├── <span class="gl">2026-05-27_汇报体系纳入工作流.md</span>
+    ├── <span class="gl">2026-05-27_汇报与收束定义修正.md</span>
+    ├── <span class="gl">2026-05-27_文件夹重整与plan-design合并.md</span>
+    ├── <span class="gl">2026-05-27_图谱与代码理解规范v2实施.md</span>
+    ├── <span class="gl">2026-05-27_CLAUDE与README角色分离.md</span>
+    └── <span class="gl">2026-05-27_&lt;worklog 收尾&gt;</span>
+
+    ▼
+    ├── <span class="br">ADR 0001</span> 规范体系结构         <span class="cm"># V0.x 起步的体系化总结</span>
+    └── <span class="br">ADR 0002</span> 六维度划分           <span class="cm"># 01-06 编号定形</span></div>
+
+    <h3>改动清单</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>模块</th><th>改什么</th><th style="width:60px">状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>worklogs/</code></td><td>新建 9 份 worklog（含 1 份 ADR 0006 雏形）</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>worklogs/decisions/</code></td><td>新建 ADR 0001-0002</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>conventions/ai-workflow_*/</code></td><td>流程修订 + README 命名规范化</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>conventions/</code></td><td>CLAUDE / README 角色分离（双入口）</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>关键发现</h3>
+    <div class="lesson">
+      <b>关键发现 ①</b>：单日 9 份 worklog 是日峰值 → 验证了"按功能点写 worklog"的可行性
+    </div>
+    <div class="lesson">
+      <b>关键发现 ②</b>：角色分离决策（CLAUDE 入口 vs README 入口）影响后续所有导航设计
+    </div>
+
+    <!-- § 04 V0.x 重构 -->
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · V0.x 重构（2026-05-27/28）</div>
+      <h2>decisions/ 移入 worklog · ADR 0006 关键决策</h2>
+    </section>
+
+    <div class="stage-card s3">
+      <h4>目标</h4>
+      <p>把 ADR 从 <code>docs/decisions/</code> 移入 <code>worklogs/decisions/</code>，固化"ADR 仅收束节点产出"原则。</p>
+    </div>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="br">原 docs/decisions/ADR NNNN-*.md</span>
+    │
+    ▼ <span class="cm">(迁移)</span>
+<span class="hl">worklogs/decisions/ADR NNNN-*.md</span>     <span class="cm"># ADR 0006</span>
+    │
+    ▼
+<span class="hl">新增 4 份 ADR</span>
+    ├── <span class="gl">ADR 0003</span> AI 协作流程独立成文
+    ├── <span class="gl">ADR 0004</span> 规范移入 conventions 目录
+    ├── <span class="gl">ADR 0005</span> 长文件拆文件夹
+    └── <span class="br">ADR 0006</span> 仅在约束节点通过 worklog 整理并进行决策总结   <span class="br">← 关键决策</span>
+    │
+    ▼
+<span class="hl">同步更新</span>
+    ├── <span class="ty">FILE_GRAPH.md</span>（决策树更新：ADR 落点 → worklogs/decisions/）
+    ├── <span class="ty">CLAUDE.md</span>（目录结构同步）
+    └── <span class="ty">ai-workflow/06-第三步_收束节点.md</span>（补充"决策整理"环节）</div>
+
+    <h3>改动清单</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>模块</th><th>改什么</th><th style="width:60px">状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>worklogs/</code></td><td>新建 3 份 worklog（含 v3.0 双图谱重构）</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>worklogs/decisions/</code></td><td>迁移 5 份 ADR + 新建 ADR 0006</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>docs/decisions/</code></td><td>目录废弃</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>meta/FILE_GRAPH.md</code></td><td>决策树 ADR 落点更新</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td>根 <code>CLAUDE.md</code></td><td>目录结构同步</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>关键决策（ADR 0006 内容）</h3>
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>背景</h4>
+        <p>决策碎片化 + 与工作流脱节 + 过早形式化 + 重复记录</p>
+        <div class="chip-row">
+          <span class="chip b">碎片化</span>
+          <span class="chip b">脱节</span>
+          <span class="chip b">过早形式化</span>
+          <span class="chip b">重复</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>决策</h4>
+        <p><code>decisions/</code> 移入 <code>worklogs/decisions/</code>；仅收束节点产出 ADR</p>
+        <div class="chip-row">
+          <span class="chip br">路径变更</span>
+          <span class="chip br">产出时机</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>理由</h4>
+        <p>决策质量更高 + 减少噪音 + 可追溯性增强 + 工作流统一</p>
+        <div class="chip-row">
+          <span class="chip gl">质量</span>
+          <span class="chip gl">降噪</span>
+          <span class="chip gl">可溯</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>后果</h4>
+        <p>操作变更（worklog「关键决策」段） + 文件变更 + 历史 ADR 路径迁移</p>
+        <div class="chip-row">
+          <span class="chip">操作</span>
+          <span class="chip">文件</span>
+          <span class="chip">迁移</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- § 05 V0.6-V1.4 -->
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · V0.6-V1.4 治理（2026-06-07）</div>
+      <h2>收尾 worklog · 单日 2 份</h2>
+    </section>
+
+    <div class="stage-card s4">
+      <h4>目标</h4>
+      <p>完成治理类规范（09-17）落地期间的 worklog 配套。</p>
+    </div>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="hl">2026-06-07 两份 worklog</span>
+    ├── <span class="gl">2026-06-07_完成剩余任务.md</span>          <span class="cm"># 治理规范收尾</span>
+    └── <span class="gl">2026-06-07_添加markdownlint.md</span>      <span class="cm"># 新增 L1 检测</span>
+    │
+    ▼
+<span class="hl">无新增 ADR</span>（仅 V0.x 重构时产出 6 份）</div>
+
+    <h3>改动清单</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>模块</th><th>改什么</th><th style="width:60px">状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>worklogs/</code></td><td>新建 2 份 worklog</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>conventions/</code></td><td>09-17 治理类全部入 <code>_meta.yaml</code></td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>scripts/lint_markdown.py</code></td><td>markdownlint 集成</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>无阻塞</b>。V0.6-V1.4 是治理类规范的"消化期"，worklog 量较低（仅 2 份）是合理的——大量工作落在治理类规范的本身，worklog 体系已稳定。
+      </div>
+    </div>
+
+    <!-- § 06 V1.5 收束 -->
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · V1.5 收束（2026-06-08 ~ 06-10）</div>
+      <h2>集中产出 9 份 + 断档补登 1 份</h2>
+    </section>
+
+    <div class="stage-card s5">
+      <h4>目标</h4>
+      <p>V1.5 收束节点触发：一次性产出多份收束 worklog + 补登 V0.2-V1.4 断档 worklog + V2.0.1 收尾。</p>
+    </div>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="br">2026-06-08 V1.5 收束节点（人触发）</span>
+    │
+    ▼
+    ├── <span class="gl">2026-06-08_v15-backfill-v02-v14-worklogs.md</span>  <span class="br"># 断档补登：1 份巨型 worklog</span>
+    ├── <span class="gl">2026-06-08_v15-closeout-status-fix.md</span>        <span class="cm"># STATUS 收尾修复</span>
+    ├── <span class="gl">2026-06-08_v15-final-report-template.md</span>      <span class="cm"># 收束报告模板</span>
+    ├── <span class="gl">2026-06-08_v15-section3-collapsible-table.md</span>
+    ├── <span class="gl">2026-06-08_v15-section3-hook-text-table-collapsed.md</span>
+    ├── <span class="gl">2026-06-08_v15-section3-table-to-charts.md</span>   <span class="cm"># §3 表格转图表</span>
+    ├── <span class="gl">2026-06-08_v15-v20-final-report.md</span>           <span class="cm"># 收束报告主文件</span>
+    └── <span class="gl">2026-06-08_v20-devguard-dogfood.md</span>           <span class="cm"># devguard 自我 dogfood</span>
+    │
+    ▼
+<span class="br">2026-06-09 V2.0 流程重写</span>
+    └── <span class="gl">2026-06-09_ai-workflow-v2-rewrite.md</span>
+    │
+    ▼
+<span class="br">2026-06-10 V2.0.1 收尾</span>
+    ├── <span class="gl">2026-06-10_claude-hud-setup.md</span>
+    ├── <span class="gl">2026-06-10_statusline-bash-jq.md</span>
+    └── <span class="gl">2026-06-10_强制性约束审查与修复.md</span></div>
+
+    <h3>改动清单</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>模块</th><th>改什么</th><th style="width:60px">状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>worklogs/</code></td><td>新建 9 份 worklog（V1.5 集中产出）</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>docs/reports/</code></td><td>V1.5 收束报告落盘</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>conventions/ai-workflow_*/</code></td><td>v2.0 双轨制重写</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td>根 <code>CLAUDE.md</code></td><td>质量验证原则升格</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5 阶段 · 关键决策详情（点击展开）</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">5 个阶段对应的核心决策，每条可展开查看</p>
+
+    <details class="hook" open>
+      <summary>① V0.x 起步 · 决定建立 worklogs/ 目录</summary>
+      <div class="body">
+        <b>时间</b>：2026-05-26<br>
+        <b>决策</b>：建立 <code>worklogs/</code> 目录并创建 8 份 worklog 作为 V0.x 起步。<br>
+        <b>理由</b>：把"每天做了什么"沉淀为可追溯的 Markdown 日流，配合 6 维度规范正文 + 模板化改造。<br>
+        <b>后果</b>：worklog 五段式骨架（做了什么 / 验证 / 决策 / 问题 / 交接）在第 1 天即定型。
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>② V0.x 扩展 · worklog 体系定型 + ADR 0001-0002</summary>
+      <div class="body">
+        <b>时间</b>：2026-05-27<br>
+        <b>决策</b>：单日 9 份 worklog + ADR 0001（规范体系结构）+ ADR 0002（六维度划分）。<br>
+        <b>理由</b>：工作流 + 角色分离 + 决策规则全部以 worklog 沉淀。<br>
+        <b>后果</b>：单日 9 份 worklog 是日峰值，验证了"按功能点写 worklog"的可行性。
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>③ V0.x 重构 · decisions/ 移入 + ADR 0006 关键决策</summary>
+      <div class="body">
+        <b>时间</b>：2026-05-27/28<br>
+        <b>决策</b>：把 ADR 从 <code>docs/decisions/</code> 移入 <code>worklogs/decisions/</code>，固化"ADR 仅收束节点产出"原则（ADR 0006）。<br>
+        <b>理由</b>：决策碎片化 + 与工作流脱节 + 过早形式化 + 重复记录 4 个问题。<br>
+        <b>后果</b>：worklog / ADR 单文档流；后续 6 份 ADR 全部位于 <code>worklogs/decisions/</code>。
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>④ V0.6-V1.4 治理 · 收尾 worklog</summary>
+      <div class="body">
+        <b>时间</b>：2026-06-07<br>
+        <b>决策</b>：完成治理类规范（09-17）落地期间的 worklog 配套，2 份 worklog。<br>
+        <b>理由</b>：治理类规范的"消化期"工作仍需 worklog 沉淀。<br>
+        <b>后果</b>：无新增 ADR（仅 V0.x 重构时产出 6 份）。
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>⑤ V1.5 收束 · 9 份集中产出 + 1 份断档补登</summary>
+      <div class="body">
+        <b>时间</b>：2026-06-08 ~ 06-10<br>
+        <b>决策</b>：V1.5 收束节点触发；一次性产出多份收束 worklog + 补登 V0.2-V1.4 断档 worklog + V2.0.1 收尾。<br>
+        <b>理由</b>：未在收束节点即时回填 worklog → 后续追溯成本指数级增长。<br>
+        <b>后果</b>：9 份 worklog 集中产出；1 份 <code>v15-backfill-v02-v14-worklogs.md</code> 巨型补登 worklog。
+      </div>
+    </details>
+
+    <h3>断档补登说明（流程教训）</h3>
+    <div class="note crit">
+      <span class="ico">!</span>
+      <div>
+        <b><code>2026-06-08_v15-backfill-v02-v14-worklogs.md</code></b> 是单份巨型 worklog，回溯补登 V0.2-V1.4 期间缺失的功能点记录。这是工作流教训：<br>
+        <b>教训</b>：未在收束节点即时回填 worklog → 后续追溯成本指数级增长<br>
+        <b>对策</b>：每 3 功能点必须收束（AI 主动拦截，到点未收束拒绝下一功能点）
+      </div>
+    </div>
+
+    <h3>V1.5 收束节点工作流 · Mermaid 流程图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · V1.5 收束节点完整流程 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    START["V1.5 收束节点<br/>人触发（2026-06-08）"] --> STEP1["整理本批次 worklog<br/>8 份"]
+    STEP1 --> STEP2["跑测试 + L4 套件"]
+    STEP2 --> STEP3["审计 commit diff"]
+    STEP3 --> STEP4["真机 E2E 验证"]
+    STEP4 --> DEC{"需要回溯<br/>V0.2-V1.4?"}
+    DEC -- "是" --> BF["断档补登<br/>v15-backfill-v02-v14-worklogs.md"]
+    DEC -- "否" --> NEXT["下一批 worklog"]
+    BF --> NEXT
+    STEP4 --> RPT["收束报告<br/>docs/reports/"]
+    NEXT --> RPT
+    RPT --> DONE[("V1.5 收束完成")]
+
+    classDef brandNode fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    classDef accNode fill:#E8E1D2,stroke:#2F5061,color:#1F1D17
+    classDef warnNode fill:#F0E2C5,stroke:#A87A2E,color:#1F1D17
+    classDef okNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class START,STEP1,STEP2,STEP3,STEP4 brandNode
+    class DEC,BF warnNode
+    class NEXT,RPT,DONE okNode
+      </div>
+    </div>
+
+    <!-- § 07 里程碑 -->
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 里程碑</div>
+      <h2>5 阶段时间线 · ADR 0006 转折点</h2>
+    </section>
+
+    <div class="tl">
+      <div class="tl-item">
+        <h5>V0.x 起步 <span class="ver">2026-05-26</span></h5>
+        <p>worklogs/ 创立 · 8 份 worklog</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.x 扩展 <span class="ver">2026-05-27</span></h5>
+        <p>worklog 定型 · 9 份 + 2 ADR</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.x 重构 <span class="ver">2026-05-27/28</span> <span class="b-pill br" style="font-size:9px;margin-left:6px">关键转折</span></h5>
+        <p>decisions/ 移入 + 4 ADR（含 ADR 0006）</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.6-V1.4 治理 <span class="ver">2026-06-07</span></h5>
+        <p>收尾 worklog · 2 份</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.5 收束 <span class="ver">2026-06-08 ~ 06-10</span></h5>
+        <p>9 份集中产出 + 1 份断档补登 + V2.0.1 收尾</p>
+      </div>
+    </div>
+
+    <h3>里程碑 · Mermaid 时间线</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 5 阶段里程碑 (mermaid timeline)</div>
+      <div class="mermaid">
+timeline
+    title worklogs/ 5 阶段里程碑（2026-05-26 → 06-10）
+    2026-05-26 : V0.x 起步 : 8 份 worklog（worklogs/ 创立）
+    2026-05-27 : V0.x 扩展 : 9 份 worklog + ADR 0001-0002
+    2026-05-28 : V0.x 重构 : 3 份 worklog + ADR 0003-0006
+    2026-06-07 : V0.6-V1.4 治理 : 2 份 worklog（静默期收尾）
+    2026-06-08 : V1.5 收束日 1 : 8 份 worklog + 1 份断档补登
+    2026-06-09 : V1.5 收束日 2 : 1 份 V2.0 流程重写 worklog
+    2026-06-10 : V1.5 收束日 3 : 3 份 V2.0.1 收尾 worklog
+      </div>
+    </div>
+
+    <h3>worklog 生产高峰 · Mermaid 甘特图</h3>
+    <p style="font-size:12px;color:var(--txt-faint)">M5 加分项：用 mermaid gantt 展示 worklog 生产高峰（5/26-5/28 + 6/7-6/8）</p>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · worklog 生产时间分布 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title worklog 生产时间分布（按日）2026-05-26 → 06-10
+    dateFormat  YYYY-MM-DD
+    axisFormat  %m-%d
+    section V0.x 起步
+    基础设施搭建/修正       :done, w1, 2026-05-26, 1d
+    模板化改造（4 份）      :done, w2, 2026-05-26, 1d
+    section V0.x 扩展
+    规范 v2 重构（4 份）    :done, w3, 2026-05-27, 1d
+    流程修订/角色分离（3 份）:done, w4, 2026-05-27, 1d
+    汇报体系（2 份）        :done, w5, 2026-05-27, 1d
+    section V0.x 重构
+    v3.0 双图谱重构         :done, w6, 2026-05-28, 1d
+    ADR 0003-0006           :crit, w7, 2026-05-28, 1d
+    section V0.6-V1.4
+    收尾 worklog            :done, w8, 2026-06-07, 1d
+    section V1.5 收束
+    断档补登 V0.2-V1.4      :crit, w9, 2026-06-08, 1d
+    v15-section3 系列（4 份）:done, w10, 2026-06-08, 1d
+    v15-v20 收束报告（2 份）:done, w11, 2026-06-08, 1d
+    V2.0 流程重写           :done, w12, 2026-06-09, 1d
+    V2.0.1 收尾（3 份）     :done, w13, 2026-06-10, 1d
+      </div>
+    </div>
+
+    <!-- § 08 数量曲线 -->
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 数量曲线</div>
+      <h2>30+ 份 worklog 时间分布</h2>
+    </section>
+
+    <h3>按日期分布</h3>
+    <div class="freq">
+      <div class="day"><b>8</b>05-26<br><span style="color:var(--brand)">V0.x 起步</span></div>
+      <div class="day"><b>9</b>05-27<br><span style="color:var(--brand)">V0.x 扩展</span></div>
+      <div class="day"><b>1</b>05-28<br><span style="color:var(--accent)">v3.0 重构</span></div>
+      <div class="day zero"><b>0</b>05-29<br><span style="color:var(--txt-faint)">静默</span></div>
+      <div class="day zero"><b>0</b>06-01<br><span style="color:var(--txt-faint)">静默</span></div>
+      <div class="day"><b>2</b>06-07<br><span style="color:var(--gold)">V0.6-V1.4</span></div>
+      <div class="day"><b>8</b>06-08<br><span style="color:var(--good)">V1.5 收束</span></div>
+    </div>
+    <div class="freq" style="grid-template-columns:repeat(3,1fr);margin-top:6px">
+      <div class="day"><b>1</b>06-09<br><span style="color:var(--gold)">V2.0 重写</span></div>
+      <div class="day"><b>3</b>06-10<br><span style="color:var(--good)">V2.0.1 收尾</span></div>
+      <div class="day" style="background:var(--brand);color:#fff"><b>31</b>合计</div>
+    </div>
+
+    <h3>累计 worklog 数演进曲线（ASCII）</h3>
+    <div class="curve">累计 worklog 数
+40 │                                              ●●●  31
+   │                                          ●●●
+30 │                                      ●●●
+   │                                  ●●●
+20 │                              ●●●
+   │                          ●●●
+15 │                      ●●●
+   │                  ●●●
+10 │              ●●●
+   │          ●●●
+ 5 │      ●●●
+   │  ●●●
+ 0 │●─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────
+   05-26  05-27  05-28  05-29  06-01  06-07  06-08  06-10
+   起步    扩展    重构   静默期          收尾  收束  收尾</div>
+
+    <h3>峰值日与静默期</h3>
+    <div class="grid g2">
+      <div class="card gold">
+        <h4>峰值日（5 日）</h4>
+        <p>单日 ≥ 2 份的工作日集中在 5/26-5/28 + 6/7-6/10 这 5 天，其余为静默期。</p>
+        <div class="chip-row">
+          <span class="chip gl">5/26 · 8</span>
+          <span class="chip gl">5/27 · 9</span>
+          <span class="chip gl">5/28 · 1</span>
+          <span class="chip gl">6/7 · 2</span>
+          <span class="chip gl">6/8 · 8</span>
+          <span class="chip gl">6/9 · 1</span>
+          <span class="chip gl">6/10 · 3</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>静默期（5/29-6/6）</h4>
+        <p>9 天静默期 = 治理类规范"消化期"。期间无 worklog 产出，是"工作暂停"而非"模块失活"。</p>
+        <div class="chip-row">
+          <span class="chip">9 天</span>
+          <span class="chip">消化期</span>
+          <span class="chip">非失活</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- § 09 红线关系 -->
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 与红线的关系</div>
+      <h2>5 类红线触发与处理</h2>
+    </section>
+
+    <p>V2.0.1 时点，本模块累计触发并解决的红线：</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>红线类型</th><th style="width:80px">触发次数</th><th>处理方式</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>commit-msg 必带 worklog 引用（红线 6）</td><td class="num">全量 commit 命中</td><td><code>check_worklog_ref.py</code> 强制</td></tr>
+          <tr><td>worklog 模板合规</td><td class="num">31/31</td><td>必填段齐全 · 人工审阅（无工具拦）</td></tr>
+          <tr><td>ADR 路径合规</td><td class="num">6/6</td><td>全部在 <code>worklogs/decisions/</code> · ADR 0006 固化</td></tr>
+          <tr><td>命名规约</td><td class="num">31/31</td><td>匹配 <code>YYYY-MM-DD_&lt;描述&gt;.md</code> · 钩子正则约束</td></tr>
+          <tr><td>断档补登</td><td class="num">1 次</td><td>V1.5 一次性回填 V0.2-V1.4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>红线触发时间线</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 红线触发与处理时间线 (mermaid timeline)</div>
+      <div class="mermaid">
+timeline
+    title 红线触发与处理（5/26 → 6/10）
+    2026-05-26 : 红线 6 首次落地 : check_worklog_ref.py 强制
+    2026-05-27 : 命名规约 31/31 命中 : 所有 worklog 命名合规
+    2026-05-27 : 模板合规 8/8 命中 : 五段式骨架定型
+    2026-05-28 : ADR 0006 路径固化 : decisions/ 移入 worklogs/
+    2026-06-07 : 治理类收尾 : 2 份 worklog 配套
+    2026-06-08 : 断档补登触发 : 1 份巨型 worklog 回填 V0.2-V1.4
+    2026-06-10 : V2.0.1 收尾 : 红线全量命中 + 流程教训固化
+      </div>
+    </div>
+
+    <h3>Tab · 红线详情</h3>
+    <div>
+      <div class="tabs">
+        <div class="tb active" data-tab="r1"><span class="badge">R1</span> commit-msg</div>
+        <div class="tb" data-tab="r2"><span class="badge">R2</span> 模板合规</div>
+        <div class="tb" data-tab="r3"><span class="badge">R3</span> ADR 路径</div>
+        <div class="tb" data-tab="r4"><span class="badge">R4</span> 命名规约</div>
+        <div class="tb" data-tab="r5"><span class="badge">R5</span> 断档补登</div>
+      </div>
+
+      <div class="tab-pane active" data-pane="r1">
+        <div class="card hl">
+          <h4>红线 1 · commit-msg 必带 worklog 引用</h4>
+          <p style="margin-bottom:6px"><b>触发</b>：每次 <code>git commit</code>（全量 commit）。</p>
+          <p style="margin-bottom:6px"><b>处理</b>：<code>check_worklog_ref.py</code> 强制正则匹配，命中则接受、未命中则拒绝。</p>
+          <p style="margin-bottom:0"><b>结果</b>：全量 commit 命中（无拦截事件）。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="r2">
+        <div class="card hl">
+          <h4>红线 2 · worklog 模板合规</h4>
+          <p style="margin-bottom:6px"><b>触发</b>：每份新 worklog 创建时人工审阅。</p>
+          <p style="margin-bottom:6px"><b>处理</b>：五段式骨架（做了什么 / 验证 / 决策 / 问题 / 交接）；必填 2 段（做了什么 + 验证结果）不可缺。</p>
+          <p style="margin-bottom:0"><b>结果</b>：31/31 必填段齐全；无工具拦（建议审查时人工检查）。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="r3">
+        <div class="card hl">
+          <h4>红线 3 · ADR 路径合规</h4>
+          <p style="margin-bottom:6px"><b>触发</b>：每份 ADR 创建 / 迁移时。</p>
+          <p style="margin-bottom:6px"><b>处理</b>：ADR 0006 固化路径 <code>worklogs/decisions/</code>；任何漂移到 <code>docs/decisions/</code> 立即回退。</p>
+          <p style="margin-bottom:0"><b>结果</b>：6/6 全部位于 <code>worklogs/decisions/</code>。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="r4">
+        <div class="card hl">
+          <h4>红线 4 · 命名规约</h4>
+          <p style="margin-bottom:6px"><b>触发</b>：每份 worklog 创建时。</p>
+          <p style="margin-bottom:6px"><b>处理</b>：钩子正则 <code>worklogs[\\/]+\d{4}-\d{2}-\d{2}[_\-\w]*\.md</code> 约束。</p>
+          <p style="margin-bottom:0"><b>结果</b>：31/31 全部匹配 <code>YYYY-MM-DD_&lt;描述&gt;.md</code>。</p>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="r5">
+        <div class="card brand">
+          <h4>红线 5 · 断档补登（流程教训）</h4>
+          <p style="margin-bottom:6px"><b>触发</b>：V0.2-V1.4 期间（约 13 个收束节点）worklog 累积缺漏。</p>
+          <p style="margin-bottom:6px"><b>处理</b>：<code>2026-06-08_v15-backfill-v02-v14-worklogs.md</code> 单份巨型 worklog 一次性回填。</p>
+          <p style="margin-bottom:0"><b>教训</b>：<b>每 3 功能点必须收束</b>（AI 主动拦截，到点未收束拒绝下一功能点）。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- § 10 未来扩展 -->
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · 未来扩展提示（非本期范围）</div>
+      <h2>5 项延展方向</h2>
+    </section>
+
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>① worklog 必填段自动检测</h4>
+        <p>增加"必填段缺失"拦截（当前仅人工审阅）。</p>
+        <div class="chip-row">
+          <span class="chip b">自动化</span>
+          <span class="chip b">必填段</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>② worklog 数量超过 100 份自动归档</h4>
+        <p>按月归档（如 <code>worklogs/archive/2026-05/</code>）。</p>
+        <div class="chip-row">
+          <span class="chip br">归档</span>
+          <span class="chip br">按月</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>③ worklog 跨条目反向链接</h4>
+        <p>自动从 git log 反向生成 commit → worklog 索引。</p>
+        <div class="chip-row">
+          <span class="chip gl">反向链接</span>
+          <span class="chip gl">git log</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>④ ADR 编号超 9999 改日期前缀</h4>
+        <p>YYYYMMDD-NNN 编号方案（预留扩展空间）。</p>
+        <div class="chip-row">
+          <span class="chip">编号</span>
+          <span class="chip">扩展</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict">
+      <div class="lbl">VERDICT · M5 工作日志模块 · 实现路径交付</div>
+      <h4>5 阶段演进完成 · 31 worklog + 6 ADR · ADR 0006 固化"仅收束节点产出"</h4>
+      <p>本稿回顾：① V0.x 起步（worklogs/ 创立） ② V0.x 扩展（worklog 定型） ③ V0.x 重构（decisions/ 移入 + ADR 0006 关键决策）④ V0.6-V1.4 治理（收尾） ⑤ V1.5 收束（9 份集中产出 + 1 份断档补登）。流程教训：<b>每 3 功能点必须收束</b>。</p>
+      <p style="margin-top:8px"><b>配套</b>：<a href="设计.html" style="color:var(--brand);font-weight:700">设计.html</a> · <a href="README.md" style="color:var(--brand)">README.md</a> · <a href="简报.md" style="color:var(--brand)">简报.md</a> · <a href="阅读笔记.md" style="color:var(--brand)">阅读笔记.md</a></p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

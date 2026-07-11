@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M1 规范正文 · 现状设计 · devguard</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#F5F0E4',
+          primaryTextColor: '#1F1D17',
+          primaryBorderColor: '#8B3A1F',
+          lineColor: '#5A5447',
+          secondaryColor: '#E8E1D2',
+          tertiaryColor: '#FAF7F0',
+          fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+          fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+        sequence: { useMaxWidth: true, diagramMarginX: 20 },
+        pie: { useMaxWidth: true },
+        gantt: { useMaxWidth: true }
+      });
+    }
+
+    // —— Tab 切换 ——
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // —— 进度条动画 ——
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    // —— 数字滚动 ——
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       --brand-2:#A85032;
+    --accent:#2F5061;      --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px;line-height:1.7}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border-1px:var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:repeat(6,1fr)}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{content:"";width:18px;height:1.5px;background:var(--accent)}
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tabs .tb .badge{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;background:rgba(139,58,31,.12);color:var(--brand)}
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1)}
+  .anim-bar .fill::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shimmer 2.4s linear infinite}
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+  blockquote{border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);font-style:italic}
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ 左侧导航 ============ -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">规</div>
+      <div>
+        <b>M1 规范正文</b>
+        <span>conventions · v3.0</span>
+      </div>
+    </div>
+    <div class="meta">
+      17 规范 · 503 行 _meta.yaml<br>
+      10 钩子 · 5 阶段 CI<br>
+      65 L4 tests · 14 收束
+    </div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 模块定位</a>
+      <a href="#s2"><span class="n">02</span> 目录结构</a>
+      <a href="#s3"><span class="n">03</span> 真源 + 渲染</a>
+      <a href="#s4"><span class="n">04</span> 规范分类</a>
+      <a href="#s5"><span class="n">05</span> 5 段式正文</a>
+      <a href="#s6"><span class="n">06</span> 双入口</a>
+      <a href="#s7"><span class="n">07</span> AI 流程双轨</a>
+      <a href="#s8"><span class="n">08</span> 红线闭环</a>
+      <a href="#s9"><span class="n">09</span> 边界与验收</a>
+    </nav>
+  </aside>
+
+  <!-- ============ 主内容 ============ -->
+  <main class="main">
+
+    <!-- ====================== HERO ====================== -->
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">devguard M1</span>
+        <span class="b-pill inf">v3.0 双图谱</span>
+        <span class="b-pill inf">17 规范</span>
+        <span class="b-pill inf">10 流程</span>
+        <span class="b-pill inf">65 L4 tests</span>
+        <span class="b-pill br">真源 _meta.yaml</span>
+      </div>
+      <h1>M1 规范正文 · 现状设计</h1>
+      <p class="sub">conventions/ 是 devguard 的规则源——所有红线 / 警告 / 推荐在此定义，经 _meta.yaml 真源渲染后辐射到 10 个 pre-commit 钩子、5 阶段 CI、L4 套件与 dashboard。</p>
+      <div class="meta-row">
+        <span>版本 v1.0 · 2026-06-10</span>
+        <span>•</span>
+        <span>配套 设计.md / 实现计划.md / 阅读笔记.md</span>
+        <span>•</span>
+        <span>49/49 功能点 ✅</span>
+      </div>
+    </section>
+
+    <!-- ====================== § 三句话读懂 ====================== -->
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">TL;DR · 三句话读懂</div>
+      <h2>M1 在 devguard 是什么？</h2>
+    </section>
+
+    <div class="grid g3">
+      <div class="card hl">
+        <h4>① 它是规则源</h4>
+        <p>conventions/ 里的 17 份规范（01-08 原始 + 09-17 衍展）是 devguard 全部红线的源头。_meta.yaml（503 行）作为真源聚合元数据，向外辐射到钩子、CI、仪表盘。</p>
+        <div class="chip-row">
+          <span class="chip b">规则源</span>
+          <span class="chip b">真源 yaml</span>
+          <span class="chip b">17 规范</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>② 它是 AI 入口</h4>
+        <p>CLAUDE-规范导航.md（61 行）提供 AI 任务路由表：实现 → 必读 02、提交 → 必读 03、图谱 → 必读 08。人类走 README-规范导航.md（50 行）快速索引。</p>
+        <div class="chip-row">
+          <span class="chip br">双入口</span>
+          <span class="chip br">AI 路由</span>
+          <span class="chip br">人查速</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>③ 它是流程细化</h4>
+        <p>ai-workflow_AI协作开发流程/ 10 篇（v2.0 双轨制）讲"什么时候做什么"，conventions/01-08 讲"那一步具体怎么做、红线是什么、配置怎么落地"。</p>
+        <div class="chip-row">
+          <span class="chip gl">流程细化</span>
+          <span class="chip gl">双轨制</span>
+          <span class="chip gl">研究 vs 工程</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 摘要 KPI ====================== -->
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="17">0</span></div>
+        <div class="lbl">规范总数</div>
+        <div class="sub">01-08 原始 + 09-17 衍展</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="10">0</span></div>
+        <div class="lbl">AI 流程文档</div>
+        <div class="sub">ai-workflow_*/ v2.0</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="503">0</span></div>
+        <div class="lbl">_meta.yaml 行数</div>
+        <div class="sub">真源元数据</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="65">0</span></div>
+        <div class="lbl">L4 tests passed</div>
+        <div class="sub">100% green</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="10">0</span></div>
+        <div class="lbl">pre-commit 钩子</div>
+        <div class="sub">commit-msg + pre-commit</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="5">0</span></div>
+        <div class="lbl">CI 阶段</div>
+        <div class="sub">lint/test/L4/compliance/build</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="14">0</span></div>
+        <div class="lbl">收束报告</div>
+        <div class="sub">V0.1 → V1.5</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="6">0</span></div>
+        <div class="lbl">ADR 决策</div>
+        <div class="sub">worklogs/decisions/</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">规范健康度 · 5 维仪表</h3>
+    <div class="grid g5">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">真源完整</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">渲染一致</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">路由覆盖</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div></div>
+          <div class="val">17/17</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">L4 覆盖</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">dashboard 同步</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 01 模块定位 ====================== -->
+    <section id="s1" class="sec-head" style="margin-top:40px">
+      <div class="tag">01 · 模块定位</div>
+      <h2>它是什么 · 不是什么</h2>
+    </section>
+
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4 style="color:var(--good)">✓ 它是规则源</h4>
+        <p>所有"红线、警告、推荐"在此定义，通过 _meta.yaml 真源向外辐射到 pre-commit 钩子（10 个）、CI 5 阶段、L4 套件（65 tests）、dashboard 与各篇规范顶部的"分级标签"。</p>
+        <div class="chip-row">
+          <span class="chip gd">规则源</span>
+          <span class="chip gd">真源</span>
+          <span class="chip gd">辐射</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不是文档库</h4>
+        <p>文档库是 docs/（M2 模块）。conventions/ 只放规范本身和导航，不放 BDD、模板、调研报告。文档须随码同 PR 但不归 conventions 管辖。</p>
+        <div class="chip-row">
+          <span class="chip no">非 docs/</span>
+          <span class="chip no">非 BDD</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不是配置中心</h4>
+        <p>实际钩子 / CI 配置在根目录（.pre-commit-config.yaml、.github/workflows/），conventions/ 只放"真源 yaml"——配置由 render_meta.py 渲染生成，禁止手改。</p>
+        <div class="chip-row">
+          <span class="chip no">非根配置</span>
+          <span class="chip no">禁止手改</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不是示例代码</h4>
+        <p>可运行示例在 src/&lt;规范维度&gt;/（M3 模块）——例如 src/coding/ruff.toml 是 02-coding §二落地配置的可运行版。conventions/ 只讲规范，src/ 讲"按规范跑起来"。</p>
+        <div class="chip-row">
+          <span class="chip no">非 src/</span>
+          <span class="chip no">非可执行</span>
+        </div>
+      </div>
+      <div class="card hl" style="border-top:3px solid var(--accent)">
+        <h4 style="color:var(--accent)">边界：与 M2/M3 的关系</h4>
+        <p>M1（conventions）讲"规则 + 红线"，M2（docs）讲"BDD 验收 + 模板 + 调研"，M3（src）讲"按规范跑起来"。三方互检：改规范必同步 BDD + 落地配置。</p>
+        <div class="chip-row">
+          <span class="chip b">M1 规则</span>
+          <span class="chip b">M2 验收</span>
+          <span class="chip b">M3 落地</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4 style="color:var(--gold)">核心价值：单点变更全网同步</h4>
+        <p>改 _meta.yaml 一个字段 → pre-commit 钩子、CI 配置、dashboard 数据、CLAUDE-规范导航 路由表 全部自动同步——避免"文档与代码漂移"的经典问题。</p>
+        <div class="chip-row">
+          <span class="chip gl">单点变更</span>
+          <span class="chip gl">全网同步</span>
+          <span class="chip gl">零漂移</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>模块关系 · Mermaid 拓扑</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M1 conventions 在 devguard 模块拓扑中的位置 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    subgraph M1["M1 · conventions 规则源"]
+        META["_meta.yaml<br/>真源 (503 行)"]
+        CONV["01-08 规范正文<br/>(每篇 5 段式)"]
+        WF["ai-workflow_*/<br/>10 篇流程"]
+        NAV["双入口导航<br/>README + CLAUDE"]
+    end
+    subgraph M2["M2 · docs 文档库"]
+        BDD["docs/specs/<br/>8 份 BDD"]
+        TPL["docs/templates/<br/>模板权威"]
+    end
+    subgraph M3["M3 · src 落地代码"]
+        SRC["src/&lt;维度&gt;/<br/>5+ 落地配置"]
+    end
+    subgraph OUT["外部执行层"]
+        HOOK[".pre-commit-config<br/>10 钩子"]
+        CI[".github/workflows<br/>5 阶段 CI"]
+        DASH["dashboard.html<br/>可视化"]
+        L4["tests/conventions/<br/>65 L4 tests"]
+    end
+
+    META -- "l3_route 字段" --> NAV
+    META -- "渲染" --> HOOK
+    META -- "渲染" --> CI
+    META -- "数据源" --> DASH
+    META -- "l1_check 字段" --> L4
+    CONV -- "主题权威" --> BDD
+    WF -- "细化" --> CONV
+    CONV -- "§二 落地配置" --> SRC
+    BDD -- "互检" --> L4
+    SRC -- "可运行版" --> HOOK
+
+    classDef source fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef ext fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    class META,CONV,WF,NAV source
+    class HOOK,CI,DASH,L4 ext</div>
+    </div>
+
+    <!-- ====================== § 02 目录结构 ====================== -->
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · 目录结构</div>
+      <h2>conventions/ 的物理布局</h2>
+      <p>17 份规范 + 10 篇流程 + 2 份导航 + 1 份真源 = 30 个核心文件。</p>
+    </section>
+
+    <div class="diagram"><span class="cm">conventions/</span>
+├── <span class="br">_meta.yaml</span>                              <span class="cm"># 真源（503 行）：17 规范的元数据</span>
+├── <span class="gl">README-规范导航.md</span>                       <span class="cm"># 人入口：快速索引 + 红线速查（50 行）</span>
+├── <span class="gl">CLAUDE-规范导航.md</span>                       <span class="cm"># AI 入口：任务→规范定位 + 红线总表（61 行）</span>
+│
+├── <span class="br">01-architecture_架构设计规范.md</span>           <span class="cm"># 165 行 · 4 红线 · 5 钩子</span>
+├── <span class="br">02-coding_代码编写规范.md</span>
+├── <span class="br">03-git_Git协作规范.md</span>
+├── <span class="br">04-api_API设计规范.md</span>
+├── <span class="br">05-testing_测试规范.md</span>
+├── <span class="br">06-documentation_文档规范.md</span>
+├── <span class="br">08-code-understanding_代码理解与图谱规范.md</span>  <span class="cm"># v3.0 双图谱（CodeGraph + Understand-Anything）</span>
+│
+└── <span class="br">ai-workflow_AI协作开发流程/</span>              <span class="cm"># AI 协作流程（10 篇）</span>
+    ├── README.md
+    ├── <span class="hl">01-流程全景.md</span>                       <span class="cm"># 173 行</span>
+    ├── <span class="hl">02-模块分类.md</span>                       <span class="cm"># 双轨制定义（研究 vs 工程）</span>
+    ├── 03-设计规范.md
+    ├── 04-长程开发.md
+    ├── 05-思考设计.md
+    ├── 06-端到端流程.md
+    ├── 07-验收交付.md
+    ├── 08-汇报收束.md
+    └── <span class="gl">09-部署规范.md</span>                       <span class="cm"># v2.0 新增</span></div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>缺号说明</b>：编号没有 <code>07-</code> —— <code>07-ai-workflow</code> 是整个 <code>ai-workflow_*/</code> 目录（ADR 0005 决定的"长文 &gt; 300 行拆目录"），不是单文件。
+      </div>
+    </div>
+
+    <h3>文件数量与行数 · 关键 KPI</h3>
+    <div class="grid g3">
+      <div class="gauge">
+        <svg width="60" height="60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#ECEAE2" stroke-width="6"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#8B3A1F" stroke-width="6" stroke-dasharray="163.36" stroke-dashoffset="0" transform="rotate(-90 30 30)" stroke-linecap="round"/>
+          <text x="30" y="35" text-anchor="middle" font-family="serif" font-size="18" font-weight="700" fill="#1F1D17">17</text>
+        </svg>
+        <div class="text"><b>规范文件</b><span>01-08 + 09-17</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="60" height="60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#ECEAE2" stroke-width="6"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#2F5061" stroke-width="6" stroke-dasharray="163.36" stroke-dashoffset="0" transform="rotate(-90 30 30)" stroke-linecap="round"/>
+          <text x="30" y="35" text-anchor="middle" font-family="serif" font-size="18" font-weight="700" fill="#1F1D17">10</text>
+        </svg>
+        <div class="text"><b>AI 流程文档</b><span>ai-workflow_*/</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="60" height="60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#ECEAE2" stroke-width="6"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#A87A2E" stroke-width="6" stroke-dasharray="163.36" stroke-dashoffset="0" transform="rotate(-90 30 30)" stroke-linecap="round"/>
+          <text x="30" y="35" text-anchor="middle" font-family="serif" font-size="16" font-weight="700" fill="#1F1D17">503</text>
+        </svg>
+        <div class="text"><b>_meta.yaml</b><span>行数 · 真源</span></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 03 真源 + 渲染 ====================== -->
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · 真源 + 渲染策略（B3 变体）</div>
+      <h2>为什么是 B3，而不是 A 或 C</h2>
+      <p>三个备选方案对比，揭示 B3（真源 + 渲染）如何在"单源无漂移"与"正文可读性"之间取得平衡。</p>
+    </section>
+
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>A 方案 · 全集中（单 yaml + 钩子全部生成）</h4>
+        <p style="font-size:12.4px;color:var(--txt-dim)">把所有规范的正文、红线、配置全部结构化为 yaml，单一真源。钩子 / CI / 仪表盘全部由 yaml 字段生成。</p>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12px">
+          <li style="padding:3px 0"><b style="color:var(--good)">+</b> 真正的单源，无任何漂移</li>
+          <li style="padding:3px 0"><b style="color:var(--bad)">−</b> 规范正文被压缩成结构化 yaml，可读性差</li>
+          <li style="padding:3px 0"><b style="color:var(--bad)">−</b> 团队成员抗拒"用 yaml 写规范"</li>
+        </ul>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>B3 方案 · 真源 + 渲染（当前选择）</h4>
+        <p style="font-size:12.4px;color:var(--txt-dim)">_meta.yaml 只放元数据（红线数、检测工具、路由等），正文仍是自由 markdown。渲染脚本生成钩子 / CI / 仪表盘。</p>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12px">
+          <li style="padding:3px 0"><b style="color:var(--good)">+</b> 元数据集中，正文自由（人爱读）</li>
+          <li style="padding:3px 0"><b style="color:var(--good)">+</b> 钩子配置可再生（改 yaml 必同步产物）</li>
+          <li style="padding:3px 0"><b style="color:var(--bad)">−</b> 需维护 render_meta.py 渲染脚本</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>C 方案 · 全分散（每篇 frontmatter）</h4>
+        <p style="font-size:12.4px;color:var(--txt-dim)">每篇规范 .md 顶部用 frontmatter 自带元数据。仪表盘需要遍历所有文件聚合。</p>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12px">
+          <li style="padding:3px 0"><b style="color:var(--good)">+</b> 文件自包含，移走单篇不破坏元数据</li>
+          <li style="padding:3px 0"><b style="color:var(--bad)">−</b> 难以全局聚合，仪表盘要遍历 17 文件</li>
+          <li style="padding:3px 0"><b style="color:var(--bad)">−</b> 改一处需手改多处 frontmatter</li>
+        </ul>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>B3 优势 · 元数据集中 + 正文自由</h4>
+        <p style="font-size:12.4px;color:var(--txt-dim)">改 _meta.yaml 一行 l3_route 字段，CLAUDE-规范导航 + dashboard 全部自动同步，避免"文档与代码漂移"。</p>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12px">
+          <li style="padding:3px 0"><b style="color:var(--good)">+</b> 单文件可读（人读 markdown）</li>
+          <li style="padding:3px 0"><b style="color:var(--good)">+</b> 全局可聚合（机读 yaml）</li>
+          <li style="padding:3px 0"><b style="color:var(--good)">+</b> 改 yaml → 全网同步</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>_meta.yaml 真源片段</h3>
+    <div class="code-block"><span class="cm"># _meta.yaml · 真源片段（每条规范一段）</span>
+<span class="kw">conventions</span>:
+  - <span class="kw">id</span>: 01-architecture
+    <span class="kw">title</span>: <span class="str">架构设计规范</span>
+    <span class="kw">file</span>: conventions/01-architecture_架构设计规范.md
+    <span class="kw">grade</span>:
+      <span class="kw">red_line</span>: <span class="num">4</span>        <span class="cm"># 红线数</span>
+      <span class="kw">warning</span>: <span class="num">0</span>
+      <span class="kw">recommend</span>: <span class="num">0</span>
+    <span class="kw">l1_check_path</span>:
+      - importlinter.ini
+    <span class="kw">l1_check</span>: importlinter
+    <span class="kw">l1_check_doc</span>: https://importlinter.readthedocs.io/
+    <span class="kw">l3_route</span>: 任务类型=架构设计 → 必读本篇
+
+  - <span class="kw">id</span>: 02-coding
+    <span class="kw">title</span>: <span class="str">代码编写规范</span>
+    ...
+    <span class="kw">l3_route</span>: 任务类型=实现 → 必读本篇</div>
+
+    <h3>渲染闭环 · Mermaid 序列图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · _meta.yaml 改一处 → 5 个产物全网同步 (mermaid sequence)</div>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Dev as 开发者
+    participant Meta as _meta.yaml
+    participant Render as render_meta.py
+    participant Hook as .pre-commit-config
+    participant Dash as dashboard.html
+    participant Nav as CLAUDE-规范导航
+    participant CI as CI 5 阶段
+
+    Dev->>Meta: 改 l3_route 字段
+    Dev->>Render: python render_meta.py
+    Render->>Hook: 重生 10 钩子配置
+    Render->>Dash: 更新 L3 路由 / 红线数
+    Render-->>Dev: ✓ 渲染完成
+    Dev->>Nav: 双入口同步更新
+    Dev->>Meta: git commit [meta]
+    Meta->>CI: push 触发
+    CI->>CI: 阶段 1 lint yaml 语法
+    CI->>CI: 阶段 2 test render --check
+    CI->>CI: 阶段 3 L4 65 tests
+    CI->>CI: 阶段 4 compliance 跨文件引用
+    CI->>CI: 阶段 5 build dashboard diff
+    CI-->>Dev: ✓ 5/5 全绿 可 merge</div>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">!</span>
+      <div>
+        <b>变更纪律</b>：改 <code>_meta.yaml</code> → 必须同步 <code>docs/templates/devguard/conventions/_meta.yaml</code>（模板版本）→ commit message 加 <code>[meta]</code> 标记。CI 阶段 2 跑 <code>render_meta.py --check</code> 检测漂移，漂移即 fail。
+      </div>
+    </div>
+
+    <!-- ====================== § 04 规范分类 ====================== -->
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 规范分类</div>
+      <h2>开发 8 篇 + 治理 9 篇 = 17 规范</h2>
+      <p>01-08 是"有正文的开发规范"，09-17 是"仅入 _meta.yaml 的治理规范"——两类的检测方式截然不同。</p>
+    </section>
+
+    <div class="tabs" id="clsTabs">
+      <div class="tb active" data-tab="dev">📐 <span>开发规范 01-08</span> <span class="badge">8</span></div>
+      <div class="tb" data-tab="gov">🛡️ <span>治理规范 09-17</span> <span class="badge">9</span></div>
+    </div>
+
+    <div class="tab-pane active" data-pane="dev">
+      <div class="grid g3">
+        <div class="card brand">
+          <h4>01 架构</h4>
+          <p>细化：第一步·设计</p>
+          <p style="font-size:11.5px;color:var(--txt-faint)">禁循环依赖 / 领域层不依赖框架 / 禁跨层调用</p>
+        </div>
+        <div class="card brand">
+          <h4>02 代码</h4>
+          <p>细化：§2.1 实现 + §2.3 审查</p>
+          <p style="font-size:11.5px;color:var(--txt-faint)">禁 print / SQL 参数化 / 密钥走环境变量 / 禁静默吞异常 / 日志脱敏</p>
+        </div>
+        <div class="card brand">
+          <h4>03 Git</h4>
+          <p>细化：§2.6 提交</p>
+          <p style="font-size:11.5px;color:var(--txt-faint)">main 禁直推 / Conventional Commits / 禁 force push 共享分支</p>
+        </div>
+        <div class="card brand">
+          <h4>04 API</h4>
+          <p>细化：§2.1 接口</p>
+          <p style="font-size:11.5px;color:var(--txt-faint)">名词复数 + kebab-case / 统一响应 / 默认认证 / 向后兼容</p>
+        </div>
+        <div class="card brand">
+          <h4>05 测试</h4>
+          <p>细化：§2.1 TDD + §2.2 验证</p>
+          <p style="font-size:11.5px;color:var(--txt-faint)">测试独立 / 只 Mock 外部边界 / 覆盖正常 + 边界 + 异常</p>
+        </div>
+        <div class="card brand">
+          <h4>06 文档</h4>
+          <p>细化：§2.5 + 07-汇报</p>
+          <p style="font-size:11.5px;color:var(--txt-faint)">必有 README / 发布更 CHANGELOG / 文档随码同 PR</p>
+        </div>
+        <div class="card brand" style="grid-column:span 3;border-top:3px solid var(--brand)">
+          <h4>07 AI 协作（不是细化某一步，是流程本身）</h4>
+          <p style="font-size:11.5px;color:var(--txt-faint)">ai-workflow_AI协作开发流程/ 下 10 篇文档（v2.0 双轨制）。讲"什么时候做什么"，与 01-06/08 是"流程 ↔ 规范化"的对偶关系。</p>
+          <div class="chip-row">
+            <span class="chip br">双轨制</span>
+            <span class="chip br">研究 vs 工程</span>
+            <span class="chip br">v2.0 重写</span>
+          </div>
+        </div>
+        <div class="card brand" style="grid-column:span 2">
+          <h4>08 图谱 · v3.0 双图谱</h4>
+          <p>细化：§2.9 工具增强</p>
+          <p style="font-size:11.5px;color:var(--txt-faint)">CodeGraph（AI 用 JSON）+ Understand-Anything（人用自然语言）双图谱范式，替换 v1.0 的"图数据库 + Cypher"。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="gov">
+      <div class="grid g3">
+        <div class="card hl"><h4>09 仪表盘自动生成</h4><p style="font-size:11.5px">render_meta.py + dashboard.html</p></div>
+        <div class="card hl"><h4>10 模板与汇报</h4><p style="font-size:11.5px">docs/templates/ + docs/reports/</p></div>
+        <div class="card hl"><h4>11 README</h4><p style="font-size:11.5px">README.md + README-规范导航.md</p></div>
+        <div class="card hl"><h4>12 CODEOWNERS</h4><p style="font-size:11.5px">.github/CODEOWNERS</p></div>
+        <div class="card hl"><h4>13 CHANGELOG</h4><p style="font-size:11.5px">CHANGELOG.md</p></div>
+        <div class="card hl"><h4>14 SECURITY</h4><p style="font-size:11.5px">SECURITY.md + .gitleaks.toml</p></div>
+        <div class="card hl"><h4>15 SUPPORT</h4><p style="font-size:11.5px">SUPPORT.md</p></div>
+        <div class="card hl"><h4>16 LICENSE</h4><p style="font-size:11.5px">LICENSE（MIT）</p></div>
+        <div class="card hl"><h4>17 CONTRIBUTING</h4><p style="font-size:11.5px">CONTRIBUTING.md</p></div>
+      </div>
+      <div class="note info" style="margin-top:14px">
+        <span class="ico">i</span>
+        <div>
+          <b>治理类规范的检测方式</b>是"<b>存在性 + 格式</b>"——文件必须存在 + 模板规约满足。CI 阶段 4 compliance 自动检查。
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">规范分类占比 · Mermaid 饼图</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · 17 规范的 2 大类分布 (mermaid pie)</div>
+        <div class="mermaid">
+pie title 17 规范分类
+    "开发规范 (01-08)" : 8
+    "治理规范 (09-17)" : 9</div>
+      </div>
+      <div>
+        <div class="cap">FIG · 红线数按规范分布 (mermaid bar)</div>
+        <div class="mermaid">
+xychart-beta
+    title "红线条数（按规范）"
+    x-axis ["01","02","03","04","05","06","07","08","09-17"]
+    y-axis "红线" 0 --> 6
+    bar [2, 4, 3, 3, 3, 2, 2, 1, 0]</div>
+      </div>
+    </div>
+
+    <!-- ====================== § 05 5 段式正文 ====================== -->
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · 5 段式正文结构</div>
+      <h2>每篇规范统一 5 段 · 约 165 行</h2>
+      <p>结构高度统一，AI / 人可快速定位"红线在哪、配置在哪、遇到 X 该选什么"。</p>
+    </section>
+
+    <div class="flow-row">
+      <div class="flow-step brand">分级标签</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">§一 红线</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">§二 落地配置</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">§三 决策表</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">反模式</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">检查清单</div>
+    </div>
+
+    <h3>5 段式结构 · Mermaid 拓扑</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 单篇规范 5 段式渲染顺序 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart TB
+    TOP["分级标签<br/>(CI 渲染产物)"]
+    S1["§一 红线<br/>配 L1 自动检测"]
+    S2["§二 落地配置<br/>复制即用"]
+    S3["§三 决策表<br/>遇到 X 选 A/B"]
+    AP["反模式<br/>反面教材"]
+    CL["检查清单<br/>PR 前自检"]
+    EXT["外部钩子<br/>pre-commit + CI"]
+
+    TOP --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> AP
+    AP --> CL
+    S1 -. "l1_check 字段" .-> EXT
+    S2 -. "配置文件" .-> EXT
+    CL -. "退出条件" .-> EXT
+
+    classDef auto fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef write fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    class TOP,EXT auto
+    class S1,S2,S3,AP,CL write</div>
+    </div>
+
+    <h3>每段作用 · 4 卡片</h3>
+    <div class="grid g4">
+      <div class="card brand">
+        <h4>① 分级标签</h4>
+        <p>渲染产物（CI 自动生成，禁止手改）。显示红线 / 警告 / 推荐 数量 + L1 检测工具 + 文档链接。</p>
+        <div class="chip-row"><span class="chip br">CI 渲染</span></div>
+      </div>
+      <div class="card hl">
+        <h4>② §一 红线</h4>
+        <p>硬约束。每条红线配 L1 自动检测脚本（如 ruff、importlinter）。这是 V1 旧范式最缺的部分。</p>
+        <div class="chip-row"><span class="chip b">硬约束</span><span class="chip b">L1 检测</span></div>
+      </div>
+      <div class="card gold">
+        <h4>③ §二 落地配置</h4>
+        <p>复制即用的实际配置文件（ruff.toml、commitlint.config.js、.gitleaks.toml 等）。新人按此复制即可合规。</p>
+        <div class="chip-row"><span class="chip gl">复制即用</span><span class="chip gl">可落地</span></div>
+      </div>
+      <div class="card">
+        <h4>④ §三 + 反模式 + 清单</h4>
+        <p>决策表（遇到 X 选 A/B）+ 反面教材 + PR 前自检清单。结构统一使 AI 能 parse 后生成 checklist。</p>
+        <div class="chip-row"><span class="chip">决策表</span><span class="chip">反模式</span><span class="chip">清单</span></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 06 双入口 ====================== -->
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 双入口设计</div>
+      <h2>人读 README，AI 读 CLAUDE</h2>
+      <p>强制分离避免"一份文档两用"的妥协。两条文档互检但不重复。</p>
+    </section>
+
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>README-规范导航.md · 人类入口（50 行）</h4>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12.4px">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)"><b>目标读者</b>：人类开发者</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)"><b>阅读模式</b>：查具体红线 / 速查表</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)"><b>内容</b>：17 篇一句话简介 + 按严重度排序的红线速查</li>
+          <li style="padding:5px 0"><b>设计原则</b>：极简、关键字驱动、可打印</li>
+        </ul>
+      </div>
+      <div class="vs-mid">↔</div>
+      <div class="vs-col new">
+        <h4>CLAUDE-规范导航.md · AI 入口（61 行）</h4>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12.4px">
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)"><b>目标读者</b>：AI Agent</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)"><b>阅读模式</b>：按任务类型找规范</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--line-soft)"><b>内容</b>：任务 → 规范定位映射 + 17 篇红线总表 + 去重映射</li>
+          <li style="padding:5px 0"><b>设计原则</b>：路由表结构化、机器可 parse、含去重信号</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>双入口互检 · Mermaid 关系图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 双入口 + _meta.yaml 三方互检 (mermaid graph)</div>
+      <div class="mermaid">
+graph LR
+    META["_meta.yaml<br/>17 l3_route 字段"]:::source
+    CLAUDE["CLAUDE-规范导航.md<br/>AI 入口 (61 行)"]:::ai
+    README["README-规范导航.md<br/>人入口 (50 行)"]:::human
+    HOOK["commit-msg 钩子<br/>check_worklog_ref"]:::gate
+
+    META -- "l3_route 字段<br/>自动同步" --> CLAUDE
+    META -- "title + 红线数<br/>自动同步" --> README
+    CLAUDE -- "任务路由<br/>(实现→02 提交→03)" --> AI["AI Agent"]
+    README -- "速查表<br/>(按严重度排序)" --> DEV["人类开发者"]
+    AI --> HOOK
+    DEV --> HOOK
+
+    classDef source fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef ai fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef human fill:#E8E1D2,stroke:#A87A2E,color:#1F1D17
+    classDef gate fill:#F0E2C5,stroke:#B07F22,color:#5A3D14
+    class META source
+    class CLAUDE,AI ai
+    class README,DEV human
+    class HOOK gate</div>
+    </div>
+
+    <h3>为什么需要双入口 · 5 个差别</h3>
+    <div class="tag-cloud">
+      <span class="tag-item">AI 按任务路由</span>
+      <span class="tag-item">人按严重度查</span>
+      <span class="tag-item">AI 要结构化</span>
+      <span class="tag-item">人要可读</span>
+      <span class="tag-item">AI 要去重信号</span>
+      <span class="tag-item">人要一句话简介</span>
+      <span class="tag-item">AI 解析快</span>
+      <span class="tag-item">人查找快</span>
+      <span class="tag-item">禁止妥协</span>
+      <span class="tag-item">互检不重复</span>
+    </div>
+
+    <!-- ====================== § 07 AI 流程双轨 ====================== -->
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · AI 流程模块 · v2.0 双轨制</div>
+      <h2>研究类 vs 工程类：流程差异</h2>
+      <p>v2.0 引入双轨制，避免对研究类任务上"工程级"流程负担。10 篇文档结构清晰。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · AI 流程 10 篇结构 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    ROOT["ai-workflow_AI协作开发流程/"]
+    A["01-流程全景<br/>总图 (173 行)"]
+    B["02-模块分类<br/>双轨制定义"]
+    C["03-设计规范"]
+    D["04-长程开发"]
+    E["05-思考设计"]
+    F["06-端到端流程"]
+    G["07-验收交付"]
+    H["08-汇报收束"]
+    I["09-部署规范<br/>v2.0 新增"]
+    R["README.md"]
+
+    ROOT --> R
+    ROOT --> A
+    ROOT --> B
+    ROOT --> C
+    ROOT --> D
+    ROOT --> E
+    ROOT --> F
+    ROOT --> G
+    ROOT --> H
+    ROOT --> I
+
+    A --> B
+    B -- "研究类" --> T1["跳过 TDD / E2E<br/>输出报告即可"]
+    B -- "工程类" --> T2["全流程<br/>真机 E2E"]
+
+    classDef root fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef track fill:#E8E1D2,stroke:#A87A2E,color:#1F1D17
+    class ROOT,A root
+    class B,C,D,E,F,G,H,I,R track
+    class T1,T2 track</div>
+    </div>
+
+    <h3>双轨制 · 研究 vs 工程</h3>
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>研究类任务（调研 / 原型 / POC）</h4>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12.4px">
+          <li style="padding:4px 0"><b>验收方式</b>：输出报告即可</li>
+          <li style="padding:4px 0"><b>流程</b>：跳过 TDD / E2E</li>
+          <li style="padding:4px 0"><b>钩子</b>：L1 检测保留</li>
+          <li style="padding:4px 0"><b>worklog</b>：汇报要点即可</li>
+          <li style="padding:4px 0"><b>典型</b>：技术选型 / 性能基准 / 概念验证</li>
+        </ul>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>工程类任务（功能交付 / 重构）</h4>
+        <ul style="list-style:none;padding:0;margin:8px 0 0;font-size:12.4px">
+          <li style="padding:4px 0"><b>验收方式</b>：真机 E2E + 完整链路</li>
+          <li style="padding:4px 0"><b>流程</b>：严格走全流程</li>
+          <li style="padding:4px 0"><b>钩子</b>：10 钩子全开</li>
+          <li style="padding:4px 0"><b>worklog</b>：每功能点必写</li>
+          <li style="padding:4px 0"><b>典型</b>：新功能 / 重构 / 修复 / 集成</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note crit">
+      <span class="ico">!</span>
+      <div>
+        <b>解决的核心矛盾</b>：V1 旧版对所有任务施加同等流程负担，导致研究员 / PM 写调研报告要跑全 E2E、写规格要写完整 BDD。V2.0 双轨制按"输出可被消费的程度"分流——研究报告输出即可，工程功能必须可运行。
+      </div>
+    </div>
+
+    <h3>10 篇文档关键产出 · chip 云</h3>
+    <div class="tag-cloud">
+      <span class="tag-item">01 流程全景图</span>
+      <span class="tag-item">02 双轨制定义</span>
+      <span class="tag-item">03 设计文档写法</span>
+      <span class="tag-item">04 跨多天模式</span>
+      <span class="tag-item">05 Plan/Sequential/Verify</span>
+      <span class="tag-item">06 端到端链路</span>
+      <span class="tag-item">07 真机 E2E 验证</span>
+      <span class="tag-item">08 汇报体系</span>
+      <span class="tag-item">09 部署规范 (v2.0)</span>
+      <span class="tag-item">README 总入口</span>
+    </div>
+
+    <!-- ====================== § 08 红线闭环 ====================== -->
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 与红线检测的关系</div>
+      <h2>写规范 → 加红线 → 写 L1 → 登记 → CI 跑 → dashboard 显示</h2>
+      <p>完整闭环：每条红线从定义到可视化必须经过 6 个节点，缺一不可。</p>
+    </section>
+
+    <div class="flow-row">
+      <div class="flow-step brand">① 写规范</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">② 加红线</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">③ 写 L1 脚本</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">④ 登记 _meta.yaml</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">⑤ CI 自动跑</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step brand">⑥ dashboard 显示</div>
+    </div>
+
+    <h3>_meta.yaml 字段 · 5 字段对应 5 端</h3>
+    <div class="grid g3">
+      <div class="card brand">
+        <h4>grade.l1_check_path</h4>
+        <p style="font-size:12.4px">→ CI 检测这些文件存在</p>
+        <div class="chip-row"><span class="chip br">CI 检测</span></div>
+      </div>
+      <div class="card hl">
+        <h4>l1_check</h4>
+        <p style="font-size:12.4px">→ CI 跑这些工具（importlinter / ruff 等）</p>
+        <div class="chip-row"><span class="chip b">CI 工具</span></div>
+      </div>
+      <div class="card gold">
+        <h4>grade.red_line</h4>
+        <p style="font-size:12.4px">→ dashboard 显示这个数字</p>
+        <div class="chip-row"><span class="chip gl">dashboard</span></div>
+      </div>
+      <div class="card">
+        <h4>l3_route</h4>
+        <p style="font-size:12.4px">→ CLAUDE-规范导航 路由表的数据源</p>
+        <div class="chip-row"><span class="chip">AI 入口</span></div>
+      </div>
+      <div class="card">
+        <h4>title / file</h4>
+        <p style="font-size:12.4px">→ README 索引 / 文档链接</p>
+        <div class="chip-row"><span class="chip">人入口</span></div>
+      </div>
+      <div class="card hl" style="border-top:3px solid var(--accent)">
+        <h4>闭环：违规 → 改规范 → 复测</h4>
+        <p style="font-size:12.4px">CI fail → 查 L4 报告 → 改规范或改代码 → 重跑 L4 → 通过 → 合并。这是规范健康度的核心循环。</p>
+        <div class="chip-row"><span class="chip b">持续闭环</span></div>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 红线闭环 6 节点 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    N1["① 写规范正文<br/>(markdown)"]
+    N2["② 加红线<br/>(§一)"]
+    N3["③ 写 L1 检测<br/>(scripts/)"]
+    N4["④ 登记 _meta.yaml<br/>(l1_check 字段)"]
+    N5["⑤ CI 自动跑<br/>(5 阶段)"]
+    N6["⑥ dashboard 显示<br/>(可视化数字)"]
+    FEED["反馈：违规 → 改规范 → 复测"]
+
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 -. "红线条数" .-> N1
+    N5 -. "CI fail" .-> FEED
+    FEED --> N1
+
+    classDef node fill:#F5F0E4,stroke:#8B3A1F,color:#1F1D17
+    classDef end fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17,stroke-width:2px
+    class N1,N2,N3,N4,N5,N6 node
+    class FEED end</div>
+    </div>
+
+    <!-- ====================== § 09 边界与验收 ====================== -->
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 边界与验收</div>
+      <h2>降级行为 + 明确不做 + 5 维验收</h2>
+      <p>边界清单是规范"何时退让"的硬规则。降级行为全部落盘到 worklog，技术债透明。</p>
+    </section>
+
+    <h3>降级行为 · 4 场景</h3>
+    <div class="grid g2">
+      <details class="conv" open>
+        <summary>① _meta.yaml 改了但没跑 render_meta.py</summary>
+        <div class="body">
+          <b>降级</b>：pre-commit 钩子 <code>meta-render</code> 会自动跑（如果配置了）；否则 CI 阶段 2 <code>render_meta.py --check</code> 检测漂移，漂移即 fail。
+        </div>
+      </details>
+      <details class="conv">
+        <summary>② 某规范 L1 检测工具不可用</summary>
+        <div class="body">
+          <b>降级</b>：dashboard 标红 + worklog 记录技术债。CI 阶段 3 L4 套件可继续跑，但缺工具的规范健康度为 0%。
+        </div>
+      </details>
+      <details class="conv">
+        <summary>③ AI 流程新增第 11 篇</summary>
+        <div class="body">
+          <b>降级</b>：必须先入 <code>_meta.yaml</code>（id=07-ai-workflow 下的 sub_files）+ 更新 CLAUDE-规范导航 的 l3_route。否则 AI 找不到该流程文档。
+        </div>
+      </details>
+      <details class="conv">
+        <summary>④ 治理规范文件缺失</summary>
+        <div class="body">
+          <b>降级</b>：CI 阶段 4 <code>compliance</code> 报错阻断 PR。如 LICENSE 或 SECURITY.md 缺失，PR 不能合并。
+        </div>
+      </details>
+    </div>
+
+    <h3 style="margin-top:24px">明确不做 · 3 项</h3>
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不做 · 规范正文 yaml 结构化</h4>
+        <p style="font-size:12.4px">牺牲可读性。规范是"人读的文件"，结构化 yaml 让人读不下去。</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不做 · 渲染产物入 git</h4>
+        <p style="font-size:12.4px">会被 CI 覆盖产生噪音。所有渲染产物（钩子配置、dashboard.html）由 CI 阶段 5 build 阶段再生。</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4 style="color:var(--bad)">✗ 不做 · 手动维护分级标签</h4>
+        <p style="font-size:12.4px">必须由 <code>render_meta.py</code> 生成。手改会被 CI 阶段 2 检测为漂移。</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">验收标准 · 5 维</h3>
+    <div class="kpi-row" style="grid-template-columns:repeat(5,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="17">0</span></div>
+        <div class="lbl">真源完整</div>
+        <div class="sub">l3_route 字段</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="100">0</span>%</div>
+        <div class="lbl">渲染一致</div>
+        <div class="sub">compliance 阶段</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="17">0</span>/17</div>
+        <div class="lbl">路由覆盖</div>
+        <div class="sub">CLAUDE 表格</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="0">0</span></div>
+        <div class="lbl">红线触发</div>
+        <div class="sub">pre-commit + CI</div>
+      </div>
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="65">0</span>/65</div>
+        <div class="lbl">L4 tests</div>
+        <div class="sub">pytest 全绿</div>
+      </div>
+    </div>
+
+    <h3>验收维度 · 进度条</h3>
+    <div class="card">
+      <div class="bar-row">
+        <div class="lbl">① 真源完整性</div>
+        <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+        <div class="val">17/17</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">② 渲染一致性</div>
+        <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+        <div class="val">100%</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">③ 路由覆盖</div>
+        <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div></div>
+        <div class="val">17/17</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">④ 红线检测</div>
+        <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div></div>
+        <div class="val">0 触发</div>
+      </div>
+      <div class="bar-row">
+        <div class="lbl">⑤ L4 测试</div>
+        <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+        <div class="val">65/65</div>
+      </div>
+    </div>
+
+    <blockquote>
+      "M1 规范正文不是"写了更多规范"，而是"<b>把同一份规范织成机器可拦截的网</b>"。改一处 → 渲染脚本跑 → 10 钩子、5 阶段 CI、65 L4 tests、dashboard 全部同步。这是 V0.x 起步到 V2.0.1 五阶段的核心范式跃迁。"
+      <cite>—— M1 设计总结</cite>
+    </blockquote>
+
+    <!-- ====================== Verdict 结尾 ====================== -->
+    <div class="verdict" style="margin-top:36px">
+      <div class="lbl">M1 规范正文 · 一句话定位</div>
+      <h4>17 份规范 + 10 篇流程 + _meta.yaml 真源 + 双入口导航 = 整个 devguard 的"规则大脑"</h4>
+      <p style="margin:0">
+        <b>M1 不是孤立文档</b>，而是 M2 docs / M3 src / 外部钩子 + CI + L4 + dashboard 的"<b>真源中枢</b>"。改 _meta.yaml 一行 → 全网 5 个产物同步。AI 走 CLAUDE-规范导航 路由，人走 README-规范导航 速查。
+        <br><br>
+        <b>范式跃迁</b>：V0.x 起步 6 篇散落规范 → V2.0.1 17 份结构化规范 + 强制约束网。这是 devguard 的"约束范式 v3.0"。
+        <br><br>
+        <b>下一步</b>：候选 C · devguard 自身 dogfood——用 V1.x 范式约束 devguard 自己的代码库，形成"规范 ↔ 自身代码"的双向实证。
+      </p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

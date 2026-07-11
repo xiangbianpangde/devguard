@@ -16,50 +16,57 @@
 ---
 # 通用开发规范 — 使用指南
 
+> 更新: 2026-07-11
 > **👤 本文件供人类阅读**。AI Agent 请阅读 `CLAUDE.md`。
 > 约 3 分钟读完。本文件夹是一套通用开发规范的**项目模板**，可直接复制到新项目中使用。
+> 更新: 2026-07-11
 
 ## 当前状态
 
-- **版本**：V2.0.1（2026-06-08）—— devguard 已演进到 17 规范齐全 + 10 钩子 pre-commit + 5 阶段 CI
-- **L4 套件**：65 tests passed
+- **版本**：V2.2.0（2026-07-11）—— ECC 十域对标、跨 Harness skills-first 与事务化一键初始化
+- **治理门槛**：一致性事实矩阵 ≥80%，隔离 Git 故障注入拦截率 ≥90%
+- **本仓强制链**：19 个 pre-commit/commit-msg hooks + 5 阶段 CI
 - **GitHub 标准 4 件套齐**：README + CHANGELOG + SECURITY + SUPPORT
 - **许可**：MIT License（Copyright 2026 袁）
 
 ## 这是什么
 
-一套适用于各类软件项目的通用开发规范 + AI 协作开发流程。覆盖 17 个维度（架构/代码/Git/API/测试/文档/AI 协作/代码理解/仪表盘/模板/README/CODEOWNERS/CHANGELOG/SECURITY/SUPPORT/LICENSE/CONTRIBUTING）。复制本文件夹到你的项目根目录，即可获得：
+一套适用于各类软件项目的通用开发规范 + AI 协作开发流程。覆盖 17 个维度（架构/代码/Git/API/测试/文档/AI 协作/代码理解/仪表盘/模板/README/CODEOWNERS/CHANGELOG/SECURITY/SUPPORT/LICENSE/CONTRIBUTING）。新项目通过显式 manifest 初始化，不再递归复制整个模板目录：
 
-- **开发规范**（`conventions/`）— 16 份规范元数据（_meta.yaml）+ 8 份规范文档 + 7 份 AI 协作流程文档
-- **文件模板库**（`docs/templates/devguard/`）— 14+ 个模板（worklog/CLAUDE/STATUS/BDD/审计/收束/...），新项目开箱即用
+- **开发规范**（`conventions/`）— 17 个规范维度 + 9 篇 AI 协作流程文档
+- **自包含脚手架**（`docs/templates/devguard/scaffold/`）— core/optional 显式 manifest、事务回滚与 dry-run，不夹带临时文件
 - **项目骨架**（`docs/plan/`）— 背景文档 + 开发清单 + 设计文档模板
 - **进度仪表盘**（`STATUS.md` + `dashboard.html`）— 可视化追踪项目进度
-- **AI 上下文**（`CLAUDE.md`）— AI 助手自动加载的项目信息
-- **L1 检测脚本**（`scripts/`）— 5 个章节级 L1 钩子（check_ai_workflow/check_code_understanding/collect_l4_stats/lint_markdown/check_worklog_ref）
+- **跨 Harness 上下文**（`AGENTS.md` + `CLAUDE.md` + `.agents/skills/devguard/`）— skills-first，同一规范真源服务 Codex/Claude
+- **可测治理**（`scripts/check_consistency.py` + `scripts/check_enforcement.py`）— 真实分数与至少 10 项故障注入
 - **可运行示例**（`src/`）— 每个规范维度都有对应的 Python 示例代码
 - **CI 5 阶段**（`.github/workflows/ci.yml`）— lint / test / l4-conventions / compliance / build
-- **10 钩子 pre-commit** — trim whitespace / end-of-file-fixer / yaml / json / large files / ruff / ruff-format / gitleaks / commit-msg-worklog-ref / commitlint
+- **19 个本仓 hooks** — 格式、安全、ECC 能力对齐、提交格式、worklog、STATUS、文件放置、豁免、更新时间、文档同步与收束闸门
 
-## 快速开始（5 步）
+## 一键初始化新项目
 
-```bash
-# 1. 复制模板到新项目
-cp -r docs/templates/devguard/ /path/to/new-project/
+```powershell
+Set-Location -LiteralPath 'C:\Users\yhn\Desktop\开发规范'
+py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --profile core --project-name 'My Project' --install
+```
 
-# 2. 替换真源（conventions/_meta.yaml + STATUS.md）
-# 3. 跑渲染生成 .pre-commit-config.yaml
-python scripts/render_meta.py --render all
+该命令在目标目录生成 Codex/Claude 双入口、canonical DevGuard skill、credential-free 项目 `.codex/config.toml`、根文档、计划、固定依赖、最小 CI 和自检测试，初始化 Git 与隔离 `.venv`，并同时安装 `pre-commit`、`commit-msg` 两类 hook。若机器已配置 ECC/其他全局 `core.hooksPath`，安装器会保留并串联既有 `pre-commit` / `pre-push`；不会修改用户全局 Git 配置。目标非空时默认拒绝；显式 `--force` 也使用逐文件原子替换，任何中途失败都会回滚已写文件。
 
-# 4. 装 hook
-pre-commit install --hook-type commit-msg
+写入前预演（不创建目标目录）：
 
-# 5. 跑 CI
-# 把 .github/workflows/ci.yml 复制到新项目
+```powershell
+py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --profile core --dry-run
+```
+
+复验既有目标：
+
+```powershell
+py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --verify --require-hooks
 ```
 
 ## 详细使用
 
-- [CHANGELOG.md](CHANGELOG.md) — V0.1 → V2.0.1 完整升级日志
+- [CHANGELOG.md](CHANGELOG.md) — V0.1 → V2.2.0 完整升级日志
 - [conventions/_meta.yaml](conventions/_meta.yaml) — 16 规范元数据（l1_check + l1_check_path + l1_check_doc）
 - [docs/templates/devguard/README-模板索引.md](docs/templates/devguard/README-模板索引.md) — 模板使用流程
 - [docs/reports/INDEX.md](docs/reports/INDEX.md) — 全部 V0.x 收束报告索引
@@ -74,7 +81,7 @@ pre-commit install --hook-type commit-msg
 | 02 | 代码编写 | ruff + gitleaks + markdownlint-cli |
 | 03 | Git 协作 | pre-commit + commitlint |
 | 04 | API 设计 | spectral |
-| 05 | 测试 | pytest --cov-fail-under |
+| 05 | 测试 | pytest（业务项目按自身范围设置 coverage；文档仓不伪造覆盖率） |
 | 06 | 文档 | markdownlint-cli |
 | 07 | AI 协作开发流程 | check_ai_workflow.py |
 | 08 | 代码理解与图谱 | check_code_understanding.py |
@@ -97,7 +104,6 @@ pre-commit install --hook-type commit-msg
 ---
 
 **维护者**：袁 (xiangbianpangde)  **版本**：V2.0.1  **许可**：MIT License
-
 
 ## 快速开始（新项目）
 

@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M7 根目录顶层入口 · 历史演进路径</title>
+<meta name="description" content="devguard M7 实现计划：V0.x 起步 4 件 → V1.4 完整 9 件的 8 阶段演进时间线">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:;">
+<!-- Mermaid 渲染（唯一外链 CDN） -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // —— 学术风配色 ——
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#F5F0E4',
+          primaryTextColor: '#1F1D17',
+          primaryBorderColor: '#8B3A1F',
+          lineColor: '#5A5447',
+          secondaryColor: '#E8E1D2',
+          tertiaryColor: '#FAF7F0',
+          fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+          fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+        sequence: { useMaxWidth: true, diagramMarginX: 20 },
+        pie: { useMaxWidth: true },
+        gantt: { useMaxWidth: true }
+      });
+    }
+
+    // —— Tab 切换 ——
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // —— 进度条动画 ——
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    // —— 数字滚动 ——
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+
+    // —— 阶段详情展开 ——
+    document.querySelectorAll('.phase-card').forEach(function(card){
+      var head = card.querySelector('.phase-head');
+      var body = card.querySelector('.phase-body');
+      if (head && body) {
+        head.style.cursor = 'pointer';
+        head.addEventListener('click', function(){
+          var open = body.style.display !== 'none';
+          body.style.display = open ? 'none' : 'block';
+          var arrow = head.querySelector('.ph-arrow');
+          if (arrow) arrow.textContent = open ? '▸' : '▾';
+        });
+      }
+    });
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       --brand-2:#A85032;
+    --accent:#2F5061;      --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .code-block .err{color:#E07A6A;font-weight:700;background:rgba(224,122,106,.15);padding:1px 4px;border-radius:3px}
+
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+  .chip.k{background:#26241F;color:#E8E2D4;border-color:#1F1D17}
+
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:180px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+
+  /* —— 阶段卡片 —— */
+  .phase-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:0;box-shadow:var(--shadow);margin:10px 0;overflow:hidden;
+    transition:.18s;
+  }
+  .phase-card:hover{box-shadow:0 18px 42px -28px rgba(60,40,20,.4)}
+  .phase-head{
+    padding:14px 18px;display:flex;align-items:center;gap:12px;
+    background:linear-gradient(90deg,rgba(47,80,97,.05),transparent);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .phase-head .ph-num{
+    width:42px;height:42px;border-radius:10px;flex:0 0 auto;
+    display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:18px;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;
+  }
+  .phase-head .ph-num.v0{background:linear-gradient(135deg,#5A5447,#7A7367)}
+  .phase-head .ph-num.v1{background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+  .phase-head .ph-num.v15{background:linear-gradient(135deg,var(--gold),#C9973A)}
+  .phase-head .ph-info{flex:1;min-width:0}
+  .phase-head .ph-info .ph-name{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--txt)}
+  .phase-head .ph-info .ph-date{font-size:11px;color:var(--txt-faint);font-family:var(--mono);margin-top:2px}
+  .phase-head .ph-arrow{color:var(--accent);font-size:14px;margin-left:auto}
+  .phase-body{padding:14px 18px;font-size:12.6px;color:var(--txt-dim);line-height:1.75}
+  .phase-body .pb-row{display:flex;gap:14px;margin:8px 0;flex-wrap:wrap}
+  .phase-body .pb-block{flex:1;min-width:200px;background:var(--bg-soft);border-radius:8px;padding:8px 11px;border:1px solid var(--line-soft)}
+  .phase-body .pb-block b{color:var(--txt);font-size:12px;display:block;margin-bottom:4px}
+  .phase-body .pb-block ul{margin:0;padding-left:14px;line-height:1.7}
+
+  /* —— 里程碑 ASCII 段 —— */
+  .ml-strip{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.7;
+    box-shadow:var(--shadow);color:var(--txt-dim);overflow-x:auto;white-space:pre
+  }
+  .ml-strip .br{color:var(--brand);font-weight:700}
+  .ml-strip .gd{color:var(--good);font-weight:700}
+
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ 左侧导航 ============ -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M7</div>
+      <div>
+        <b>实现计划</b>
+        <span>EVOLUTION TIMELINE</span>
+      </div>
+    </div>
+    <div class="meta">8 阶段演进 · 2026-05-26 → 06-09<br>4 件起步 → 9 件齐全<br>交付性质 · 已完成</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 总览</a>
+      <a href="#s2"><span class="n">02</span> V0.x 起步</a>
+      <a href="#s3"><span class="n">03</span> V0.x 中期</a>
+      <a href="#s4"><span class="n">04</span> V0.9</a>
+      <a href="#s5"><span class="n">05</span> V1.0</a>
+      <a href="#s6"><span class="n">06</span> V1.1</a>
+      <a href="#s7"><span class="n">07</span> V1.2</a>
+      <a href="#s8"><span class="n">08</span> V1.3</a>
+      <a href="#s9"><span class="n">09</span> V1.4</a>
+      <a href="#s10"><span class="n">10</span> V1.5/V2.0</a>
+      <div class="grp">验证与展望</div>
+      <a href="#s11"><span class="n">11</span> 里程碑</a>
+      <a href="#s12"><span class="n">12</span> 测试策略</a>
+      <a href="#s13"><span class="n">13</span> 与红线</a>
+      <a href="#s14"><span class="n">14</span> 未来扩展</a>
+    </nav>
+  </aside>
+
+  <!-- ============ 主内容 ============ -->
+  <main class="main">
+
+    <!-- ====================== HERO ====================== -->
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">M7 实现计划</span>
+        <span class="b-pill inf">8 阶段演进</span>
+        <span class="b-pill inf">4 件 → 9 件</span>
+        <span class="b-pill br">mermaid gantt</span>
+        <span class="b-pill inf">交付性质</span>
+        <span class="b-pill inf">v1.0 · 2026-06-10</span>
+      </div>
+      <h1>M7 根目录顶层入口 · 历史演进路径</h1>
+      <p class="sub">V0.x 起步 4 件（CLAUDE/README/STATUS/dashboard）→ V1.4 完整 9 件，跨越 8 个阶段、5 个收束节点，2026-05-26 → 2026-06-09 完整轨迹。</p>
+      <div class="meta-row">
+        <span>周期 2026-05-26 → 2026-06-09</span>
+        <span>•</span>
+        <span>15 天</span>
+        <span>•</span>
+        <span>8 收束节点</span>
+        <span>•</span>
+        <span>worklogs ×10</span>
+      </div>
+    </section>
+
+    <!-- ====================== 目录 ====================== -->
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>总览</b><span style="font-size:11px;color:var(--txt-faint)">8 阶段一表看清</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>V0.x 起步</b><span style="font-size:11px;color:var(--txt-faint)">4 件建立 (2026-05-26)</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>V0.x 中期</b><span style="font-size:11px;color:var(--txt-faint)">渲染 + 双入口 (2026-05-27)</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>V0.9</b><span style="font-size:11px;color:var(--txt-faint)">11-readme 入规 (2026-06-07)</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>V1.0</b><span style="font-size:11px;color:var(--txt-faint)">12-codeowners (.github)</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>V1.1</b><span style="font-size:11px;color:var(--txt-faint)">CHANGELOG + SECURITY</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>V1.2</b><span style="font-size:11px;color:var(--txt-faint)">SUPPORT.md</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>V1.3</b><span style="font-size:11px;color:var(--txt-faint)">LICENSE + README 重写</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>V1.4</b><span style="font-size:11px;color:var(--txt-faint)">CONTRIBUTING (9 件齐全)</span></div></a>
+      <a href="#s10"><div class="ix">10</div><div><b>V1.5 / V2.0</b><span style="font-size:11px;color:var(--txt-faint)">devguard dogfood</span></div></a>
+      <a href="#s11"><div class="ix">11</div><div><b>里程碑</b><span style="font-size:11px;color:var(--txt-faint)">ASCII 时间线</span></div></a>
+      <a href="#s14"><div class="ix">14</div><div><b>未来扩展</b><span style="font-size:11px;color:var(--txt-faint)">4 个 TODO</span></div></a>
+    </div>
+
+    <!-- ====================== 摘要 KPI ====================== -->
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 演进轨迹</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="8">0</span></div>
+        <div class="lbl">演进阶段</div>
+        <div class="sub">V0.x → V1.5</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="4">0</span><span style="font-size:24px;color:var(--txt-faint)">→</span><span class="counter accent" data-target="9">0</span></div>
+        <div class="lbl">文件数演进</div>
+        <div class="sub">起步 4 件 → 9 件齐全</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="15">0</span></div>
+        <div class="lbl">总耗时（天）</div>
+        <div class="sub">2026-05-26 → 06-09</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="7">0</span></div>
+        <div class="lbl">新增规范</div>
+        <div class="sub">11-17 入 _meta.yaml</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="5">0</span></div>
+        <div class="lbl">收束节点</div>
+        <div class="sub">V0.9 / V1.0 / V1.1 / V1.2 / V1.4</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="10">0</span></div>
+        <div class="lbl">worklog 引用</div>
+        <div class="sub">每日记录</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="0">0</span></div>
+        <div class="lbl">V0.x 红线触发</div>
+        <div class="sub">0 红线</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="8">0</span></div>
+        <div class="lbl">devguard dogfood 拦截</div>
+        <div class="sub">V1.5 全部修复</div>
+      </div>
+    </div>
+
+    <!-- ====================== § 01 总览 ====================== -->
+    <section id="s1" class="sec-head" style="margin-top:40px">
+      <div class="tag">01 · 总览</div>
+      <h2>8 阶段演进 · 一图总览</h2>
+      <p class="lead">根目录 9 文件从 V0.x 起步的 4 件（CLAUDE/README/STATUS/dashboard）→ V1.4 完整的 5+4 套件，跨越 8 个阶段。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · V0.x → V1.4 完整演进时间线（mermaid gantt）</div>
+      <div class="mermaid">
+gantt
+    title M7 根目录 9 文件演进路径 (V0.x → V1.4)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0.x 起步
+    4 件起步 (CLAUDE/README/STATUS/dashboard)   :done, p1, 2026-05-26, 1d
+    section V0.x 中期
+    渲染机制 + 双入口分离 (worklog 2026-05-27)   :done, p2, 2026-05-27, 1d
+    section V0.9
+    11-readme 入 _meta.yaml (2026-06-07)          :done, p3, 2026-06-07, 1d
+    section V1.0
+    12-codeowners (.github/CODEOWNERS)            :done, p4, 2026-06-07, 1d
+    section V1.1
+    + CHANGELOG.md + SECURITY.md                  :done, p5, 2026-06-07, 1d
+    section V1.2
+    + SUPPORT.md                                  :done, p6, 2026-06-07, 1d
+    section V1.3
+    + LICENSE (MIT) + README 重写                  :done, p7, 2026-06-07, 1d
+    section V1.4
+    + CONTRIBUTING.md (9 文件齐全)                 :done, p8, 2026-06-07, 1d
+    section V1.5/V2.0
+    devguard dogfood (自身仓库拦截 8 次)           :active, p9, 2026-06-08, 2d
+    全部阶段完成 (milestone)                       :milestone, m1, 2026-06-09, 0d
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">8 阶段 + 1 milestone = 完整演进轨迹 · V0.x 起步 4 件 → V1.4 完整 9 件 → V1.5 验证自身</p>
+    </div>
+
+    <h3>8 阶段总览</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>阶段</th>
+            <th>时间</th>
+            <th>文件数</th>
+            <th>关键产出</th>
+            <th>worklog</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>V0.x 起步</b></td><td>2026-05-26</td><td class="num">4</td><td>CLAUDE.md / README.md / STATUS.md / dashboard.html 四件起步</td><td>init</td></tr>
+          <tr><td><b>V0.x 中期</b></td><td>2026-05-27</td><td class="num">4</td><td>render 机制 + CLAUDE/README 双入口分离</td><td>2026-05-27_CLAUDE与README角色分离</td></tr>
+          <tr><td><b>V0.9</b></td><td>2026-06-07</td><td class="num">5</td><td>11-readme 规范入 _meta.yaml</td><td>2026-06-07_V0.9 收束</td></tr>
+          <tr><td><b>V1.0</b></td><td>2026-06-07</td><td class="num">5</td><td>12-codeowners（.github/CODEOWNERS，不在 9 文件内）</td><td>2026-06-07_V1.0收尾</td></tr>
+          <tr><td><b>V1.1</b></td><td>2026-06-07</td><td class="num">6</td><td>+ CHANGELOG.md + SECURITY.md</td><td>2026-06-07_V1.1收尾</td></tr>
+          <tr><td><b>V1.2</b></td><td>2026-06-07</td><td class="num">7</td><td>+ SUPPORT.md</td><td>2026-06-07_V1.2收尾</td></tr>
+          <tr><td><b>V1.3</b></td><td>2026-06-07</td><td class="num">8</td><td>+ LICENSE（MIT）+ README 重写</td><td>2026-06-07_V1.3收尾</td></tr>
+          <tr><td><b>V1.4</b></td><td>2026-06-07</td><td class="num">9</td><td>+ CONTRIBUTING.md（GitHub 标准 5 件套齐全）</td><td>2026-06-07_V1.4收尾</td></tr>
+          <tr><td><b>V1.5 / V2.0</b></td><td>2026-06-08~09</td><td class="num">9</td><td>devguard dogfood（自身仓库触发 8 次拦截）</td><td>2026-06-08_V1.5 收尾</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>文件数演进 · 折线图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 8 阶段文件数演进（mermaid xychart）</div>
+      <div class="mermaid">
+xychart-beta
+    title "M7 根目录文件数演进 (V0.x → V1.4)"
+    x-axis ["V0.x", "V0.x中期", "V0.9", "V1.0", "V1.1", "V1.2", "V1.3", "V1.4"]
+    y-axis "文件数" 0 --> 10
+    bar [4, 4, 5, 5, 6, 7, 8, 9]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">V0.x 起步 4 件 → V1.4 完整 9 件 · 5 阶段新增 5 文件</p>
+    </div>
+
+    <!-- ====================== § 02 V0.x 起步 ====================== -->
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · V0.x 起步 · 四件套同步建立</div>
+      <h2>2026-05-26 · 人 / AI / 数据 / 可视化 四源起步</h2>
+      <p>让 devguard 在 V0.x 起步阶段就有完整的"项目门面"：人/AI/数据/可视化四件齐全。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="ph-num v0">V0</div>
+        <div class="ph-info">
+          <div class="ph-name">V0.x 起步 · 4 件四源同步建立</div>
+          <div class="ph-date">2026-05-26 · 1 天 · 文件数 0 → 4</div>
+        </div>
+        <div class="ph-arrow">▾</div>
+      </div>
+      <div class="phase-body">
+        <div class="pb-row">
+          <div class="pb-block">
+            <b>目标</b>
+            <ul>
+              <li>仓库初始化即建立 4 件入口</li>
+              <li>人/AI/数据/可视化四源归位</li>
+              <li>为后续 V1.x 阶段铺基线</li>
+            </ul>
+          </div>
+          <div class="pb-block">
+            <b>实现路径</b>
+            <pre style="font-family:var(--mono);font-size:11px;line-height:1.55;margin:0;color:var(--txt-dim)">仓库初始化
+    │
+    ├── README.md      # 人类入口
+    ├── CLAUDE.md      # AI 入口
+    ├── STATUS.md      # 进度数据源
+    └── dashboard.html # 可视化面板</pre>
+          </div>
+        </div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>文件</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>README.md</code></td><td>新建：人类导航 + 5 步快速开始 + 目录树</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>CLAUDE.md</code></td><td>新建：AI 上下文 + 目录索引 + 行为规则</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>STATUS.md</code></td><td>新建：当前进度 + 收束节点历史 + 详细功能点列表</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>dashboard.html</code></td><td>新建：纯静态 + CSP 头 + 学术风</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 style="margin:10px 0 6px">关键决策</h4>
+        <div class="grid g3">
+          <div class="card hl">
+            <h4>① AI 入口命名</h4>
+            <p>用 <code>CLAUDE.md</code> 而非 <code>AI.md</code> —— 沿用 Claude Code 工具约定，0 配置即自动加载。</p>
+          </div>
+          <div class="card brand">
+            <h4>② dashboard 纯静态</h4>
+            <p>用纯静态 HTML —— 引入 React/Vue 不必要的复杂度；fetch 读 STATUS.md 即可。</p>
+          </div>
+          <div class="card gold">
+            <h4>③ README / CLAUDE 顶部标识</h4>
+            <p>README 顶部标 <code>👤</code>，CLAUDE 顶部标 <code>⚠️</code>——视觉信号提醒不同受众。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>V0.x 起步 · 4 件建立顺序</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · V0.x 起步建立顺序（mermaid gantt）</div>
+      <div class="mermaid">
+gantt
+    title V0.x 起步 4 件建立顺序 (2026-05-26)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section 仓库初始化
+    README.md (195 行 · 人类)        :done, a1, 2026-05-26, 1d
+    CLAUDE.md (142 行 · AI)         :done, a2, 2026-05-26, 1d
+    STATUS.md (129 行 · 共享)        :done, a3, 2026-05-26, 1d
+    dashboard.html (渲染 · 渲染)     :done, a4, 2026-05-26, 1d
+      </div>
+    </div>
+
+    <!-- ====================== § 03 V0.x 中期 ====================== -->
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · V0.x 中期 · 渲染机制与双入口分离</div>
+      <h2>2026-05-27 · 1 天内完成 2 个目标</h2>
+      <p>V0.x 中期是 M7 的<b>关键转折点</b>：1 天内同时完成 dashboard 自动渲染机制 + CLAUDE/README 双入口角色分离。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="ph-num v0">V0</div>
+        <div class="ph-info">
+          <div class="ph-name">V0.x 中期 · 渲染 + 双入口</div>
+          <div class="ph-date">2026-05-27 · 1 天 · 双目标并行</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="grid g2">
+          <div class="card hl">
+            <h4>目标 1 · dashboard 自动渲染</h4>
+            <ul style="margin:0;padding-left:14px;font-size:12.4px;line-height:1.8">
+              <li>09 仪表盘自动生成规范（V0.6 入 _meta.yaml）</li>
+              <li><code>scripts/render_meta.py</code> 渲染元数据</li>
+              <li><code>scripts/render.py</code> 解析 STATUS.md → dashboard.html</li>
+              <li>CSP 头（V5.4）+ render mtime 标识（V5.5）</li>
+            </ul>
+          </div>
+          <div class="card brand">
+            <h4>目标 2 · CLAUDE.md ↔ README 角色分离</h4>
+            <p style="font-size:12.4px">worklog <code>2026-05-27_CLAUDE与README角色分离.md</code> 记录：</p>
+            <ul style="margin:0;padding-left:14px;font-size:12.4px;line-height:1.8">
+              <li>新增 "⚠️ 仅供 AI Agent 读取" 声明</li>
+              <li>新增 "目录地图（AI 导航用）"</li>
+              <li>新增 "AI 行为规则" 三类规则</li>
+              <li>新增 "常见 AI 任务指南" 5 个场景</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>模块</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>scripts/</code></td><td>新建 render_meta.py + render.py + start_server.py + 打开仪表盘.bat</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td>根 <code>CLAUDE.md</code></td><td>重写：AI 入口 + 行为规则 + 任务指南</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td>根 <code>README.md</code></td><td>重写：人类导航 + AI 配合说明 + 目录带 emoji + FAQ</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td>13 个 README</td><td>全部更新（统一标 👤 人类参考）</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td>7 处 <code>docs/decisions/</code> 引用</td><td>改为 <code>worklogs/decisions/</code></td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 style="margin:10px 0 6px">ADR 决策</h4>
+        <div class="grid g2">
+          <div class="card" style="border-left:3px solid var(--gold)">
+            <h4>ADR 0005</h4>
+            <p>长文拆目录（AI 流程 7 篇 → 目录化）</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--gold)">
+            <h4>ADR 0006</h4>
+            <p>ADR 仅收束节点产出</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>双入口分离验证结果</h3>
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="13">0</span></div>
+        <div class="lbl">README 全部更新</div>
+        <div class="sub">标 👤 人类参考</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="1">0</span></div>
+        <div class="lbl">CLAUDE.md 完整 AI 导航</div>
+        <div class="sub">含行为规则</div>
+      </div>
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="7">0</span></div>
+        <div class="lbl">decisions 引用迁移</div>
+        <div class="sub">→ worklogs/decisions/</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="2">0</span></div>
+        <div class="lbl">ADR 产出</div>
+        <div class="sub">0005 + 0006</div>
+      </div>
+    </div>
+
+    <!-- ====================== § 04 V0.9 ====================== -->
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · V0.9 · 11-readme 规范入 _meta.yaml</div>
+      <h2>2026-06-07 · 一次性发现 → 永久规范</h2>
+      <p>把"README 双件套分离"从一次性的功能点变成长久规范——通过 11-readme 规范入 <code>_meta.yaml</code> 实现。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="ph-num v1">V1</div>
+        <div class="ph-info">
+          <div class="ph-name">V0.9 · 11-readme 规范入 _meta</div>
+          <div class="ph-date">2026-06-07 · 1 天 · 规范闭环</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="diagram"><span class="br">11-readme 规范</span>
+    │
+    ├── <span class="hl">_meta.yaml 加条</span>
+    │     l1_check: README.md 存在性
+    │     l1_check_path:
+    │       - README.md
+    │       - conventions/README-规范导航.md
+    │     l3_route: 任务=读文档 → 必读本规范
+    │
+    ├── <span class="hl">BDD 互检</span>
+    │     docs/specs/07-ai-workflow.md 增补 README 双件套条款
+    │
+    └── <span class="hl">CI 阶段 compliance</span>
+          阻断：README.md 缺失 / 无 "👤 人类阅读" 声明</div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>模块</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>conventions/_meta.yaml</code></td><td>+ 11-readme 条目</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>conventions/README-规范导航.md</code></td><td>+ 11-readme 简述</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>docs/specs/07-ai-workflow.md</code></td><td>+ README 双件套 BDD 条款</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 style="margin:10px 0 6px">验证</h4>
+        <div class="note good">
+          <span class="ico">✓</span>
+          <div>
+            <b>CI compliance 阶段绿灯</b> + <b>工作流演练</b>：新 AI 会话启动只读 CLAUDE.md 不读 README
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 05 V1.0 ====================== -->
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · V1.0 · 12-codeowners</div>
+      <h2>2026-06-07 · 明确代码 review 责任主体</h2>
+      <p>12-codeowners 规范入 <code>_meta.yaml</code>，CODEOWNERS 文件新建在 <code>.github/</code> 目录——<b>不在 M7 9 文件内</b>。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="ph-num v1">V1</div>
+        <div class="ph-info">
+          <div class="ph-name">V1.0 · 12-codeowners</div>
+          <div class="ph-date">2026-06-07 · 1 天 · CODEOWNERS</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="grid g2">
+          <div class="card hl">
+            <h4>目标</h4>
+            <p>明确代码 review 责任主体——<code>.github/CODEOWNERS</code> 规定各目录的 owner。</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--warn)">
+            <h4>注意</h4>
+            <p>CODEOWNERS 不在根 9 文件之内（位于 <code>.github/</code> 目录），但属于"项目级入口"配套；本模块维护 9 文件不包含此。</p>
+          </div>
+        </div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>模块</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>conventions/_meta.yaml</code></td><td>+ 12-codeowners 条目</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>.github/CODEOWNERS</code></td><td>新建：规定各目录的 owner</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 06 V1.1 ====================== -->
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · V1.1 · 13-changelog + 14-security</div>
+      <h2>2026-06-07 · 补齐 GitHub 标准 5 件套的前 2 件</h2>
+      <p>补齐 GitHub 标准 5 件套中的 CHANGELOG 和 SECURITY 两件，配套 13-changelog + 14-security 规范入 <code>_meta.yaml</code>。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="ph-num v1">V1</div>
+        <div class="ph-info">
+          <div class="ph-name">V1.1 · 13-changelog + 14-security</div>
+          <div class="ph-date">2026-06-07 · 1 天 · + 2 文件</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="diagram"><span class="br">V1.1 收束节点</span>
+    │
+    ├── <span class="hl">13-changelog 规范</span>
+    │     ├── _meta.yaml 加条
+    │     ├── CHANGELOG.md 新建（V0.x → V1.0 全量回填）
+    │     └── Keep a Changelog 1.1.0 格式 + SemVer 2.0.0
+    │
+    └── <span class="hl">14-security 规范</span>
+          ├── _meta.yaml 加条
+          ├── SECURITY.md 新建
+          ├── 私下报告漏洞流程
+          └── gitleaks 钩子（pre-commit 自动扫密钥）</div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>文件</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>conventions/_meta.yaml</code></td><td>+ 13-changelog + 14-security 条目</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>CHANGELOG.md</code></td><td>新建：V0.x → V1.0 完整回填</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>SECURITY.md</code></td><td>新建：私下报告 + SLA 24h/7d/30d</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>.gitleaks.toml</code></td><td>新建：扫描规则</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>.pre-commit-config.yaml</code></td><td>+ gitleaks 钩子</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 07 V1.2 ====================== -->
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · V1.2 · 15-support</div>
+      <h2>2026-06-07 · 明确"devguard 是模板非产品"</h2>
+      <p>SUPPORT.md 把"项目性质 = 开发规范模板而非产品"写出来，避免外部误以为是消费级产品。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <div class="ph-num v1">V1</div>
+        <div class="ph-info">
+          <div class="ph-name">V1.2 · 15-support</div>
+          <div class="ph-date">2026-06-07 · 1 天 · + SUPPORT.md</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="grid g2">
+          <div class="card hl">
+            <h4>目标</h4>
+            <p>明确"devguard 是开发规范模板而非产品"——SUPPORT.md 把这一点写出来。</p>
+          </div>
+          <div class="card brand">
+            <h4>支持渠道</h4>
+            <ul style="margin:0;padding-left:14px;font-size:12.4px;line-height:1.7">
+              <li>GitHub Issues（响应 7d）</li>
+              <li>GitHub Discussions（不保证响应）</li>
+              <li>私信 owner（响应 24h）</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>模块</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>conventions/_meta.yaml</code></td><td>+ 15-support 条目</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>SUPPORT.md</code></td><td>新建：项目性质 + 渠道表 + Bug 报告 4 件套</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 08 V1.3 ====================== -->
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · V1.3 · 16-license + README 重写</div>
+      <h2>2026-06-07 · MIT 许可证 + 人类友好风格定型</h2>
+      <p>双目标并行：① 补 LICENSE（MIT 全文） ② README 风格定型为"人类友好 + emoji + 树状图 + 表格"。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <div class="ph-num v1">V1</div>
+        <div class="ph-info">
+          <div class="ph-name">V1.3 · 16-license + README 重写</div>
+          <div class="ph-date">2026-06-07 · 1 天 · + LICENSE + README 升级</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="grid g2">
+          <div class="card hl">
+            <h4>目标 1 · 补 LICENSE</h4>
+            <p>MIT 许可证，Copyright (c) 2026 袁 (xiangbianpangde)。</p>
+            <div class="chip-row">
+              <span class="chip k">MIT</span>
+              <span class="chip gd">最自由</span>
+            </div>
+          </div>
+          <div class="card brand">
+            <h4>目标 2 · README 重写</h4>
+            <p>将 README 风格定型为"人类友好 + emoji + 树状图 + 表格"。</p>
+            <div class="chip-row">
+              <span class="chip br">👤 人类友好</span>
+              <span class="chip br">emoji</span>
+              <span class="chip br">树状图</span>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>模块</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>conventions/_meta.yaml</code></td><td>+ 16-license 条目</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>LICENSE</code></td><td>新建：MIT 全文</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>README.md</code></td><td>重写：人类友好风格定型（参考模板的 1.2 风格）</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td>README 顶部</td><td>+ 版本/L4 套件/许可/标准件状态</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 style="margin:10px 0 6px">关键决策</h4>
+        <div class="grid g3">
+          <div class="card" style="border-top:3px solid var(--good)">
+            <h4>① 许可证选 MIT</h4>
+            <p>最自由，匹配"通用开发规范"复用定位。</p>
+          </div>
+          <div class="card" style="border-top:3px solid var(--accent)">
+            <h4>② README 不写"如何贡献"</h4>
+            <p>留给 CONTRIBUTING.md，避免双源。</p>
+          </div>
+          <div class="card" style="border-top:3px solid var(--gold)">
+            <h4>③ README 不写安全策略</h4>
+            <p>留给 SECURITY.md，避免双源。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 09 V1.4 ====================== -->
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · V1.4 · 17-contributing</div>
+      <h2>2026-06-07 · GitHub 标准 5 件套齐全</h2>
+      <p>补齐 GitHub 标准 5 件套的最后一个：CONTRIBUTING.md。<b>V1.4 收束节点 = 9 文件齐全里程碑</b>。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <div class="ph-num v1">V1</div>
+        <div class="ph-info">
+          <div class="ph-name">V1.4 · 17-contributing · 9 文件齐全</div>
+          <div class="ph-date">2026-06-07 · 1 天 · 里程碑</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="grid g2">
+          <div class="card hl">
+            <h4>目标</h4>
+            <p>补齐 GitHub 标准 5 件套的最后一个：CONTRIBUTING.md。</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--good)">
+            <h4>里程碑</h4>
+            <p><b>9 文件齐全</b>（5 GitHub 标准 + 4 项目特色）。</p>
+          </div>
+        </div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>模块</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>conventions/_meta.yaml</code></td><td>+ 17-contributing 条目</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>CONTRIBUTING.md</code></td><td>新建：行为准则 + 贡献类型表 + PR 流程 + commit 类型</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 style="margin:10px 0 6px">V1.4 收束节点验证</h4>
+        <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+          <div class="kpi good">
+            <div class="num"><span class="counter good" data-target="9">0</span></div>
+            <div class="lbl">文件齐全</div>
+            <div class="sub">5 GitHub + 4 特色</div>
+          </div>
+          <div class="kpi accent">
+            <div class="num"><span class="counter accent" data-target="6">0</span></div>
+            <div class="lbl">治理类规范</div>
+            <div class="sub">11-17 入 _meta</div>
+          </div>
+          <div class="kpi gold">
+            <div class="num"><span class="counter gold" data-target="65">0</span></div>
+            <div class="lbl">L4 tests</div>
+            <div class="sub">passed</div>
+          </div>
+          <div class="kpi">
+            <div class="num"><span class="counter" data-target="0">0</span></div>
+            <div class="lbl">红线触发</div>
+            <div class="sub">0 红线</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 10 V1.5 / V2.0.1 ====================== -->
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · V1.5 / V2.0.1 · devguard dogfood</div>
+      <h2>2026-06-08 ~ 06-09 · 自身仓库验证</h2>
+      <p>把 V1.x 范式施加于 devguard 自身，验证自身代码也满足规范。<b>最强证据</b>：自身仓库触发 8 次拦截全部修复。</p>
+    </section>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <div class="ph-num v15">1.5</div>
+        <div class="ph-info">
+          <div class="ph-name">V1.5 / V2.0.1 · devguard dogfood</div>
+          <div class="ph-date">2026-06-08 ~ 06-09 · 2 天 · 自身验证</div>
+        </div>
+        <div class="ph-arrow">▸</div>
+      </div>
+      <div class="phase-body" style="display:none">
+        <div class="grid g2">
+          <div class="card hl">
+            <h4>目标</h4>
+            <p>把 V1.x 范式施加于 devguard 自身，验证自身代码也满足规范。</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--good)">
+            <h4>验证结果</h4>
+            <p>10 钩子 + commitlint 在自身仓库触发 <b>8 次拦截</b>，全部修复。复测 100% PASS。</p>
+          </div>
+        </div>
+
+        <h4 style="margin:10px 0 6px">改动</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>模块</th><th>改什么</th><th style="width:70px">状态</th></tr></thead>
+            <tbody>
+              <tr><td><code>lint_markdown.py</code></td><td>V2.0.1.2 修复 Windows 长命令行 bug</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>dashboard.html</code></td><td>render 流程 + 字段补齐</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td><code>STATUS.md</code></td><td>滞后修复 + worklog 断档补登</td><td><span class="b-pill ok">完成</span></td></tr>
+              <tr><td>根 <code>CLAUDE.md</code></td><td>质量验证原则升格</td><td><span class="b-pill ok">完成</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note good">
+          <span class="ico">✓</span>
+          <div>
+            <b>dogfood 验证</b>：自身仓库触发 8 次拦截全部修复 + 复测 100% PASS + L4 65/65 passed
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 11 里程碑 ====================== -->
+    <section id="s11" class="sec-head" style="margin-top:50px">
+      <div class="tag">11 · 里程碑</div>
+      <h2>8 阶段完整时间线</h2>
+      <p>从 V0.x 起步 4 件到 V1.4 完整 9 件的完整里程碑轨迹。</p>
+    </section>
+
+    <div class="ml-strip"><span class="br">V0.x 起步</span>    <span class="br">V0.x 中期</span>    <span class="br">V0.9</span>     <span class="br">V1.0</span>     <span class="br">V1.1</span>     <span class="br">V1.2</span>     <span class="br">V1.3</span>     <span class="br">V1.4</span>     <span class="br">V1.5</span>
+──┴──      ──┴──      ──┴──    ──┴──    ──┴──    ──┴──    ──┴──    ──┴──    ──┴──
+<span class="gd">4 文件</span>     <span class="gd">渲染机制</span>    <span class="gd">README</span>   <span class="gd">CODE-</span>    <span class="gd">CHANGELOG</span> <span class="gd">SECURITY</span> <span class="gd">SUPPORT</span>  <span class="gd">LICENSE</span>  <span class="gd">CONTRI-</span>
+2026-5-26  2026-5-27   规范化   <span class="gd">OWNERS</span>   +14-     2026-6-7 2026-6-7 +README  <span class="gd">BUTING</span>
+                                     security                                  9 文件齐全
+                                     2026-6-7        2026-6-7  2026-6-7      2026-6-7</div>
+
+    <h3>完整甘特图 · V0.x → V1.4</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 9 文件逐个加入时间（mermaid gantt）</div>
+      <div class="mermaid">
+gantt
+    title 9 文件逐个加入 (2026-05-26 → 2026-06-07)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0.x 起步 (4 件)
+    README.md (195 行)        :done, f1, 2026-05-26, 1d
+    CLAUDE.md (142 行)        :done, f2, 2026-05-26, 1d
+    STATUS.md (129 行)        :done, f3, 2026-05-26, 1d
+    dashboard.html (渲染)      :done, f4, 2026-05-26, 1d
+    section V0.x 中期
+    渲染机制 + 双入口分离       :active, f5, 2026-05-27, 1d
+    section V0.9
+    11-readme 规范入 _meta      :done, f6, 2026-06-07, 1d
+    section V1.0
+    12-codeowners (.github)    :done, f7, 2026-06-07, 1d
+    section V1.1
+    13-changelog + CHANGELOG.md :done, f8, 2026-06-07, 1d
+    14-security + SECURITY.md   :done, f9, 2026-06-07, 1d
+    section V1.2
+    15-support + SUPPORT.md     :done, f10, 2026-06-07, 1d
+    section V1.3
+    16-license + LICENSE (MIT)  :done, f11, 2026-06-07, 1d
+    README.md 重写              :done, f12, 2026-06-07, 1d
+    section V1.4
+    17-contributing + CONTRIBUTING.md :done, f13, 2026-06-07, 1d
+    9 文件齐全 (milestone)      :milestone, m1, 2026-06-07, 0d
+      </div>
+    </div>
+
+    <h3>里程碑 · 时间线</h3>
+    <div class="tl">
+      <div class="tl-item">
+        <h5>V0.x 起步 <span class="ver">2026-05-26</span><span class="b-pill inf">4 件</span></h5>
+        <p>README + CLAUDE + STATUS + dashboard 四件同步建立，人/AI/数据/可视化四源起步。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.x 中期 <span class="ver">2026-05-27</span><span class="b-pill inf">渲染</span></h5>
+        <p>render 机制 + CLAUDE/README 双入口角色分离（worklog 2026-05-27 核心决策来源）。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V0.9 <span class="ver">2026-06-07</span><span class="b-pill inf">11-readme</span></h5>
+        <p>11-readme 规范入 _meta.yaml，README 双件套分离正式落规。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.0 <span class="ver">2026-06-07</span><span class="b-pill inf">CODEOWNERS</span></h5>
+        <p>12-codeowners（.github/CODEOWNERS）—— 不在 9 文件内但属项目级入口配套。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.1 <span class="ver">2026-06-07</span><span class="b-pill ok">+ 2 文件</span></h5>
+        <p>13-changelog + 14-security · CHANGELOG.md + SECURITY.md 同步建立。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.2 <span class="ver">2026-06-07</span><span class="b-pill ok">+ 1 文件</span></h5>
+        <p>15-support · SUPPORT.md 明确"模板非产品"。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.3 <span class="ver">2026-06-07</span><span class="b-pill ok">+ LICENSE + 重写</span></h5>
+        <p>16-license + LICENSE（MIT） + README 重写（人类友好风格定型）。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.4 <span class="ver">2026-06-07</span><span class="b-pill good">9 文件齐全</span></h5>
+        <p>17-contributing · CONTRIBUTING.md · GitHub 标准 5 件套齐全。</p>
+      </div>
+      <div class="tl-item">
+        <h5>V1.5 / V2.0.1 <span class="ver">2026-06-08~09</span><span class="b-pill mid">dogfood</span></h5>
+        <p>devguard 自身仓库触发 8 次拦截全部修复 · 复测 100% PASS · L4 65/65 passed。</p>
+      </div>
+    </div>
+
+    <!-- ====================== § 12 测试策略 ====================== -->
+    <section id="s12" class="sec-head" style="margin-top:50px">
+      <div class="tag">12 · 测试策略</div>
+      <h2>5 阶段 × 多层验证</h2>
+      <p>从 V0.x 起步到 V1.5 dogfood，每阶段都有明确的测试方式与通过标准。</p>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>测试方式</th><th>通过标准</th><th style="width:90px">状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>V0.x 起步</b></td><td>人工 review</td><td>4 文件齐全 + 内容合理</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td><b>V0.x 中期</b></td><td>工作流演练</td><td>AI 会话只读 CLAUDE 不读 README</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td><b>V0.9+</b></td><td>CI <code>compliance</code> 阶段</td><td>9 文件存在性检查</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td><b>V1.x</b></td><td>L4 套件 65 tests</td><td>65/65 passed（间接覆盖）</td><td><span class="b-pill ok">通过</span></td></tr>
+          <tr><td><b>V1.5</b></td><td>devguard dogfood</td><td>自身仓库 8 次拦截全部修复</td><td><span class="b-pill ok">通过</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>各阶段测试覆盖度</h3>
+    <div class="bar-row">
+      <div class="lbl">V0.x 起步</div>
+      <div class="bar"><div class="anim-bar" style="--w:60%"><div class="fill brand"></div></div></div>
+      <div class="val">60%</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">V0.x 中期</div>
+      <div class="bar"><div class="anim-bar" style="--w:75%"><div class="fill brand"></div></div></div>
+      <div class="val">75%</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">V0.9+</div>
+      <div class="bar"><div class="anim-bar" style="--w:90%"><div class="fill gold"></div></div></div>
+      <div class="val">90%</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">V1.x</div>
+      <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+      <div class="val">100%</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">V1.5 dogfood</div>
+      <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+      <div class="val">100%</div>
+    </div>
+
+    <!-- ====================== § 13 与红线的关系 ====================== -->
+    <section id="s13" class="sec-head" style="margin-top:50px">
+      <div class="tag">13 · 与红线的关系</div>
+      <h2>V0.x → V1.4 红线触发记录</h2>
+      <p>V2.0.1 时点，本模块累计触发并解决的红线：</p>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>红线类型</th><th>触发次数</th><th>处理方式</th><th style="width:90px">状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>06-文档（README 缺失）</td><td class="num">0</td><td>V0.x 起步即建立</td><td><span class="b-pill ok">未触发</span></td></tr>
+          <tr><td>13-changelog（未按 SemVer）</td><td class="num">0</td><td>V1.1 一次性回填，格式正确</td><td><span class="b-pill ok">未触发</span></td></tr>
+          <tr><td>14-security（GitHub Issues 公开报漏洞）</td><td class="num">0</td><td>V1.1 SECURITY.md 明文禁止</td><td><span class="b-pill ok">未触发</span></td></tr>
+          <tr><td>11-readme（无 👤 声明）</td><td class="num">0</td><td>worklog 2026-05-27 一次性补齐</td><td><span class="b-pill ok">未触发</span></td></tr>
+          <tr><td>dashboard HTTP 启动</td><td class="num warn">多次误用</td><td>README FAQ 强调 + worklog 记录</td><td><span class="b-pill mid">已解决</span></td></tr>
+          <tr><td>根目录加散文件</td><td class="num">0</td><td>FILE_GRAPH §三决策树阻断</td><td><span class="b-pill ok">未触发</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>红线触发 · 柱状图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 6 类红线触发次数（mermaid xychart）</div>
+      <div class="mermaid">
+xychart-beta
+    title "M7 红线触发次数 (V2.0.1)"
+    x-axis ["README 缺失", "SemVer", "公开漏洞", "无 👤 声明", "HTTP 启动", "根目录散文件"]
+    y-axis "次数" 0 --> 5
+    bar [0, 0, 0, 0, 3, 0]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">唯一真实触发：dashboard HTTP 启动误用（多次）。其余 5 类通过"起步即建立"或"决策树阻断"预先消除。</p>
+    </div>
+
+    <!-- ====================== § 14 未来扩展 ====================== -->
+    <section id="s14" class="sec-head" style="margin-top:50px">
+      <div class="tag">14 · 未来扩展提示（非本期范围）</div>
+      <h2>4 个 TODO · V2.1+ 候选</h2>
+      <p>V1.4 → V2.0.1 已完整交付，下列 4 项是 V2.1+ 候选（非本期范围）。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>① dashboard 改为可交互</h4>
+        <p>点卡片跳转对应 BDD / 收束报告。</p>
+        <div class="chip-row">
+          <span class="chip b">交互</span>
+          <span class="chip b">跳转</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>② 治理类规范升级</h4>
+        <p>11-17 升级为 schema 1.1.0（加 <code>deprecated</code> 字段）。</p>
+        <div class="chip-row">
+          <span class="chip gl">schema</span>
+          <span class="chip gl">1.1.0</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>③ CONTRIBUTING 加 dashboard 启动段</h4>
+        <p>现指向 README FAQ，未来可在 CONTRIBUTING 直接说明。</p>
+        <div class="chip-row">
+          <span class="chip br">CONTRIBUTING</span>
+          <span class="chip br">FAQ 链接</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4>④ CODEOWNERS 移到根目录</h4>
+        <p>GitHub 实际不要求在 <code>.github/</code>，可放根目录（需更新 M7 文件清单）。</p>
+        <div class="chip-row">
+          <span class="chip b">.github/</span>
+          <span class="chip b">根目录</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>未来扩展 · 优先级</h3>
+    <div class="bar-row">
+      <div class="lbl">① dashboard 交互</div>
+      <div class="bar"><div class="anim-bar" style="--w:80%"><div class="fill brand"></div></div></div>
+      <div class="val">高</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">② 治理 schema 1.1.0</div>
+      <div class="bar"><div class="anim-bar" style="--w:60%"><div class="fill gold"></div></div></div>
+      <div class="val">中</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">③ CONTRIBUTING 补充</div>
+      <div class="bar"><div class="anim-bar" style="--w:40%"><div class="fill"></div></div></div>
+      <div class="val">低</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">④ CODEOWNERS 移根</div>
+      <div class="bar"><div class="anim-bar" style="--w:20%"><div class="fill"></div></div></div>
+      <div class="val">低</div>
+    </div>
+    <div class="bar-row">
+      <div class="lbl">本期实现进度</div>
+      <div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+      <div class="val">100%</div>
+    </div>
+
+    <!-- ====================== § 15 worklog 引用 ====================== -->
+    <section id="s15" class="sec-head" style="margin-top:50px">
+      <div class="tag">15 · worklog 引用</div>
+      <h2>10 份 worklog · 完整证据链</h2>
+      <p>M7 演进过程的完整工作日志索引，详见 worklogs/ 目录。</p>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>日期</th><th>worklog</th><th>对应阶段</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">2026-05-27</td><td><code>2026-05-27_CLAUDE与README角色分离.md</code></td><td><b>V0.x 中期（功能点 #30）</b></td></tr>
+          <tr><td class="num">2026-05-27</td><td><code>2026-05-27_规范正文v2重构.md</code></td><td>V0.x 中期</td></tr>
+          <tr><td class="num">2026-05-27</td><td><code>2026-05-27_汇报与收束定义修正.md</code></td><td>V0.x 中期</td></tr>
+          <tr><td class="num">2026-05-28</td><td><code>2026-05-28_08规范v3.0双图谱重构.md</code></td><td>V0.x 中期</td></tr>
+          <tr><td class="num">2026-06-07</td><td><code>2026-06-07_V1.0收尾_CODEOWNERS_CHANGELOG.md</code></td><td>V1.0 收束</td></tr>
+          <tr><td class="num">2026-06-07</td><td><code>2026-06-07_V1.1收尾_CHANGELOG_SECURITY.md</code></td><td>V1.1 收束</td></tr>
+          <tr><td class="num">2026-06-07</td><td><code>2026-06-07_V1.2收尾_SUPPORT.md</code></td><td>V1.2 收束</td></tr>
+          <tr><td class="num">2026-06-07</td><td><code>2026-06-07_V1.3收尾_LICENSE_README重写.md</code></td><td>V1.3 收束</td></tr>
+          <tr><td class="num">2026-06-07</td><td><code>2026-06-07_V1.4收尾_CONTRIBUTING.md</code></td><td>V1.4 收束</td></tr>
+          <tr><td class="num">2026-06-08</td><td><code>2026-06-08_V1.5收尾_final-report-template.md</code></td><td>V1.5 收束</td></tr>
+          <tr><td class="num">2026-06-09</td><td><code>2026-06-09_ai-workflow-v2-rewrite.md</code></td><td>V2.0 重写</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>worklog 引用 · 时间线</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · worklog 引用与阶段对应（mermaid gantt）</div>
+      <div class="mermaid">
+gantt
+    title worklog 引用时间线 (10 份)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0.x 中期
+    2026-05-27 角色分离    :done, w1, 2026-05-27, 1d
+    2026-05-27 v2 重构     :done, w2, 2026-05-27, 1d
+    2026-05-27 汇报修正    :done, w3, 2026-05-27, 1d
+    2026-05-28 双图谱重构  :done, w4, 2026-05-28, 1d
+    section V1.0 收束
+    V1.0 CODEOWNERS+CHANGELOG  :done, w5, 2026-06-07, 1d
+    section V1.1 收束
+    V1.1 CHANGELOG+SECURITY     :done, w6, 2026-06-07, 1d
+    section V1.2-V1.4
+    V1.2 SUPPORT                :done, w7, 2026-06-07, 1d
+    V1.3 LICENSE+README 重写    :done, w8, 2026-06-07, 1d
+    V1.4 CONTRIBUTING           :done, w9, 2026-06-07, 1d
+    section V1.5/V2.0
+    V1.5 final-report-template  :done, w10, 2026-06-08, 1d
+    V2.0 ai-workflow-rewrite    :active, w11, 2026-06-09, 1d
+      </div>
+    </div>
+
+    <!-- ====================== 结尾总结 ====================== -->
+    <div class="verdict" style="margin-top:36px">
+      <div class="lbl">M7 实现计划 · 一句话</div>
+      <h4>V0.x 起步 4 件（CLAUDE/README/STATUS/dashboard）→ V1.4 完整 9 件 → V1.5 dogfood 验证 = M7 演进完整交付</h4>
+      <p style="margin:0">8 个阶段、5 个收束节点、10 份 worklog、7 项新规范（11-17）入 <code>_meta.yaml</code>，构成 M7 的完整演进轨迹。<b>关键转折点</b>：V0.x 中期（2026-05-27）双入口分离决策 + V0.9 11-readme 规范化 + V1.4 9 文件齐全里程碑。<b>最强证据</b>：V1.5 devguard dogfood 在自身仓库触发 8 次拦截全部修复 + L4 65/65 passed。<br><br>
+        <b>本计划已 100% 交付</b>，所有阶段、所有文件、所有收束节点全部完成。下一步参见 <a href="设计.html">设计.html</a> 了解 M7 现状全景，或进入下一个模块的演进计划。
+      </p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

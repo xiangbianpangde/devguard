@@ -1,7 +1,7 @@
 # 模板库 — 索引与编写规约
 
 > **👤 人类参考** | `docs/templates/` 是所有文件模板的**权威来源**。新项目从此处复制；新增模板须遵循本规约。
-> 更新: 2026-06-08
+> 更新: 2026-07-11
 
 ---
 
@@ -23,6 +23,7 @@
 | `收束报告模板.md` | 四阶段收束整合报告 | 收束节点完成时 | `docs/reports/收束报告-vX.Y.md` |
 | `AI协作提示词模板.md` | 四步开发标准提示词 | 功能点开发各阶段 | 粘贴到 AI 会话 |
 | `AI会话启动模板.md` | 新会话初始化清单 | AI 新会话启动时 | 嵌入 CLAUDE.md 或系统 prompt |
+| `devguard/scaffold/` | 自包含治理基线（core/optional manifest、Codex/Claude 双入口、事务回滚） | 新项目一键初始化 | 由 `scripts/setup_scaffold.py` 实例化到目标根目录 |
 | `devguard/html-report-template/` | 自动 dashboard 渲染（从 _meta.yaml + STATUS.md） | 项目状态可视化 | `dashboard.html` |
 | `devguard/final-report-template/` | **高密度学术风 HTML 报告**（11 Mermaid + 3 Tab + 5 进度条 + 1 步骤模拟器） | 阶段性汇报 / 收束报告 / 季度总结 | `docs/reports/YYYY-MM-DD_xxx.html` |
 
@@ -82,3 +83,5 @@
 |------|------|----------|
 | 2026-05-27 | v1 | 初版（13 个模板） |
 | 2026-06-08 | v1.1 | 新增 `devguard/final-report-template/`（V1.x 收尾汇报定型，11 Mermaid / 3 Tab / 5 进度条 / 1 步骤模拟器） |
+| 2026-07-11 | v1.2 | 新增显式 manifest 的 `devguard/scaffold/`，替代递归复制整个模板目录 |
+| 2026-07-11 | v1.3 | ECC 全项目对标：skills-first、AGENTS/Codex 配置、dry-run 与原子回滚 |
