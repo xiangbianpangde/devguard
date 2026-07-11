@@ -13,7 +13,7 @@
 </head>
 <body>
   <h1>DevGuard v2.1 · P0/P1 收束</h1>
-  <p>更新：2026-07-11 · 本地四阶段完成，GitHub 平台保护待认证回读。</p>
+  <p>更新：2026-07-11 · 本地四阶段与 GitHub 平台保护均已验证。</p>
   <div class="grid">
     <div class="card"><div class="n">100%</div><div>一致性 24/24</div></div>
     <div class="card"><div class="n">100%</div><div>强制拦截 10/10</div></div>
@@ -23,11 +23,11 @@
   <h2>四阶段结果</h2>
   <table><thead><tr><th>阶段</th><th>结果</th><th>关键证据</th></tr></thead><tbody>
     <tr><td>整理</td><td class="pass">PASS</td><td>1-49 连续编号；三处同值进度投影；原生 LICENSE/CODEOWNERS</td></tr>
-    <tr><td>测试</td><td class="pass">PASS</td><td>全量 pytest 128/128、pre-commit、仓外 scaffold E2E</td></tr>
+    <tr><td>测试</td><td class="pass">PASS</td><td>全量 pytest 132/132、pre-commit、ECC 环境仓外 E2E</td></tr>
     <tr><td>审计</td><td class="pass">PASS</td><td>一致性 100%；拦截率 100%；依赖和契约扫描</td></tr>
-    <tr><td>验证</td><td class="pass">PASS</td><td>真实联网安装、双 hook、目标测试、目标自身复验</td></tr>
+    <tr><td>验证</td><td class="pass">PASS</td><td>真实联网安装、双 hook、目标复验、GitHub API 分支保护回读</td></tr>
   </tbody></table>
   <h2>收束结论</h2>
-  <p>本地门槛全部达到；<span class="pending">GitHub master 保护规则仍待登录后配置与回读</span>。在平台证据补齐前，不宣称 #49 或项目级收束全部完成。</p>
+  <p>一致性 100%、强制拦截 100%、一键初始化 E2E 和 GitHub <code>master</code> 平台硬闸门均有可重放证据；#47-#49 已完成机器与平台收束。</p>
 </body>
 </html>

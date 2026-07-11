@@ -1,8 +1,8 @@
 # 项目状态
 
-> 更新: 2026-07-11（#47-#48 已交付；#49 本地闭环完成，待 GitHub 分支保护回读）
-<!-- devguard-progress: completed=48 total=49 -->
-<!-- convergence-gate: nodes=31,35,46,49 last_converged_fp=46 -->
+> 更新: 2026-07-11（#47-#49 全部交付；GitHub `master` 保护已配置并经 API 回读）
+<!-- devguard-progress: completed=49 total=49 -->
+<!-- convergence-gate: nodes=31,35,46,49 last_converged_fp=49 -->
 
 ## 当前进度
 
@@ -17,7 +17,7 @@
 | V1.3 收尾 | 16-license + LICENSE + README 重写 | ✅ | 2026-06-07 |
 | V1.4 收尾 | 17-contributing + CONTRIBUTING.md | ✅ | 2026-06-07 |
 | V1.5 收尾 | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML + STATUS 滞后修复 + worklog 断档补登 | ✅ | 2026-06-08 |
-| P0/P1 强化 | #47 渲染/CI、#48 可测闸门、#49 一键初始化 | 🔄 | — |
+| P0/P1 强化 | #47 渲染/CI、#48 可测闸门、#49 一键初始化 | ✅ | 2026-07-11 |
 | **V2.0.1 启动** | **devguard dogfood (V1.x 范式在自身闭环 8 次拦截 / 全部修复)** | **✅** | **2026-06-08** |
 
 ## 累计数据
@@ -25,15 +25,15 @@
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **18 个 pre-commit / commit-msg 钩子**（含 8 个治理闸门）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **128 tests passed**（tests/conventions/）
-- **15 个历史收束节点**（V0.1-V1.5 全部落盘；本轮收束实施中）
+- **132 tests passed**（tests/conventions/）
+- **16 个收束节点**（V0.1-V2.1 全部落盘；本轮机器与平台收束通过）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **7 ADR 决策**（worklogs/decisions/）
 - **~50+ commits**（5/26 → 6/8 完整链可追）
 
 ## 阻塞项
 
-- GitHub `master` 分支保护尚待认证登录后配置并回读；本地 P0/P1、脚手架和四阶段验证不受影响。
+（无）
 
 ## 图例
 
@@ -63,8 +63,9 @@
 | v1.3 | 2026-06-07 | V1.3.1-V1.3.3 (3 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 16-license + README 重写 |
 | v1.4 | 2026-06-07 | V1.4.1-V1.4.2 (2 件) | ✅ | ✅ 65/65 | ✅ 0红线 | ⏳ 待签核 | ✅ | 17-contributing |
 | **v1.5** | **2026-06-08** | **V1.5.1 (1 件)** | **✅** | **✅ 65/65** | **✅ 0红线** | **⏳ 待签核** | **✅** | **final-report-template + 2 汇报** |
+| **v2.1** | **2026-07-11** | **#47-#49 (3 件)** | **✅** | **✅ 132/132** | **✅ 0 个 P0/P1** | **⏳ 待签核** | **✅** | **一致性 100% + 拦截率 100% + 一键初始化 + 分支保护** |
 
-> **人审计签核说明**（2026-07-10 核对）：v0.1 已签核（见 `docs/reports/人审计签核-v0.1.md`）；v0.2–v1.5 共 14 个节点尚待 Owner 签核。历史目标日期 2026-06-30 已逾期，不计为已完成。详见 `docs/reports/2026-06-10_强制性约束审查与修复/`。
+> **人审计签核说明**（2026-07-11 核对）：v0.1 已签核（见 `docs/reports/人审计签核-v0.1.md`）；v0.2–v2.1 共 15 个节点尚待 Owner 签核。历史目标日期 2026-06-30 已逾期，不计为已完成。详见 `docs/reports/2026-06-10_强制性约束审查与修复/`。
 
 ## 技术债
 
@@ -130,4 +131,4 @@
 | 46 | V1.x 收尾汇报 HTML 两份 | specs/10-templates-reporting.md | ✅ 已完成 | 2026-06-08 |
 | 47 | P0：渲染器、CI 与原生文件语义修复 | specs/03-git.md | ✅ 已完成 | 2026-07-11 |
 | 48 | P0：可测一致性与强制性故障注入闸门 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-07-11 |
-| 49 | P1：自包含一键初始化与跨平台仪表盘 | specs/00-infrastructure-template.md | 🔄 进行中 | — |
+| 49 | P1：自包含一键初始化与跨平台仪表盘 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-11 |

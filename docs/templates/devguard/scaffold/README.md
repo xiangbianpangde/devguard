@@ -8,3 +8,8 @@ every file through an explicit source-to-destination manifest.
 
 Rendered `*.tmpl` files become root project documents. Cache, backup, temporary,
 and editor-generated files are forbidden from this payload.
+
+The installer composes rather than discards an existing ECC/global
+`core.hooksPath`: external `pre-commit` and `pre-push` launchers are chained
+with the generated project hooks, while a local `.git/hooks` path makes the
+combined chain effective without mutating user-level Git configuration.

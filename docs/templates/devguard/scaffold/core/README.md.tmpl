@@ -13,13 +13,16 @@ Run these commands from the project root:
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 git init
-.\.venv\Scripts\python.exe -m pre_commit install --hook-type pre-commit --hook-type commit-msg
+.\.venv\Scripts\python.exe scripts\install_hooks.py --root .
 .\.venv\Scripts\python.exe scripts\devguard.py verify --require-hooks
 ```
 
 The fourth command installs **both** the normal `pre-commit` gate and the
-`commit-msg` gate. A successful verification prints `DEVGUARD OK`; every missing
-dependency, file, configuration link, or required hook returns a non-zero exit.
+`commit-msg` gate. It also composes existing ECC/global `pre-commit` and
+`pre-push` hooks without changing user-level Git configuration, so the same
+command is safe for later hook repair. A successful verification prints
+`DEVGUARD OK`; every missing dependency, file, configuration link, or required
+hook returns a non-zero exit.
 
 ## Daily commands
 

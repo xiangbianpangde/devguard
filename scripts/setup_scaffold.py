@@ -17,10 +17,10 @@ import re
 import subprocess
 import sys
 import venv
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_ROOT = REPO_ROOT / "docs" / "templates" / "devguard" / "scaffold"
@@ -71,6 +71,7 @@ CORE_MANIFEST: tuple[ManifestEntry, ...] = (
         "core/docs/plan/开发清单.md.tmpl", "docs/plan/开发清单.md", render=True
     ),
     ManifestEntry("core/scripts/devguard.py", "scripts/devguard.py"),
+    ManifestEntry("core/scripts/install_hooks.py", "scripts/install_hooks.py"),
     ManifestEntry(
         "core/tests/governance/test_devguard.py", "tests/governance/test_devguard.py"
     ),
@@ -361,13 +362,9 @@ def install(target: Path) -> None:
     _run(
         [
             str(python),
-            "-m",
-            "pre_commit",
-            "install",
-            "--hook-type",
-            "pre-commit",
-            "--hook-type",
-            "commit-msg",
+            "scripts/install_hooks.py",
+            "--root",
+            str(target),
         ],
         cwd=target,
     )

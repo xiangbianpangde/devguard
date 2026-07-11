@@ -97,6 +97,16 @@ def _seed_repository(root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
     if _git(root, "init", "-q").returncode != 0:
         raise RuntimeError("git init failed")
+    empty_hooks = root / ".git" / "devguard-empty-hooks"
+    empty_hooks.mkdir(parents=True, exist_ok=True)
+    hook_isolation = _git(
+        root,
+        "config",
+        "core.hooksPath",
+        ".git/devguard-empty-hooks",
+    )
+    if hook_isolation.returncode != 0:
+        raise RuntimeError(f"global Git hook isolation failed: {hook_isolation.stderr}")
     _git(root, "config", "user.email", "fault-injection@example.invalid")
     _git(root, "config", "user.name", "DevGuard Fault Injection")
     today = dt.date.today().isoformat()

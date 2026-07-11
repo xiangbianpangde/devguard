@@ -49,7 +49,7 @@ Set-Location -LiteralPath 'C:\Users\yhn\Desktop\开发规范'
 py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --profile core --project-name 'My Project' --install
 ```
 
-该命令在目标目录生成根文档、计划、固定依赖、最小 CI 和自检测试，初始化 Git 与隔离 `.venv`，并同时安装 `pre-commit`、`commit-msg` 两类 hook。目标非空时默认拒绝；只有 Owner 明确确认才使用 `--force`。
+该命令在目标目录生成根文档、计划、固定依赖、最小 CI 和自检测试，初始化 Git 与隔离 `.venv`，并同时安装 `pre-commit`、`commit-msg` 两类 hook。若机器已配置 ECC/其他全局 `core.hooksPath`，安装器会保留并串联既有 `pre-commit` / `pre-push`，再用项目本地 Hook 路径保证两套约束同时生效；不会修改用户全局 Git 配置。目标非空时默认拒绝；只有 Owner 明确确认才使用 `--force`。
 
 复验既有目标：
 

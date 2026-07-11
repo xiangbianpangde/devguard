@@ -1,6 +1,6 @@
 # DevGuard 模板索引
 
-> 更新: 2026-07-10
+> 更新: 2026-07-11
 
 ## 可部署入口（权威）
 
@@ -17,6 +17,12 @@ py -3.11 scripts\setup_scaffold.py C:\path\to\new-project --profile core --proje
 最小 CI、固定版本依赖与本地虚拟环境，并安装 `pre-commit` 和 `commit-msg` 两种
 hook。初始化结束前会执行 fail-closed 自检；任一文件、依赖或 hook 缺失都会返回
 非零退出码。
+
+机器已有 ECC/其他全局 `core.hooksPath` 时，初始化器不会修改用户全局配置；它会
+把现有 `pre-commit` / `pre-push` 与 DevGuard 项目 Hook 串联，并把项目本地
+`.git/hooks` 设为有效 Hook 路径。复验会拒绝“文件已生成但 Git 实际忽略”的假安装。
+生成项目可随时运行 `.\.venv\Scripts\python.exe scripts\install_hooks.py --root .`
+重装或修复组合 Hook，无需修改用户级 Git 配置。
 
 已有目录默认拒绝写入。只有 Owner 明确确认覆盖风险后才使用 `--force`；该参数只
 覆盖 manifest 同名目标，不删除目录内其他文件。

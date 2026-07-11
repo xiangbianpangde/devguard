@@ -45,6 +45,7 @@
   - manifest 中的核心文件全部生成，无未解析模板变量
   - 自动创建隔离虚拟环境、安装依赖并初始化 Git
   - `pre-commit` 与 `commit-msg` 两类 hook 都已安装
+  - 若用户已配置 ECC/其他全局 `core.hooksPath`，安装器不得修改全局配置；必须把既有 `pre-commit` / `pre-push` 与项目 Hook 串联，并用本地 `.git/hooks` 保证两套约束都生效
   - 初始化结束前自动执行 fail-closed verify；任何依赖或验证失败都返回非零退出码
 
 ### 场景 6：拒绝不安全覆盖与不完整载荷
@@ -62,3 +63,4 @@
   1. 在源仓库之外运行 `python scripts/setup_scaffold.py <目标目录> --verify --require-hooks`
   2. 在目标目录运行其自带的验证脚本和测试
 - 预期结果：目标不依赖源仓库中的脚本或相对路径，验证和测试均通过
+  - `--require-hooks` 必须验证本地 `core.hooksPath` 确实指向项目 `.git/hooks`，不能把“Hook 文件存在但 Git 实际忽略”计为通过

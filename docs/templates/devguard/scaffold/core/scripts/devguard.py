@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Sequence
@@ -27,6 +28,7 @@ CORE_FILES = (
     "docs/plan/背景.md",
     "docs/plan/开发清单.md",
     "scripts/devguard.py",
+    "scripts/install_hooks.py",
     "tests/governance/test_devguard.py",
     "worklogs/.gitkeep",
 )
@@ -55,8 +57,27 @@ def load_config(root: Path) -> tuple[dict[str, object] | None, list[str]]:
     return data, []
 
 
-def hook_exists(root: Path, hook_name: str) -> bool:
-    hooks = root / ".git" / "hooks"
+def local_hooks_path(root: Path) -> Path | None:
+    result = subprocess.run(
+        ["git", "config", "--local", "--path", "--get", "core.hooksPath"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    configured = Path(result.stdout.strip())
+    return (
+        configured.resolve()
+        if configured.is_absolute()
+        else (root / configured).resolve()
+    )
+
+
+def hook_exists(hooks: Path, hook_name: str) -> bool:
     return (hooks / hook_name).is_file() or (hooks / f"{hook_name}.exe").is_file()
 
 
@@ -122,8 +143,14 @@ def verify(root: Path, *, require_hooks: bool = False) -> list[str]:
     if require_hooks:
         if not (root / ".git").is_dir():
             errors.append("Git repository is not initialized")
+        expected_hooks = (root / ".git" / "hooks").resolve()
+        configured_hooks = local_hooks_path(root)
+        if configured_hooks != expected_hooks:
+            errors.append(
+                "local core.hooksPath must point to .git/hooks so project hooks are active"
+            )
         for hook_name in ("pre-commit", "commit-msg"):
-            if not hook_exists(root, hook_name):
+            if not hook_exists(expected_hooks, hook_name):
                 errors.append(f"required Git hook is not installed: {hook_name}")
     return errors
 

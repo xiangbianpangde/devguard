@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from pathlib import Path
 
 
@@ -32,3 +33,21 @@ def test_report_exposes_blocked_over_total():
     output = mod.format_report(report, threshold=90)
     assert f"{report.blocked}/{report.total}" in output
     assert "强制性拦截率" in output
+
+
+def test_seed_repository_isolates_global_git_hooks_before_commit(tmp_path, monkeypatch):
+    mod = _load()
+    calls: list[tuple[str, ...]] = []
+
+    def fake_git(_root: Path, *args: str):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(mod, "_git", fake_git)
+    mod._seed_repository(tmp_path)
+
+    isolate = ("config", "core.hooksPath", ".git/devguard-empty-hooks")
+    commit = ("commit", "-qm", "chore: seed")
+    assert isolate in calls
+    assert calls.index(isolate) < calls.index(commit)
+    assert (tmp_path / ".git/devguard-empty-hooks").is_dir()

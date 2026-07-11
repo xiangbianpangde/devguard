@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,16 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCAFFOLD_PATH = REPO_ROOT / "scripts" / "setup_scaffold.py"
+INSTALL_HOOKS_PATH = (
+    REPO_ROOT
+    / "docs"
+    / "templates"
+    / "devguard"
+    / "scaffold"
+    / "core"
+    / "scripts"
+    / "install_hooks.py"
+)
 
 
 def load_scaffold():
@@ -19,6 +30,20 @@ def load_scaffold():
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
+    return module
+
+
+def load_install_hooks():
+    spec = importlib.util.spec_from_file_location("install_hooks", INSTALL_HOOKS_PATH)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    previous = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
     return module
 
 
@@ -120,6 +145,7 @@ def test_payload_closes_ci_dependencies_and_documents_both_hooks(tmp_path):
     workflow = (target / ".github/workflows/devguard.yml").read_text(encoding="utf-8")
     requirements = (target / "requirements-dev.txt").read_text(encoding="utf-8")
     readme = (target / "README.md").read_text(encoding="utf-8")
+    hook_installer = (target / "scripts/install_hooks.py").read_text(encoding="utf-8")
 
     assert "pip install -r requirements-dev.txt" in workflow
     assert "python scripts/devguard.py verify" in workflow
@@ -128,8 +154,9 @@ def test_payload_closes_ci_dependencies_and_documents_both_hooks(tmp_path):
         and "pre-commit" in requirements
         and "ruff" in requirements
     )
-    assert "--hook-type pre-commit" in readme
-    assert "--hook-type commit-msg" in readme
+    assert "scripts\\install_hooks.py --root ." in readme
+    assert '"pre-commit"' in hook_installer
+    assert '"commit-msg"' in hook_installer
 
 
 def test_cli_e2e_initializes_and_verify_only_checks_same_target(tmp_path):
@@ -171,3 +198,73 @@ def test_cli_e2e_initializes_and_verify_only_checks_same_target(tmp_path):
     assert create.returncode == 0, create.stdout + create.stderr
     assert verify.returncode == 0, verify.stdout + verify.stderr
     assert "VERIFY OK" in verify.stdout
+
+
+def test_isolated_git_config_environment_preserves_parent_and_hides_global_hooks(
+    tmp_path, monkeypatch
+):
+    module = load_install_hooks()
+    target = tmp_path / "project"
+    (target / ".git").mkdir(parents=True)
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "owner-global")
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", "owner-system")
+
+    environment = module._isolated_git_config_environment(target)
+
+    assert os.environ["GIT_CONFIG_GLOBAL"] == "owner-global"
+    assert os.environ["GIT_CONFIG_SYSTEM"] == "owner-system"
+    assert environment is not os.environ
+    for key in ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"):
+        isolated = Path(environment[key])
+        assert isolated.is_file()
+        assert isolated.read_text(encoding="utf-8") == ""
+
+
+def test_external_hooks_are_chained_without_losing_devguard_hooks(tmp_path):
+    module = load_install_hooks()
+    target = tmp_path / "project"
+    local_hooks = target / ".git" / "hooks"
+    external_hooks = tmp_path / "ecc-hooks"
+    local_hooks.mkdir(parents=True)
+    external_hooks.mkdir()
+    (local_hooks / "pre-commit").write_text(
+        "#!/usr/bin/env bash\necho devguard\n",
+        encoding="utf-8",
+    )
+    (external_hooks / "pre-commit").write_text(
+        "#!/usr/bin/env bash\necho ecc-secret-scan\n",
+        encoding="utf-8",
+    )
+    (external_hooks / "pre-push").write_text(
+        "#!/usr/bin/env bash\necho ecc-verify\n",
+        encoding="utf-8",
+    )
+
+    module._chain_external_hooks(target, external_hooks)
+
+    assert (local_hooks / "pre-commit.devguard").is_file()
+    pre_commit = (local_hooks / "pre-commit").read_text(encoding="utf-8")
+    assert external_hooks.as_posix() in pre_commit
+    assert "pre-commit.devguard" in pre_commit
+    pre_push = (local_hooks / "pre-push").read_text(encoding="utf-8")
+    assert external_hooks.as_posix() in pre_push
+
+
+def test_verify_rejects_hooks_that_git_will_ignore_without_local_hook_path(tmp_path):
+    module = load_scaffold()
+    target = tmp_path / "ignored-hooks"
+    module.setup(target, profile="core", project_name="Ignored Hooks")
+    subprocess.run(["git", "init", "-q"], cwd=target, check=True)
+    hooks = target / ".git" / "hooks"
+    for name in ("pre-commit", "commit-msg"):
+        (hooks / name).write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+
+    errors = module.verify(target, profile="core", require_hooks=True)
+
+    assert any("core.hooksPath" in error for error in errors)
+    subprocess.run(
+        ["git", "config", "--local", "core.hooksPath", hooks.as_posix()],
+        cwd=target,
+        check=True,
+    )
+    assert module.verify(target, profile="core", require_hooks=True) == []

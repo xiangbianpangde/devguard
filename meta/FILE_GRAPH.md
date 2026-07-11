@@ -62,6 +62,7 @@
 │       ├── 规范文档模板.md
 │       └── devguard/                   #     devguard 项目专属资产（新项目只走 scaffold manifest）
 │           ├── scaffold/               #       一键初始化权威载荷（core/optional 显式 manifest）
+│           │   └── core/scripts/install_hooks.py # ECC/全局 Hook 与项目 Hook 的可重入组合安装器
 │           ├── html-report-template/   #       自动 dashboard 渲染（_meta.yaml + STATUS.md）
 │           └── final-report-template/  #       高密度学术风 HTML 报告（Mermaid+Tab+交互，V1.x 收尾定型）
 │
