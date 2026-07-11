@@ -1,6 +1,3 @@
-
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -22,6 +19,7 @@
 > **本规范是 [ai-workflow 04-长程开发（预先计划）](ai-workflow_AI协作开发流程/04-长程开发.md) 的细化**，把「技术选型 / 架构设计」环节展开成可执行标准，并作为 [04-长程开发·审查](ai-workflow_AI协作开发流程/04-长程开发.md)「架构层面」的判据。
 >
 > **档位裁剪**：轻量项目（< 5 功能点）只守 §一「红线」，不强制 ADR、调用图；标准 / 团队项目守全部。
+> 更新: 2026-07-11
 
 ---
 
@@ -117,6 +115,7 @@ forbidden_modules = fastapi, sqlalchemy, django
 # user/service.py     from order.service import OrderService
 # order/service.py    from user.service import UserService   # A→B→A
 ```
+
 ✅ 提取公共接口到 `common/interfaces.py`，两侧都依赖抽象，解除直接互引。
 
 ### ❌ 跨层调用
@@ -126,6 +125,7 @@ forbidden_modules = fastapi, sqlalchemy, django
 def create_user(request):
     db.execute("INSERT INTO users ...")   # 表现层直接操作 DB
 ```
+
 ✅ 表现层 → 应用层 `UserService.register()` → 领域层 `User.create()` → 基础设施层 `repo.save()`。换 DB 只改基础设施层。
 
 > 密钥硬编码反模式见 [02](02-coding_代码编写规范.md)；「依赖黑洞 / 孤儿模块」属调用图分析，见 [08](08-code-understanding_代码理解与图谱规范.md)。

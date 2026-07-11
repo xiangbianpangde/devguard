@@ -1,6 +1,7 @@
 # BDD 规格: 统一模板规约 + 汇报模板 + AI 模板
 
 > 对应 `docs/templates/README-模板索引.md`、`docs/templates/汇报模板.md`、`docs/templates/AI协作提示词模板.md`、`docs/templates/AI会话启动模板.md`、`docs/templates/AI审计报告模板.md`、`docs/templates/人审计签核模板.md`、`docs/templates/收束报告模板.md`
+> 更新: 2026-07-11
 
 ---
 

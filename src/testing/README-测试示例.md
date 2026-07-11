@@ -2,6 +2,7 @@
 
 > **👤 人类参考** | 对应规范：`conventions/05-testing_测试规范.md`
 > 依赖：`pip install pytest` | 运行：`pytest test_discount.py -v`
+> 更新: 2026-07-11
 
 ## 示例列表
 

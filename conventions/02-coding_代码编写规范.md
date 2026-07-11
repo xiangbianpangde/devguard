@@ -1,6 +1,3 @@
-
-
-
 ## 分级标签
 
 > 本节为**渲染产物**（由 render_meta.py 从 _meta.yaml 自动生成）。
@@ -24,6 +21,7 @@
 > - 细化 **§2.3 DeepSeek 审查** —— 审 `git diff` 时逐条核对的清单。本规范 §六「检查清单」就是该环节审查清单的展开版。
 >
 > **档位裁剪**（档位定义见 [04-长程开发·档位](ai-workflow_AI协作开发流程/04-长程开发.md)）：轻量项目只守 §一「红线」；标准 / 团队项目守全部。
+> 更新: 2026-07-11
 
 ---
 
@@ -161,6 +159,7 @@ def fetch_user(user_id: str) -> User:
 def process(d):           # 看完函数体才知道干嘛
     return d[0] + d[1]
 ```
+
 ✅ `def calculate_total_price(item_prices: list[float]) -> float:` —— 名字即文档，调用方不读实现就懂。
 
 ### ❌ 静默吞异常
@@ -172,6 +171,7 @@ def fetch_user(user_id):
     except Exception:
         pass              # 返回 None，调用方不知出错，排查时日志空白
 ```
+
 ✅ 见 §四：分类型捕获，明确传播或记日志后转换。静默失败让 bug 在远处才暴露，上下文已丢。
 
 ---

@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M4 scripts 工具脚本 · 现状设计 · 强制约束范式</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true }
+    });
+    }
+
+    // —— Tab 切换 ——
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    // —— 进度条动画 ——
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){
+        b.classList.add('armed');
+      });
+    }, 300);
+
+    // —— 数字滚动 ——
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseFloat(el.getAttribute('data-target') || '0');
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target * 10) / 10;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+
+    // —— 侧边栏锚点激活 ——
+    var navLinks = document.querySelectorAll('nav a');
+    var sections = document.querySelectorAll('section[id]');
+    function syncActive(){
+      var scrollTop = window.scrollY + 80;
+      var cur = '';
+      sections.forEach(function(s){
+        if (s.offsetTop <= scrollTop) cur = s.id;
+      });
+      navLinks.forEach(function(a){
+        a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+      });
+    }
+    window.addEventListener('scroll', syncActive, {passive: true});
+    syncActive();
+  });
+
+  // —— 步骤模拟器（commit → 钩子 → 通过/拒绝） ——
+  function simRun(mode){
+    var steps = document.querySelectorAll('#simSteps .sim-step');
+    var i = 0;
+    function clearAll(){
+      steps.forEach(function(s){s.classList.remove('run','fail');s.querySelector('.glyph').textContent='○'});
+      var fm = document.getElementById('simFinal');
+      if (fm) fm.textContent = '等待运行...';
+      var st = document.getElementById('simStatus');
+      if (st) { st.textContent = '○ 排队'; st.className = 'b-pill inf'; }
+    }
+    clearAll();
+    // 模式: good=全过; bad-secret=第 4 步 gitleaks fail; bad-worklog=第 7 步 worklog-ref fail
+    var failAt = (mode === 'good') ? -1 : (mode === 'bad-secret' ? 4 : 7);
+
+    function runOne(){
+      if (i >= steps.length){
+        var finalMsg = document.getElementById('simFinal');
+        var st = document.getElementById('simStatus');
+        if (mode === 'good') {
+          if (finalMsg) finalMsg.textContent = '✓ 8/8 全绿，commit 接受 → push → CI 5 阶段全绿 → 可 merge';
+          if (st) { st.textContent = '✓ 接受'; st.className = 'b-pill ok'; }
+        } else {
+          if (finalMsg) finalMsg.textContent = '✗ 拦截成功，commit 被拒，开发者必须修复后重试';
+          if (st) { st.textContent = '✗ 拒绝'; st.className = 'b-pill no'; }
+        }
+        return;
+      }
+      var s = steps[i];
+      if (i === failAt){
+        s.classList.add('fail');
+        s.querySelector('.glyph').textContent = '✗';
+      } else if (i < failAt || failAt === -1) {
+        s.classList.add('run');
+        s.querySelector('.glyph').textContent = '✓';
+      }
+      i++;
+      setTimeout(runOne, 320);
+    }
+    runOne();
+  }
+  function simReset(){
+    document.querySelectorAll('#simSteps .sim-step').forEach(function(s){
+      s.classList.remove('run','fail');
+      s.querySelector('.glyph').textContent='○';
+    });
+    var fm = document.getElementById('simFinal');
+    if (fm) fm.textContent = '等待运行...';
+    var st = document.getElementById('simStatus');
+    if (st) { st.textContent = '○ 排队'; st.className = 'b-pill inf'; }
+  }
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;
+    --brand-2:#A85032;
+    --accent:#2F5061;
+    --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px;line-height:1.6}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+
+  .tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tag-item{font-size:11px;padding:4px 12px;border-radius:20px;background:white;border:1px solid var(--line);color:var(--txt-dim);cursor:default;transition:.18s}
+  .tag-item:hover{border-color:var(--brand);color:var(--brand)}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+
+  .tabbar{display:flex;gap:2px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tab{padding:7px 14px;font-size:12px;color:var(--txt-dim);cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;transition:.18s;font-family:var(--sans)}
+  .tab:hover{background:var(--bg-soft)}
+  .tab.active{background:var(--panel);border-color:var(--line);color:var(--brand);font-weight:700;margin-bottom:-1px}
+  .tab-panel{display:none;padding:14px 0}
+  .tab-panel.active{display:block}
+
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  [id]{scroll-margin-top:24px}
+
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+
+  .tip{position:relative;display:inline-block}
+  .tip .tipbox{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%) scale(.95);
+    background:#1F1D17;color:#FAF6EC;padding:8px 12px;border-radius:7px;
+    font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;
+    transition:.2s;font-family:var(--sans);box-shadow:0 8px 20px -8px rgba(0,0,0,.4);
+    z-index:100;
+  }
+  .tip .tipbox::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1F1D17;
+  }
+  .tip:hover .tipbox{opacity:1;transform:translateX(-50%) scale(1)}
+
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);margin:14px 0}
+  .sim h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .sim h4 .ind{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(63,107,61,.2);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(63,107,61,.2)}50%{box-shadow:0 0 0 6px rgba(63,107,61,.05)}}
+  .sim .sim-step{
+    padding:7px 11px;background:var(--bg-soft);border:1px solid var(--line-soft);
+    border-radius:7px;margin:5px 0;font-family:var(--mono);font-size:11.5px;
+    color:var(--txt-dim);display:flex;align-items:center;gap:8px;transition:.3s;
+  }
+  .sim .sim-step.run{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:600}
+  .sim .sim-step.fail{background:#EFD5CD;border-color:#C89589;color:var(--bad);font-weight:600}
+  .sim .sim-step .glyph{width:16px;text-align:center;flex:0 0 auto;font-weight:700}
+  .sim .btn-row{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .sim button{
+    padding:5px 12px;font-size:11.5px;background:var(--panel);border:1px solid var(--line);
+    border-radius:5px;cursor:pointer;font-family:var(--mono);transition:.18s;color:var(--txt-dim);
+  }
+  .sim button:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .sim button.danger:hover{background:var(--bad);border-color:var(--bad)}
+  .sim button.good:hover{background:var(--good);border-color:var(--good)}
+
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+
+  .lvl-card{padding:14px;border-radius:11px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  .lvl-card .lvl-num{font-family:var(--serif);font-size:36px;font-weight:700;line-height:1;letter-spacing:-1px}
+  .lvl-card .lvl-nm{font-size:11px;letter-spacing:1.2px;font-weight:700;margin:6px 0 4px}
+  .lvl-card .lvl-ds{font-size:11.8px;color:var(--txt-dim);line-height:1.55}
+  .lvl-card.L0{border-top:3px solid var(--brand)}
+  .lvl-card.L0 .lvl-num{color:var(--brand)}
+  .lvl-card.L1{border-top:3px solid var(--bad)}
+  .lvl-card.L1 .lvl-num{color:var(--bad)}
+  .lvl-card.L2{border-top:3px solid var(--warn)}
+  .lvl-card.L2 .lvl-num{color:var(--warn)}
+  .lvl-card.L3{border-top:3px solid var(--accent)}
+  .lvl-card.L3 .lvl-num{color:var(--accent)}
+  .lvl-card.L4{border-top:3px solid var(--good)}
+  .lvl-card.L4 .lvl-num{color:var(--good)}
+
+  .degrade-row{display:grid;grid-template-columns:200px 1fr;gap:10px;padding:9px 11px;border:1px solid var(--line-soft);border-radius:8px;margin:5px 0;background:var(--panel-2)}
+  .degrade-row .scn{font-family:var(--mono);font-size:11.5px;color:var(--brand);font-weight:700}
+  .degrade-row .act{font-size:12px;color:var(--txt-dim)}
+
+  ul.tight{list-style:none;padding:0;margin:0}
+  ul.tight li{padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.4px}
+  ul.tight li:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ 左侧导航 ============ -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M4</div>
+      <div>
+        <b>scripts 工具脚本</b>
+        <span>设计文档 · v1.0</span>
+      </div>
+    </div>
+    <div class="meta">10 脚本 · 1039 行<br>Python 9 + .bat 1<br>L0 1 · L1 5 · L4 1<br>2026-06-10</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 模块定位</a>
+      <a href="#s2"><span class="n">02</span> 目录结构</a>
+      <a href="#s3"><span class="n">03</span> 渲染枢纽</a>
+      <a href="#s4"><span class="n">04</span> 10 脚本矩阵</a>
+      <a href="#s5"><span class="n">05</span> L 级别体系</a>
+      <a href="#s6"><span class="n">06</span> 真源同步</a>
+      <div class="grp">交互演示</div>
+      <a href="#s7"><span class="n">07</span> 步骤模拟器</a>
+      <a href="#s8"><span class="n">08</span> 边界与降级</a>
+      <a href="#s9"><span class="n">09</span> 验收标准</a>
+    </nav>
+  </aside>
+
+  <!-- ============ 主内容 ============ -->
+  <main class="main">
+
+    <!-- ====================== HERO ====================== -->
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">devguard M4</span>
+        <span class="b-pill inf">10 脚本</span>
+        <span class="b-pill inf">1039 行</span>
+        <span class="b-pill inf">5 L1 钩子</span>
+        <span class="b-pill inf">1 L0 枢纽</span>
+        <span class="b-pill inf">1 L4 采集</span>
+        <span class="b-pill br">强制约束范式</span>
+      </div>
+      <h1>M4 工具脚本 · 现状设计</h1>
+      <p class="sub">把 4 类上游输入（规范真源 yaml / commit message / L4 测试结果 / dashboard 模板）翻译成 4 类下游产物（pre-commit 钩子 / CI 阻断信号 / dashboard 数据 / 本地预览服务）—— 一个 370 行的渲染枢纽 <code>render_meta.py</code> 织起 10 个脚本。</p>
+      <div class="meta-row">
+        <span>最后更新 2026-06-10</span>
+        <span>•</span>
+        <span>版本 v1.0</span>
+        <span>•</span>
+        <span>配套 设计.md / 简报.md / 实现计划.md / 阅读笔记.md</span>
+        <span>•</span>
+        <span>工作区 devguard 主仓库</span>
+      </div>
+    </section>
+
+    <!-- ====================== 目录 ====================== -->
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>模块定位</b><span style="font-size:11px;color:var(--txt-faint)">它是什么 / 不是什么</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>目录结构</b><span style="font-size:11px;color:var(--txt-faint)">10 脚本 · 1039 行</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>渲染枢纽</b><span style="font-size:11px;color:var(--txt-faint)">_meta.yaml → 4 产物</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>10 脚本逐个</b><span style="font-size:11px;color:var(--txt-faint)">details 折叠详情</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>L 级别体系</b><span style="font-size:11px;color:var(--txt-faint)">L0-L4 分布</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>真源同步</b><span style="font-size:11px;color:var(--txt-faint)">改 _meta.yaml 的纪律</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>步骤模拟器</b><span style="font-size:11px;color:var(--txt-faint)">commit → 钩子 → 通过/拒绝</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>边界与降级</b><span style="font-size:11px;color:var(--txt-faint)">7 类降级 + 4 明确不做</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>验收标准</b><span style="font-size:11px;color:var(--txt-faint)">8 维验收维度</span></div></a>
+    </div>
+
+    <!-- ====================== 摘要 KPI ====================== -->
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="10">0</span></div>
+        <div class="lbl">脚本总数</div>
+        <div class="sub">scripts/*.py + .bat</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="1039">0</span></div>
+        <div class="lbl">代码行数</div>
+        <div class="sub">不含注释/空行</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="4">0</span></div>
+        <div class="lbl">渲染产物</div>
+        <div class="sub">_meta.yaml 投射</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="5">0</span></div>
+        <div class="lbl">L1 红线脚本</div>
+        <div class="sub">check_* + lint_*</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="1">0</span></div>
+        <div class="lbl">L0 准入枢纽</div>
+        <div class="sub">render_meta.py</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="1">0</span></div>
+        <div class="lbl">L4 采集脚本</div>
+        <div class="sub">collect_l4_stats.py</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="3">0</span></div>
+        <div class="lbl">辅助脚本</div>
+        <div class="sub">启动器/历史/端口</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="1">0</span></div>
+        <div class="lbl">外部依赖</div>
+        <div class="sub">仅 pyyaml · 无 jinja2/click</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">L 级别分布 · 5 维仪表</h3>
+    <div class="grid g5">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">L0 准入</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:20%"><div class="fill brand"></div></div></div>
+          <div class="val">1</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">L1 红线</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+          <div class="val">5</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">L2 警告</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:0%"><div class="fill gold"></div></div></div>
+          <div class="val">0</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">L3 路由</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:0%"><div class="fill"></div></div></div>
+          <div class="val">0</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:60px;font-size:11px">L4 测试</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:20%"><div class="fill good"></div></div></div>
+          <div class="val">1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>核心枢纽哲学</b>：scripts/ 不是配置中心、不是产品代码、不是规范正文、不是测试套件——它是"规范的执行器"。<b>370 行的 render_meta.py</b> 承担 80% 的同步压力；5 个 L1 钩子承担 100% 的拦截压力；2 个启动器承担 dashboard 体验。
+      </div>
+    </div>
+
+    <!-- ====================== § 01 模块定位 ====================== -->
+    <section id="s1" class="sec-head" style="margin-top:40px">
+      <div class="tag">01 · 模块定位</div>
+      <h2>scripts/ 是什么 / 不是什么</h2>
+      <p class="lead">scripts/ 是 devguard 的<b>自动化工具集</b>——把 4 类上游输入翻译成 4 类下游产物。理解它的<b>正反面</b>，比理解它"能做什么"更重要。</p>
+    </section>
+
+    <div class="vs">
+      <div class="vs-col new">
+        <h4>它是什么（4 类）</h4>
+        <ul class="tight">
+          <li><span class="b-pill br">渲染枢纽</span> &nbsp; render_meta.py 从 _meta.yaml 投射到 4 个产物</li>
+          <li><span class="b-pill no">L1 红线</span> &nbsp; 5 个 check_*.py + lint_markdown.py</li>
+          <li><span class="b-pill inf">入口工具</span> &nbsp; 仪表盘启动 + L4 统计 + 历史一次性</li>
+          <li><span class="b-pill mid">跨平台</span> &nbsp; start_server.py 走 127.0.0.1 回环 / .bat 走 Windows 启动器</li>
+        </ul>
+      </div>
+      <div class="vs-mid">⇄</div>
+      <div class="vs-col old">
+        <h4>它不是什么（4 类）</h4>
+        <ul class="tight">
+          <li><span style="color:var(--bad);font-weight:700">✗</span> <b>不是配置中心</b> —— 配置在根目录 .pre-commit-config.yaml / ci.yml</li>
+          <li><span style="color:var(--bad);font-weight:700">✗</span> <b>不是产品代码</b> —— 不参与生产运行时，只服务仓库自身</li>
+          <li><span style="color:var(--bad);font-weight:700">✗</span> <b>不是规范正文</b> —— 规范在 conventions/，scripts 是"执行器"</li>
+          <li><span style="color:var(--bad);font-weight:700">✗</span> <b>不是测试</b> —— L4 测试在 tests/conventions/，scripts 只采集</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>4 类上游 → 4 类下游 · 翻译关系</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · scripts 模块的核心翻译关系 (mermaid flowchart LR)</div>
+      <div class="mermaid">
+flowchart LR
+    subgraph IN["4 类上游输入"]
+        META["conventions/_meta.yaml<br/>规范真源"]
+        COMMIT["commit message<br/>含 worklog 引用"]
+        PYTEST["pytest tests/conventions/<br/>L4 测试结果"]
+        DASH_TPL["dashboard.html<br/>HTML 模板"]
+    end
+    subgraph CORE["scripts/ 核心枢纽"]
+        RENDER["render_meta.py<br/>L0 准入 · 370 行"]
+        CHECKS["5 × check_*.py<br/>L1 红线检测"]
+        STATS["collect_l4_stats.py<br/>L4 采集"]
+        SERVER["start_server.py<br/>本地 HTTP 服务"]
+    end
+    subgraph OUT["4 类下游产物"]
+        HOOK[".pre-commit-config.yaml<br/>pre-commit 钩子"]
+        CI_BLOCK["CI 阻断信号<br/>5 阶段流水线"]
+        DASH_DATA["dashboard.html<br/>数据段 L4_STATS"]
+        BROWSER["127.0.0.1:8080<br/>本地预览"]
+    end
+    META -->|"--render"| RENDER
+    RENDER -->|"投射"| HOOK
+    META -->|"--check"| RENDER
+    RENDER -->|"漂移?"| CI_BLOCK
+    COMMIT -->|"commit-msg 钩子"| CHECKS
+    PYTEST -->|"subprocess + 正则"| STATS
+    STATS -->|"L4_STATS=65/65"| DASH_DATA
+    DASH_TPL -->|"render.py"| DASH_DATA
+    DASH_DATA -->|"HTTP fetch"| SERVER
+    SERVER -->|"127.0.0.1"| BROWSER
+    classDef hub fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef inNode fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef outNode fill:rgba(47,80,97,.18),stroke:#2F5061,color:#1F1D17
+    class RENDER,CHECKS,STATS,SERVER hub
+    class META,COMMIT,PYTEST,DASH_TPL inNode
+    class HOOK,CI_BLOCK,DASH_DATA,BROWSER outNode
+      </div>
+    </div>
+
+    <!-- ====================== § 02 目录结构 ====================== -->
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · 目录结构</div>
+      <h2>10 脚本 · 1039 行 · Python 9 + .bat 1</h2>
+      <p>每个脚本有明确归属：L 级别 + 行数 + 触发场景 + 对应规范。</p>
+    </section>
+
+    <h3>脚本树 · 按 L 级别分组</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 10 脚本按 L 级别分组 (mermaid graph TB)</div>
+      <div class="mermaid">
+graph TB
+    ROOT["scripts/<br/>10 脚本 · 1039 行"]
+    L0["L0 · 准入<br/>1 脚本"]
+    L1["L1 · 红线<br/>5 脚本"]
+    L4["L4 · 采集<br/>1 脚本"]
+    AUX["辅助类<br/>3 脚本"]
+
+    ROOT --> L0
+    ROOT --> L1
+    ROOT --> L4
+    ROOT --> AUX
+
+    L0 --> R0["render_meta.py<br/><b>370 行</b> · 核心枢纽"]
+
+    L1 --> R1a["check_ai_workflow.py<br/>98 行 · 07 流程 §一"]
+    L1 --> R1b["check_code_understanding.py<br/>66 行 · 08 AST 示例"]
+    L1 --> R1c["check_compliance.py<br/>238 行 · 01-08 综合"]
+    L1 --> R1d["check_worklog_ref.py<br/>58 行 · 06 §2.5 + 03 §一"]
+    L1 --> R1e["lint_markdown.py<br/>54 行 · 06 文档"]
+
+    L4 --> R4["collect_l4_stats.py<br/>48 行 · 09 仪表盘"]
+
+    AUX --> Ra1["start_server.py<br/>77 行 · 仪表盘预览"]
+    AUX --> Ra2["打开仪表盘.bat<br/>28 行 · Windows 启动"]
+    AUX --> Ra3["fix_render_date.py<br/>2 行 · V0.3 临时存档"]
+
+    classDef hub fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef red fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17
+    classDef green fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef aux fill:rgba(47,80,97,.1),stroke:#2F5061,color:#1F1D17
+    classDef root fill:#FAF6EC,stroke:#A87A2E,color:#1F1D17,stroke-width:2px
+    class ROOT root
+    class R0 hub
+    class R1a,R1b,R1c,R1d,R1e red
+    class R4 green
+    class Ra1,Ra2,Ra3 aux
+      </div>
+    </div>
+
+    <h3>行数排行 · Top 3 + Bottom 3</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>Top 3 最长脚本</h4>
+        <div class="bar-row"><div class="lbl">render_meta</div><div class="bar"><div class="anim-bar" style="--w:100%"><div class="fill brand"></div></div></div><div class="val">370</div></div>
+        <div class="bar-row"><div class="lbl">check_compliance</div><div class="bar"><div class="anim-bar" style="--w:64%"><div class="fill"></div></div></div><div class="val">238</div></div>
+        <div class="bar-row"><div class="lbl">check_ai_workflow</div><div class="bar"><div class="anim-bar" style="--w:26%"><div class="fill gold"></div></div></div><div class="val">98</div></div>
+      </div>
+      <div class="card">
+        <h4>Bottom 3 最短</h4>
+        <div class="bar-row"><div class="lbl">start_server</div><div class="bar"><div class="anim-bar" style="--w:21%"><div class="fill good"></div></div></div><div class="val">77</div></div>
+        <div class="bar-row"><div class="lbl">check_code_und</div><div class="bar"><div class="anim-bar" style="--w:18%"><div class="fill good"></div></div></div><div class="val">66</div></div>
+        <div class="bar-row"><div class="lbl">fix_render_date</div><div class="bar"><div class="anim-bar" style="--w:1%"><div class="fill"></div></div></div><div class="val">2</div></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 03 渲染枢纽 ====================== -->
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · 核心枢纽 render_meta.py（L0 准入）</div>
+      <h2>_meta.yaml 真源 → 4 渲染产物</h2>
+      <p>这是 scripts/ 最重要的一个脚本——<b>370 行承担 80% 的同步压力</b>。改 _meta.yaml 后跑一次 --render 即可同步所有下游产物；CI 阶段 --check 漂移即 fail。</p>
+    </section>
+
+    <h3>真源到下游 · 数据流</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · _meta.yaml → 4 渲染产物的数据流 (mermaid flowchart LR)</div>
+      <div class="mermaid">
+flowchart LR
+    A["conventions/_meta.yaml<br/><b>真源 · 503 行</b><br/>pre_commit · grade · l1_check · l3_route · ci"]
+    A -->|render| B1[".pre-commit-config.yaml<br/>钩子编排"]
+    A -->|render| B2["各 NN-*.md 顶部<br/>分级标签"]
+    A -->|render| B3[".github/workflows/ci.yml<br/>ci 节"]
+    A -->|render| B4["dashboard.html<br/>数据段"]
+    A -->|check| CK{"真源==产物?"}
+    CK -->|YES| OK["CI 绿 · 0 退出码"]
+    CK -->|NO| FAIL["CI fail · 退出码 2"]
+
+    classDef src fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef out fill:rgba(47,80,97,.13),stroke:#2F5061,color:#1F1D17
+    classDef gate fill:#F0E2C5,stroke:#C9A66A,color:#5A3D14
+    classDef ok fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef fail fill:#EFD5CD,stroke:#9C3A2E,color:#1F1D17
+    class A src
+    class B1,B2,B3,B4 out
+    class CK gate
+    class OK ok
+    class FAIL fail
+      </div>
+    </div>
+
+    <h3>关键设计判断 · 6 Tab 切换</h3>
+    <div class="tabs">
+      <div class="tb active" data-tab="t-cli">CLI 子命令</div>
+      <div class="tb" data-tab="t-exit">退出码语义</div>
+      <div class="tb" data-tab="t-dep">依赖克制</div>
+      <div class="tb" data-tab="t-utf8">UTF-8 强制</div>
+      <div class="tb" data-tab="t-order">钩子排序</div>
+      <div class="tb" data-tab="t-sync">模板同步</div>
+    </div>
+    <div class="tab-pane active" data-pane="t-cli">
+      <div class="card">
+        <h4>--render / --check / 单 target</h4>
+        <p>同一脚本两用，CI 校验与开发者渲染<b>无歧义</b>。支持 4 种用法：</p>
+        <div class="code-block">python scripts/render_meta.py --render                        <span class="cm"># 全量渲染 4 产物</span>
+python scripts/render_meta.py --check                         <span class="cm"># 比较当前产物与预期</span>
+python scripts/render_meta.py --render pre-commit             <span class="cm"># 单 target 渲染</span>
+python scripts/render_meta.py --check pre-commit              <span class="cm"># 单 target 校验</span></div>
+      </div>
+    </div>
+    <div class="tab-pane" data-pane="t-exit">
+      <div class="card">
+        <h4>退出码 · 区分环境故障与漂移违规</h4>
+        <p><span class="b-pill ok">0</span> = OK  ·  <span class="b-pill warn">1</span> = 渲染失败（环境故障 / yaml 缺节）  ·  <span class="b-pill no">2</span> = 校验失败（漂移违规）</p>
+        <p>CI 阶段可通过退出码分辨<b>"机器坏了"</b>还是<b>"人没改规范"</b>——前者告警，后者阻断。</p>
+      </div>
+    </div>
+    <div class="tab-pane" data-pane="t-dep">
+      <div class="card">
+        <h4>仅 pyyaml · 不引入 jinja2 / click</h4>
+        <p>依赖克制是设计纪律：<b>不引入 jinja2 / click 等</b>，跨环境一致（pip install pyyaml 是绝大多数 Python 环境的最低公约数）。模板逻辑用 Python f-string + 简单 split 即可。</p>
+        <div class="chip-row">
+          <span class="chip gd">pyyaml 1</span>
+          <span class="chip no">jinja2 0</span>
+          <span class="chip no">click 0</span>
+          <span class="chip no">typer 0</span>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane" data-pane="t-utf8">
+      <div class="card">
+        <h4>UTF-8 显式强制</h4>
+        <p><code>open(..., encoding="utf-8")</code> 显式声明——避免 Windows ANSI 损坏中文（如规范名、worklog 文件名、commit message）。</p>
+        <p>这是 Windows 用户最常踩的坑：默认 encoding 在中文 Windows 是 GBK，读 UTF-8 文件直接抛 UnicodeDecodeError。</p>
+      </div>
+    </div>
+    <div class="tab-pane" data-pane="t-order">
+      <div class="card">
+        <h4>钩子排序 · 最便宜的最先</h4>
+        <p>ADR 约定：<b>pre-commit/pre-commit-hooks</b> 排最前（trailing-whitespace / end-of-file-fixer 等无外部依赖），然后是 ruff / gitleaks / markdownlint。</p>
+        <p>原则：<b>先做最便宜的检查</b>——提前 fail 不浪费后续昂贵钩子的时间。</p>
+      </div>
+    </div>
+    <div class="tab-pane" data-pane="t-sync">
+      <div class="card">
+        <h4>模板版本同步</h4>
+        <p><code>_meta.yaml</code> 改了 → 同步 <code>docs/templates/devguard/conventions/_meta.yaml</code>（B3 策略的纪律落地）。</p>
+        <p>不模板同步会导致：<b>新项目 fork 时渲染产物漂移</b>——B3 策略要求模板与生产仓库严格一致。</p>
+      </div>
+    </div>
+
+    <h3>4 渲染产物 · 写入策略</h3>
+    <div class="grid g2">
+      <div class="card brand">
+        <h4>① .pre-commit-config.yaml</h4>
+        <p>pre-commit 钩子编排。文件头明确写 <code># DO NOT EDIT</code>——任何手改都会被 <code>--check</code> 检出。</p>
+        <div class="chip-row">
+          <span class="chip br">DO NOT EDIT</span>
+          <span class="chip b">自动生成</span>
+        </div>
+      </div>
+      <div class="card hl">
+        <h4>② 各 NN-*.md 顶部</h4>
+        <p>把 <code>grade.red_line</code> 等数字渲染到各篇规范顶部。CI 自动渲染，<b>禁手改</b>——这是规范分级标签的"真相源"。</p>
+        <div class="chip-row">
+          <span class="chip b">分级标签</span>
+          <span class="chip b">禁手改</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>③ .github/workflows/ci.yml · ci 节</h4>
+        <p>CI 范围与 yaml 的 <code>ci</code> 段对应。改了 _meta.yaml.ci 段 → 重渲染 ci.yml 即可同步 CI 范围。</p>
+        <div class="chip-row">
+          <span class="chip gl">CI 范围</span>
+          <span class="chip b">yaml ci 段</span>
+        </div>
+      </div>
+      <div class="card good">
+        <h4>④ dashboard.html · 数据段</h4>
+        <p>由 <code>render.py</code> 二次渲染——先 render_meta 投射出 yaml 数据，再 render.py 嵌入到 dashboard.html 模板。</p>
+        <div class="chip-row">
+          <span class="chip gd">二次渲染</span>
+          <span class="chip b">dashboard.html</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== § 04 10 脚本逐个 ====================== -->
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 10 脚本逐个介绍</div>
+      <h2>角色矩阵 · 详情可点</h2>
+      <p>本节不写"矩阵"——矩阵不利于扫读。下面用 details 折叠每个脚本的<b>输入 / 输出 / 触发场景 / 关键设计</b>。</p>
+    </section>
+
+    <h3>10 脚本 · 角色分布</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 10 脚本按"角色"分布 (mermaid pie)</div>
+      <div class="mermaid">
+pie title scripts 10 脚本角色分布
+    "L0 渲染枢纽" : 1
+    "L1 红线检测" : 5
+    "L4 测试采集" : 1
+    "辅助启动器" : 2
+    "历史存档" : 1
+      </div>
+    </div>
+
+    <h3>逐个详情 · 点击展开</h3>
+
+    <details class="hook" open>
+      <summary>① render_meta.py <span class="b-pill br">L0</span> <span class="b-pill inf">370 行</span> <span class="b-pill mid">核心枢纽</span></summary>
+      <div class="body">
+        <div class="grid g2">
+          <div>
+            <b>输入</b>：<code>conventions/_meta.yaml</code>（503 行）<br>
+            <b>输出</b>：4 个渲染产物（见 §03）<br>
+            <b>退出码</b>：0=OK / 1=渲染失败 / 2=校验失败
+          </div>
+          <div>
+            <b>触发场景</b>：<br>
+            ① 开发者改 _meta.yaml → 跑 <code>--render</code> 同步<br>
+            ② CI <code>test</code> 阶段自动跑 <code>--render convention-grade</code> + <code>--check</code><br>
+            ③ pre-commit 钩子 <code>meta-render</code>（V0.1 设计预留）兜底
+          </div>
+        </div>
+        <div class="note info" style="margin-top:8px;margin-bottom:0">
+          <b>核心功能</b>：<code>load_meta()</code> 强 UTF-8 读 yaml 缺 <code>pre_commit</code> 节直接 fail / <code>render_pre_commit_config(meta)</code> 按 source 分组 local repo 不带 rev / <code>render_convention_grade(meta)</code> 把 <code>grade.red_line</code> 数字投射到各篇规范顶部。
+        </div>
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>② check_ai_workflow.py <span class="b-pill no">L1</span> <span class="b-pill inf">98 行</span> <span class="b-pill inf">07 AI 流程 §一</span></summary>
+      <div class="body">
+        <div class="grid g2">
+          <div>
+            <b>输入</b>：<code>conventions/ai-workflow_AI协作开发流程/</code> 7 篇流程文档<br>
+            <b>输出</b>：0 = 通过 / 1 = FAIL<br>
+            <b>触发</b>：CI 阶段 <code>l4-conventions</code> 自动跑（V6.1 引入）
+          </div>
+          <div>
+            <b>核心功能</b>：V9.1 章节级 L1 钩子。每篇流程文档检查 §一是否含指定关键词（如"调研/背景/问题"、"迭代/实现/可观测/TDD"）。比 V5.2"关键内容"更严——每篇必须有 §一 红线。
+          </div>
+        </div>
+        <h4 style="margin-top:10px">7 篇流程 × 5-7 关键词 · 期望清单</h4>
+        <div class="tag-cloud">
+          <span class="tag-item">01-角色分工 · 角色/分工/文件/体系/AI</span>
+          <span class="tag-item">02-第零步调研 · 调研/背景/问题/现状</span>
+          <span class="tag-item">03-第一步计划 · 计划/收束节点/档位/BDD/TDD</span>
+          <span class="tag-item">04-第二步迭代 · 迭代/实现/可观测/TDD/扫描/测试</span>
+          <span class="tag-item">05-核心原则 · 不越界/不黑盒/不断档/不拖欠/不积压</span>
+          <span class="tag-item">06-第三步收束 · 收束/整理/测试/审计/人审/验证</span>
+          <span class="tag-item">07-汇报 · 汇报/功能点/不落盘/内联/收束报告</span>
+        </div>
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>③ check_code_understanding.py <span class="b-pill no">L1</span> <span class="b-pill inf">66 行</span> <span class="b-pill inf">08 图谱 AST 示例</span></summary>
+      <div class="body">
+        <b>输入</b>：<code>src/code-understanding/</code> 示例<br>
+        <b>输出</b>：0 = 通过 / 1 = FAIL<br>
+        <b>触发</b>：CI 阶段 <code>l4-conventions</code> 自动跑（V6.1 引入）<br>
+        <b>核心功能</b>：V5.3 章节级 L1 钩子。用 <code>ast.parse()</code> 解析 <code>call_graph_example.py</code> 检查关键函数存在：<code>build_graph</code> / <code>find_callees</code> / <code>add_entity</code>。失败信息明确指出"实际函数名"便于排查。
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>④ check_compliance.py <span class="b-pill no">L1</span> <span class="b-pill inf">238 行</span> <span class="b-pill inf">01-08 综合合规</span></summary>
+      <div class="body">
+        <b>输入</b>：<code>conventions/_meta.yaml</code> + 多个 <code>l1_check_path</code> 文件<br>
+        <b>输出</b>：文本报告到 stdout / <code>--json</code> 输出 JSON<br>
+        <b>触发</b>：CI 阶段 <code>compliance</code>（阶段 4）<br>
+        <b>核心功能</b>：读 yaml 列出所有规范的 L1 配置检查表（<code>L1_CHECKS</code> 字典，6 类规范 × 多个检查项）。对每条检查：文件存在性 → 配置关键字校验。
+        <h4 style="margin-top:10px">6 类规范 × 检查项 · 范围</h4>
+        <div class="tag-cloud">
+          <span class="tag-item">01 架构 · importlinter.ini</span>
+          <span class="tag-item">02 代码 · ruff.toml + .gitleaks.toml + .markdownlint.json</span>
+          <span class="tag-item">03 Git · commitlint.config.js + .gitmessage + PR 模板</span>
+          <span class="tag-item">04 API · .spectral.yaml + main.py</span>
+          <span class="tag-item">05 测试 · pyproject.toml</span>
+          <span class="tag-item">06 文档 · .markdownlint.json + README + CHANGELOG</span>
+          <span class="tag-item">08 图谱 · call_graph_example.py</span>
+        </div>
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>⑤ check_worklog_ref.py <span class="b-pill no">L1</span> <span class="b-pill inf">58 行</span> <span class="b-pill inf">commit-msg 钩子</span></summary>
+      <div class="body">
+        <b>输入</b>：pre-commit 框架传入的 commit-msg 文件路径<br>
+        <b>输出</b>：0 = 通过 / 1 = FAIL<br>
+        <b>触发</b>：pre-commit 钩子 <code>commit-msg-worklog-ref</code> 自动跑<br>
+        <b>核心功能</b>：正则匹配 <code>worklogs/YYYY-MM-DD_*.md</code>（允许完整/相对/只文件名/链接 4 种引用形式）。匹配命中即通过；不命中打印格式示例 + 豁免标记 <code>[skip-worklog]</code>。<br>
+        <b>红线依据</b>：06-documentation §2.5 + 03-git §一（"汇报不断档"）
+        <div class="note warn" style="margin-top:8px;margin-bottom:0"><b>人记得 + 工具拦</b>：06 §2.5 写"commit 必须引 worklog"，本钩子保证这条红线被自动拦截。</div>
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>⑥ collect_l4_stats.py <span class="b-pill ok">L4</span> <span class="b-pill inf">48 行</span> <span class="b-pill inf">09 仪表盘</span></summary>
+      <div class="body">
+        <b>输入</b>：<code>pytest tests/conventions/ -q</code> 子进程输出<br>
+        <b>输出</b>：stdout 最后一行 <code>L4_STATS=65/65</code>（V6.3 retry / V7.2 修订）<br>
+        <b>触发</b>：CI 阶段 <code>build</code> 注入 dashboard 模板<br>
+        <b>核心功能</b>：V6.3 替代方案：Python 跑 pytest + 解析"<code>= 64 passed</code>" / "<code>64 passed in</code>" 两种格式。比 bash grep 更稳——避免 PowerShell/ANSI 编码问题，跨平台一致。失败回退输出 <code>L4_STATS=0/0</code>，CI 阶段用 <code>${VAR:-0}</code> 防御空字符串。
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>⑦ lint_markdown.py <span class="b-pill no">L1</span> <span class="b-pill inf">54 行</span> <span class="b-pill inf">06 文档规范</span></summary>
+      <div class="body">
+        <b>输入</b>：仓库内所有 <code>.md</code> 文件（排除 <code>node_modules/</code>、<code>.git/</code>、<code>__pycache__/</code>、<code>dashboard.html.lock</code>）<br>
+        <b>输出</b>：markdownlint 退出码（0/非0）<br>
+        <b>触发</b>：pre-commit 钩子 <code>markdownlint</code> + CI 阶段 <code>lint</code><br>
+        <b>核心功能</b>：解决 markdownlint-cli 附加 glob 行为：先在 Python 里列所有 .md 再传。解决 Windows 命令行 ~8KB 长度限制：分批 50 个文件调用。跨平台：Windows npx 是 <code>.cmd</code> shim，强制 <code>shell=True</code>。
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>⑧ fix_render_date.py <span class="b-pill mid">辅助</span> <span class="b-pill inf">2 行</span> <span class="b-pill inf">V0.3 一次性（已弃用）</span></summary>
+      <div class="body">
+        <b>输入/输出</b>：V0.3 一次性脚本，V0.3 收尾已用完。<br>
+        <b>保留原因</b>：作为示例（V0.3 临时脚本模式）展示"临时脚本存档"约定。<br>
+        <b>当前状态</b>：<b>intentional empty</b>，仅文件头说明。<br>
+        <div class="note info" style="margin-top:8px;margin-bottom:0">临时脚本不删除：避免后续读代码的人疑惑"为什么是空文件"。这是 devguard 的<b>临时脚本模式</b>——用完保留 + 文件头注释说明。</div>
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>⑨ start_server.py <span class="b-pill mid">辅助</span> <span class="b-pill inf">77 行</span> <span class="b-pill inf">09 仪表盘本地预览</span></summary>
+      <div class="body">
+        <b>输入</b>：可选端口参数（默认 8080）<br>
+        <b>输出</b>：HTTP server 在 <code>127.0.0.1</code> 绑定<br>
+        <b>触发</b>：开发者手动 <code>python scripts/start_server.py</code> 或双击 <code>打开仪表盘.bat</code><br>
+        <b>核心功能</b>：
+        <ul style="margin:6px 0 0 18px;font-size:12px;color:var(--txt-dim);line-height:1.7">
+          <li>解决浏览器 <code>file://</code> 协议禁止 fetch 跨文件读取 <code>STATUS.md</code> —— 必须经由 HTTP</li>
+          <li><code>QuietHandler</code> 安静日志 + <code>Cache-Control: no-store, must-revalidate</code> 强制不缓存</li>
+          <li>端口冲突自动顺延，最多 20 次尝试</li>
+          <li>仅绑定 127.0.0.1 回环地址（<b>不暴露公网</b>）</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="hook">
+      <summary>⑩ 打开仪表盘.bat <span class="b-pill mid">辅助</span> <span class="b-pill inf">28 行</span> <span class="b-pill inf">Windows 双击启动</span></summary>
+      <div class="body">
+        <b>输入</b>：无  ·  <b>输出</b>：调用 <code>start_server.py</code> 启动服务  ·  <b>触发</b>：Windows 用户双击<br>
+        <b>核心功能</b>：
+        <ul style="margin:6px 0 0 18px;font-size:12px;color:var(--txt-dim);line-height:1.7">
+          <li><code>chcp 65001</code> 切 UTF-8 编码（避免中文乱码）</li>
+          <li><code>where py</code> 优先 py 启动器，回退 <code>where python</code>，都没有则打印安装提示</li>
+          <li><code>cd /d "%~dp0"</code> 切到脚本所在目录（不依赖调用方当前路径）</li>
+          <li><code>pause</code> 防止窗口闪退，让用户看到启动信息</li>
+        </ul>
+      </div>
+    </details>
+
+    <!-- ====================== § 05 L 级别 ====================== -->
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · L 级别体系（M1 §三的落地）</div>
+      <h2>L0-L4 分布 · scripts 模块归类</h2>
+      <p>L 级别是 devguard 的<b>5 级告警/拦截层级</b>。scripts 模块覆盖 L0（准入）、L1（红线）、L4（采集），<b>L2 / L3 留空</b>——辅助类不入级。</p>
+    </section>
+
+    <div class="grid g5">
+      <div class="lvl-card L0">
+        <div class="lvl-num">L0</div>
+        <div class="lvl-nm" style="color:var(--brand)">准入</div>
+        <div class="lvl-ds">pre-commit 强制 + CI 必跑。<b>1 个脚本</b>：render_meta.py（370 行枢纽）</div>
+      </div>
+      <div class="lvl-card L1">
+        <div class="lvl-num">L1</div>
+        <div class="lvl-nm" style="color:var(--bad)">红线</div>
+        <div class="lvl-ds">违反即阻断 commit/CI。<b>5 个脚本</b>：check_ai_workflow / check_code_understanding / check_compliance / check_worklog_ref / lint_markdown</div>
+      </div>
+      <div class="lvl-card L2">
+        <div class="lvl-num">L2</div>
+        <div class="lvl-nm" style="color:var(--warn)">警告</div>
+        <div class="lvl-ds">本模块<b>无</b>。L2 警告由开发工具（如 ruff 的 warning 级别）承担</div>
+      </div>
+      <div class="lvl-card L3">
+        <div class="lvl-num">L3</div>
+        <div class="lvl-nm" style="color:var(--accent)">路由</div>
+        <div class="lvl-ds">本模块<b>无</b>。L3 路由由 <code>_meta.yaml.l3_route</code> 承担——AI 任务路由</div>
+      </div>
+      <div class="lvl-card L4">
+        <div class="lvl-num">L4</div>
+        <div class="lvl-nm" style="color:var(--good)">测试</div>
+        <div class="lvl-ds">采集 + 报告。<b>1 个脚本</b>：collect_l4_stats.py</div>
+      </div>
+    </div>
+
+    <h3>L 级别仪表盘 · 圆形进度</h3>
+    <div class="grid g3">
+      <div class="gauge">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#E0DCD0" stroke-width="8"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#8B3A1F" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="161" transform="rotate(-90 40 40)" stroke-linecap="round"/>
+          <text x="40" y="46" text-anchor="middle" font-family="Source Serif Pro" font-size="20" font-weight="700" fill="#1F1D17">20%</text>
+        </svg>
+        <div class="text"><b>L0 准入</b><span>1/5 脚本 · render_meta.py</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#E0DCD0" stroke-width="8"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#9C3A2E" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="0" transform="rotate(-90 40 40)" stroke-linecap="round"/>
+          <text x="40" y="46" text-anchor="middle" font-family="Source Serif Pro" font-size="20" font-weight="700" fill="#1F1D17">100%</text>
+        </svg>
+        <div class="text"><b>L1 红线</b><span>5/5 脚本满编</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#E0DCD0" stroke-width="8"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#3F6B3D" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="161" transform="rotate(-90 40 40)" stroke-linecap="round"/>
+          <text x="40" y="46" text-anchor="middle" font-family="Source Serif Pro" font-size="20" font-weight="700" fill="#1F1D17">20%</text>
+        </svg>
+        <div class="text"><b>L4 测试</b><span>1/5 脚本 · collect_l4_stats</span></div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>辅助类脚本不入 L 级别</b>：<code>fix_render_date.py</code> / <code>start_server.py</code> / <code>打开仪表盘.bat</code> 是工具而非检查——不参与"红线/准入/测试"的拦截逻辑。
+      </div>
+    </div>
+
+    <!-- ====================== § 06 真源同步 ====================== -->
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 与上游（真源）的同步纪律</div>
+      <h2>改 _meta.yaml 的 3 步纪律</h2>
+      <p>违反任一环节都会导致<b>渲染漂移 / fork 时模板不同步 / 难追溯动真源的 commit</b>。</p>
+    </section>
+
+    <div class="diagram"><span class="cm">改 _meta.yaml</span>
+<span class="cm">    │</span>
+<span class="cm">    ├─→ </span><span class="br">跑 python scripts/render_meta.py --render</span><span class="cm">  → 同步 4 个产物</span>
+<span class="cm">    │</span>
+<span class="cm">    ├─→ </span><span class="hl">同步 docs/templates/devguard/conventions/_meta.yaml</span><span class="cm">（模板版本）</span>
+<span class="cm">    │</span>
+<span class="cm">    └─→ </span><span class="gd">commit message 加 [meta] 标记</span></div>
+
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--brand)">
+        <h4>环节 ① · --render</h4>
+        <p>同步 4 个产物（pre-commit-config / 规范分级 / CI 范围 / dashboard 数据）。</p>
+        <div class="chip-row"><span class="chip br">DO IT</span><span class="chip">改前先跑</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4>环节 ② · 模板版本</h4>
+        <p>同步 <code>docs/templates/devguard/conventions/_meta.yaml</code>（B3 策略纪律）。</p>
+        <div class="chip-row"><span class="chip b">B3 策略</span><span class="chip">fork 一致</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>环节 ③ · [meta] 标记</h4>
+        <p>commit message 加 <code>[meta]</code> 标记——追溯"哪些 commit 动了真源"。</p>
+        <div class="chip-row"><span class="chip gd">可追溯</span><span class="chip">git log --grep</span></div>
+      </div>
+    </div>
+
+    <h3>违反任一环节的兜底</h3>
+    <div class="grid g3">
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4>漏跑 --render</h4>
+        <p>pre-commit 钩子 <code>meta-render</code> 兜底（如果配置了）；否则 CI <code>test</code> 阶段 <code>--check</code> fail。</p>
+        <div class="chip-row"><span class="chip no">阻断</span><span class="chip b">CI test 阶段</span></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4>模板版本漏同步</h4>
+        <p>新项目 fork 时渲染产物漂移——B3 策略失败。</p>
+        <div class="chip-row"><span class="chip no">漂移</span><span class="chip b">B3 失败</span></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4>[meta] 标记漏加</h4>
+        <p>难追溯"哪些 commit 动了真源"——git log --grep 失效。</p>
+        <div class="chip-row"><span class="chip no">难追溯</span><span class="chip b">grep 失效</span></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 07 步骤模拟器 ====================== -->
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 交互演示</div>
+      <h2>commit → 钩子 → 通过/拒绝 · 步骤模拟器</h2>
+      <p>看一次 git commit 走完 8 个检查步骤——3 种场景：正常 / 密钥泄漏 / worklog 引用缺失。</p>
+    </section>
+
+    <div class="sim">
+      <h4><span class="ind"></span>commit 拦截流程模拟 &nbsp;<span id="simStatus" class="b-pill inf">○ 排队</span></h4>
+      <div id="simSteps">
+        <div class="sim-step" data-step="1"><span class="glyph">○</span> git commit -m "feat: 加新功能"</div>
+        <div class="sim-step" data-step="2"><span class="glyph">○</span> pre-commit · trailing-whitespace (L0)</div>
+        <div class="sim-step" data-step="3"><span class="glyph">○</span> pre-commit · ruff check (L1)</div>
+        <div class="sim-step" data-step="4"><span class="glyph">○</span> pre-commit · gitleaks (L1 · 密钥)</div>
+        <div class="sim-step" data-step="5"><span class="glyph">○</span> pre-commit · markdownlint (L1)</div>
+        <div class="sim-step" data-step="6"><span class="glyph">○</span> commit-msg · commitlint (L1 · Conventional)</div>
+        <div class="sim-step" data-step="7"><span class="glyph">○</span> commit-msg · check_worklog_ref (L1 · worklog)</div>
+        <div class="sim-step" data-step="8"><span class="glyph">○</span> CI · 5 阶段全绿 (L1 → L4)</div>
+      </div>
+      <div class="btn-row">
+        <button class="good" onclick="simRun('good')">▶ 跑一次正常 commit</button>
+        <button class="danger" onclick="simRun('bad-secret')">▶ 故意把密钥塞进代码</button>
+        <button class="danger" onclick="simRun('bad-worklog')">▶ 故意不带 worklog 引用</button>
+        <button onclick="simReset()">↺ 重置</button>
+      </div>
+      <div id="simFinal" style="margin-top:10px;padding:8px 12px;background:var(--bg-soft);border-radius:7px;font-family:var(--mono);font-size:12px;color:var(--txt-dim)">等待运行...</div>
+    </div>
+
+    <div class="grid g3">
+      <div class="card good">
+        <h4>场景 ① 正常 commit</h4>
+        <p>所有 8 步 ✓。commit 接受 → push → CI 5 阶段全绿 → merge。</p>
+        <div class="chip-row"><span class="chip gd">8/8 ✓</span><span class="chip b">commit 接受</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4>场景 ② 密钥泄漏</h4>
+        <p>第 4 步 gitleaks ✗ 拦截。开发者必须删密钥 → 重 commit。</p>
+        <div class="chip-row"><span class="chip no">第 4 步 fail</span><span class="chip b">gitleaks 拦下</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4>场景 ③ worklog 缺失</h4>
+        <p>第 7 步 check_worklog_ref ✗ 拦截。开发者必须加 <code>worklogs/2026-06-10_*.md</code> 引用或 <code>[skip-worklog]</code> 豁免。</p>
+        <div class="chip-row"><span class="chip no">第 7 步 fail</span><span class="chip b">check_worklog_ref 拦下</span></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 08 边界与降级 ====================== -->
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 边界与降级</div>
+      <h2>7 类降级场景 + 4 明确不做</h2>
+      <p>scripts 模块在异常情况下必须有<b>降级行为</b>——失败回退而非 panic。</p>
+    </section>
+
+    <h3>7 类降级场景</h3>
+    <div class="degrade-row"><div class="scn">_meta.yaml 改了<br/>没跑 --render</div><div class="act">pre-commit 钩子 <code>meta-render</code> 兜底；否则 CI <code>test</code> 阶段 <code>--check</code> fail（退出码 2）</div></div>
+    <div class="degrade-row"><div class="scn">L1 脚本依赖<br/>yaml 库缺失</div><div class="act">脚本开头 <code>ImportError</code> 提示 <code>pip install pyyaml</code>，退出码 1</div></div>
+    <div class="degrade-row"><div class="scn">dashboard.html<br/>缺失</div><div class="act">start_server.py 启动时 <code>sys.exit</code> 报错</div></div>
+    <div class="degrade-row"><div class="scn">L4 测试<br/>0 个</div><div class="act">collect_l4_stats.py 输出 <code>L4_STATS=0/0</code>，dashboard 卡片显示 0/0</div></div>
+    <div class="degrade-row"><div class="scn">Windows 中文<br/>路径乱码</div><div class="act">render_meta.py / lint_markdown.py 全部 <code>encoding="utf-8"</code> 强制</div></div>
+    <div class="degrade-row"><div class="scn">端口 8080<br/>被占用</div><div class="act">start_server.py 顺延到 8081 ~ 8099，最多 20 次</div></div>
+    <div class="degrade-row"><div class="scn">临时脚本<br/>用完</div><div class="act">fix_render_date.py 模式：保留为示例 + intentional empty</div></div>
+
+    <h3>4 明确不做</h3>
+    <div class="grid g2">
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4>不做：把 scripts 拆成包结构</h4>
+        <p>保持<b>单文件可读性</b>——每个脚本都是独立的 <code>__main__</code> 可执行。</p>
+        <div class="chip-row"><span class="chip no">拆包</span><span class="chip gd">单文件</span></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4>不做：用 jinja2 渲染</h4>
+        <p>避免依赖膨胀——<b>依赖仅 pyyaml</b>。模板逻辑用 Python f-string + 简单 split。</p>
+        <div class="chip-row"><span class="chip no">jinja2</span><span class="chip gd">pyyaml only</span></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4>不做：dashboard 服务做反向代理</h4>
+        <p>fetch 跨域由<b>模板变量直传</b>解决——start_server.py 只服务静态文件。</p>
+        <div class="chip-row"><span class="chip no">反向代理</span><span class="chip gd">模板直传</span></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--bad)">
+        <h4>不做：脚本作为 Python 模块 import</h4>
+        <p>每个脚本都是 <code>__main__</code> 可执行——不进入 Python 包结构。</p>
+        <div class="chip-row"><span class="chip no">import</span><span class="chip gd">__main__</span></div>
+      </div>
+    </div>
+
+    <!-- ====================== § 09 验收标准 ====================== -->
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 验收标准</div>
+      <h2>8 维验收 · 全部通过即可发布</h2>
+      <p>每个维度有<b>验收方式</b>和<b>通过标准</b>，缺一不可。</p>
+    </section>
+
+    <div class="grid g4">
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>真源渲染</h4>
+        <p><code>python scripts/render_meta.py --check</code></p>
+        <p><b>标准</b>：退出码 0</p>
+        <div class="chip-row"><span class="chip gd">0</span><span class="chip b">--check</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>L1 检测完整</h4>
+        <p>CI 阶段 <code>l4-conventions</code> + <code>compliance</code></p>
+        <p><b>标准</b>：0 FAIL</p>
+        <div class="chip-row"><span class="chip gd">0 FAIL</span><span class="chip b">CI 2 阶段</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>worklog 引用</h4>
+        <p>任意 commit-msg 不带 worklog 引用</p>
+        <p><b>标准</b>：被 check_worklog_ref 拦下</p>
+        <div class="chip-row"><span class="chip gd">拦下</span><span class="chip b">commit-msg 钩子</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>markdown 格式</h4>
+        <p>任意不合规 markdown 文件</p>
+        <p><b>标准</b>：被 lint_markdown.py 拦下</p>
+        <div class="chip-row"><span class="chip gd">拦下</span><span class="chip b">markdownlint</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>dashboard 启动</h4>
+        <p>双击 <code>打开仪表盘.bat</code></p>
+        <p><b>标准</b>：127.0.0.1:8080 看到 dashboard</p>
+        <div class="chip-row"><span class="chip gd">200 OK</span><span class="chip b">8080 端口</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>L4 统计</h4>
+        <p>CI 阶段 <code>build</code> 收集</p>
+        <p><b>标准</b>：<code>L4_STATS=65/65</code>（当前）</p>
+        <div class="chip-row"><span class="chip gd">65/65</span><span class="chip b">CI build</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>跨平台</h4>
+        <p>Windows + Linux 跑同一脚本</p>
+        <p><b>标准</b>：行为一致</p>
+        <div class="chip-row"><span class="chip gd">一致</span><span class="chip b">Win + Linux</span></div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>行数合规</h4>
+        <p>临时脚本存档</p>
+        <p><b>标准</b>：fix_render_date.py 模式 intentional empty</p>
+        <div class="chip-row"><span class="chip gd">2 行</span><span class="chip b">intentional empty</span></div>
+      </div>
+    </div>
+
+    <div class="verdict" style="margin-top:24px">
+      <div class="lbl">VERDICT · 范式总结</div>
+      <h4>scripts/ 是 devguard 的"规范执行器"</h4>
+      <p style="font-size:13px;color:var(--txt);line-height:1.7">它不写规范、不配 CI、不写产品代码、不写测试——它把规范（_meta.yaml）翻译成机器可读的钩子配置，把 L4 测试结果翻译成 dashboard 数据，把 commit-msg 翻译成"是否引 worklog"的二元判断。<b>370 行的 render_meta.py 是这个翻译器的中枢</b>——也是 devguard 强制约束范式的<b>单点权威</b>。所有"规范变了" → "产物必须跟着变"的纪律，由这一个脚本承担。</p>
+      <div class="chip-row" style="margin-top:10px">
+        <span class="chip b">M4 设计 v1.0</span>
+        <span class="chip gd">10 脚本 · 1039 行</span>
+        <span class="chip br">强制约束范式</span>
+        <span class="chip">devguard 主仓库</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

@@ -2,6 +2,7 @@
 
 > **👤 人类参考** | 对应规范：`conventions/04-api_API设计规范.md`
 > 运行：`pip install fastapi uvicorn && uvicorn main:app --reload`
+> 更新: 2026-07-11
 
 一个完整的 RESTful API 微服务，演示：
 - URL 设计（资源名词 + HTTP 方法）

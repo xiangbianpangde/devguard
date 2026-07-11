@@ -122,6 +122,20 @@ jobs:
       - name: check_code_understanding.py（V6.1 08 章节级 L1）
         run: python scripts/check_code_understanding.py
 
+      # V2.1 #40-#42：入口文件章节级 L1（STATUS / CLAUDE / 开发清单）
+      - name: check_status.py（V2.1 #40 STATUS 格式 L1）
+        run: python scripts/check_status.py
+
+      - name: check_claude.py（V2.1 #41 CLAUDE 结构 L1）
+        run: python scripts/check_claude.py
+
+      - name: check_plan.py（V2.1 #42 开发清单格式 L1 + 交叉校验）
+        run: python scripts/check_plan.py
+
+      # V2.1 #46: 收束节点产物检查（ADR + 收束报告）
+      - name: check_convergence_artifacts.py（V2.1 #46 收束产物检查）
+        run: python scripts/check_convergence_artifacts.py
+
   # -------------------------------------------------------------
   # 阶段 4：compliance（合规扫描）
   # -------------------------------------------------------------
@@ -141,6 +155,18 @@ jobs:
 
       - name: Run compliance scan
         run: python scripts/check_compliance.py
+
+      # V2.1 #44: 模板漂移检测（5 类入口文件章节存在性对比）
+      - name: check_template_drift.py（V2.1 #44 模板漂移检测）
+        run: python scripts/check_template_drift.py
+
+      # V2.3 #48: HTML 产出物结构审计（模板族契约；typed 违规 fail，untyped 仅提示）
+      - name: check_html_artifact.py --all（V2.3 #48 HTML 模板族结构审计）
+        run: python scripts/check_html_artifact.py --all
+
+      # V2.3 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
+      - name: check_decision_alignment.py --all（V2.3 #50 决策对齐审计）
+        run: python scripts/check_decision_alignment.py --all
 
   # -------------------------------------------------------------
   # 阶段 5：build（构建验证，依赖前 4 阶段）

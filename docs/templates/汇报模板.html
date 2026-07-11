@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 模板类型声明（check_html_artifact.py 结构校验锚点，复制后保留） -->
+<meta name="doc-template" content="report">
+<title>{汇报标题} · 验收汇报</title>
+<!-- 复制为 docs/reports/YYYY-MM-DD_{主题}.html；结构契约 = 04-长程开发 §五 验收报告 8 要素；
+     视觉基准 = AgentHub dashboard（Claude 官网风：暖米底 + 白卡片 + 黏土强调），令牌见 绘图素材库模板.html -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'base', securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#faf9f4', primaryTextColor: '#1f1d1a', primaryBorderColor: '#cc785c',
+          lineColor: '#8a857b', secondaryColor: '#f6e9e2', tertiaryColor: '#ffffff',
+          fontFamily: '-apple-system, "Segoe UI", "Microsoft YaHei", sans-serif', fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', useMaxWidth: true }, pie: { useMaxWidth: true }
+      });
+    }
+    var secs = document.querySelectorAll('.doc-panel section[id]');
+    var links = document.querySelectorAll('.doc-toc .toc-link');
+    function spy() {
+      var cur = secs[0] ? secs[0].id : '';
+      secs.forEach(function (s) { if (s.getBoundingClientRect().top < 130) cur = s.id; });
+      links.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + cur); });
+    }
+    document.addEventListener('scroll', spy, { passive: true }); spy();
+  });
+</script>
+<style>
+  :root {
+    /* Claude 官网风：暖米底 + 黏土强调色（与 AgentHub dashboard 同一套令牌） */
+    --bg: #f5f4ee; --surface: #ffffff; --surface-2: #faf9f4;
+    --border: #e7e4da; --border-strong: #ddd9cc;
+    --ink: #1f1d1a; --ink-soft: #4a4640; --muted: #8a857b; --faint: #b3ada1;
+    --clay: #cc785c; --clay-deep: #b35f44; --clay-tint: #f6e9e2;
+    --green: #5b8a5a; --green-tint: #e7efe3;
+    --blue: #5a7da3; --blue-tint: #e6edf4;
+    --amber: #b8862f; --amber-tint: #f5ecd6;
+    --red: #c0573f; --red-tint: #f6e2dc;
+    --serif: 'Tiempos Text', 'Iowan Old Style', Georgia, 'Songti SC', 'STSong', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', ui-sans-serif, sans-serif;
+    --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+    --shadow: 0 1px 2px rgba(40,33,26,.04), 0 4px 16px rgba(40,33,26,.05);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.6;
+         padding: 3rem 1.5rem 5rem; max-width: 980px; margin: 0 auto; -webkit-font-smoothing: antialiased; }
+  a { color: var(--clay-deep); text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 2px; }
+  code { background: var(--surface-2); border: 1px solid var(--border); padding: .1rem .4rem;
+         border-radius: 5px; font-size: .85em; font-family: var(--mono); color: var(--clay-deep); }
+  header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;
+           padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: 1.85rem; letter-spacing: -.01em; }
+  h1 .dot { color: var(--clay); }
+  .stamp { font-size: .76rem; color: var(--faint); text-align: right; line-height: 1.45; }
+  .stamp b { color: var(--muted); font-weight: 600; }
+  .doc-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+  .doc-toc { flex: 0 0 196px; position: sticky; top: 1.5rem; max-height: 86vh; overflow-y: auto;
+             font-size: .82rem; padding: .2rem .4rem .2rem 0; }
+  .doc-toc .toc-title { font-weight: 600; color: var(--muted); font-size: .72rem; letter-spacing: .04em;
+                        text-transform: uppercase; margin-bottom: .6rem; }
+  .toc-link { display: block; color: var(--ink-soft); padding: .22rem 0 .22rem .7rem; cursor: pointer;
+              border-left: 2px solid var(--border); line-height: 1.4; transition: all .12s; }
+  .toc-link:hover, .toc-link.on { color: var(--clay-deep); border-left-color: var(--clay); background: var(--surface-2); text-decoration: none; }
+  .doc-panel { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+               padding: 2.25rem 2.5rem; box-shadow: var(--shadow); }
+  section { scroll-margin-top: 1rem; }
+  section + section { margin-top: 2.2rem; }
+  section h2 { font-family: var(--serif); font-weight: 500; font-size: 1.35rem; color: var(--ink);
+               letter-spacing: -.01em; padding-bottom: .3rem; border-bottom: 1px solid var(--border); margin-bottom: .9rem; }
+  section h2 .count { font-family: var(--sans); font-size: .78rem; color: var(--muted); font-weight: 500; margin-left: .5rem; }
+  p { margin: .8rem 0; color: var(--ink-soft); font-size: .92rem; }
+  .hint { border-left: 3px solid var(--blue); background: var(--blue-tint); border-radius: 0 8px 8px 0;
+          padding: .6rem 1.1rem; margin: .8rem 0; font-size: .85rem; color: var(--ink-soft); }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin: 1rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th, td { padding: .55rem .85rem; text-align: left; border-bottom: 1px solid var(--border);
+           border-right: 1px solid var(--border); vertical-align: top; color: var(--ink-soft); }
+  th { background: var(--surface-2); color: var(--ink-soft); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  th:last-child, td:last-child { border-right: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  .badge { padding: .18rem .6rem; border-radius: 999px; font-size: .7rem; font-weight: 600; white-space: nowrap; }
+  .badge-done { background: var(--green-tint); color: var(--green); }
+  .badge-active { background: var(--blue-tint); color: var(--blue); }
+  .badge-warn { background: var(--amber-tint); color: var(--amber); }
+  .badge-blocked { background: var(--red-tint); color: var(--red); }
+  pre.code { background: #2b2823; border: 1px solid var(--border-strong); border-radius: 10px;
+             padding: 1rem 1.2rem; overflow-x: auto; margin: 1rem 0; color: #e9e4d8;
+             font-size: .82rem; line-height: 1.6; font-family: var(--mono); }
+  pre.mermaid { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+                padding: 1rem; margin: 1rem 0; }
+  details { border: 1px solid var(--border); border-radius: 10px; padding: .7rem 1rem; margin: .9rem 0; background: var(--surface-2); }
+  details > summary { cursor: pointer; color: var(--clay-deep); font-weight: 600; font-size: .88rem; }
+  .shot { border: 1px solid var(--border); border-radius: 10px; max-width: 100%; display: block; margin: .8rem 0; box-shadow: var(--shadow); }
+  footer { text-align: center; color: var(--faint); font-size: .78rem; margin-top: 4rem;
+           padding-top: 1.5rem; border-top: 1px solid var(--border); }
+  @media (max-width: 760px) { .doc-layout { flex-direction: column; }
+    .doc-toc { position: static; flex-basis: auto; max-height: none; width: 100%;
+               border-bottom: 1px solid var(--border); padding-bottom: 1rem; } }
+  @media print { .doc-toc { display: none; } body { padding: 0; } .doc-panel { border: none; box-shadow: none; padding: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>{汇报标题}<span class="dot"> · </span>验收汇报</h1></div>
+  <div class="stamp">日期 <b>YYYY-MM-DD</b> · 范围 <b>{功能点编号或区间}</b><br>类型 <b>{功能点验收 / 收束报告 / 阶段汇报}</b> · 撰写 <b>{AI/人}</b></div>
+</header>
+
+<div class="doc-layout">
+  <nav class="doc-toc">
+    <div class="toc-title">八要素</div>
+    <a class="toc-link" href="#sec-evidence">1 截图测试</a>
+    <a class="toc-link" href="#sec-code">2 代码与位置</a>
+    <a class="toc-link" href="#sec-tasks">3 完成 / 未完成</a>
+    <a class="toc-link" href="#sec-design">4 Design 清单</a>
+    <a class="toc-link" href="#sec-commits">5 Commit · Worklog</a>
+    <a class="toc-link" href="#sec-status">6 STATUS 汇报</a>
+    <a class="toc-link" href="#sec-handoff">7 交接与后续</a>
+  </nav>
+
+  <main class="doc-panel">
+    <section id="sec-evidence">
+      <h2>1 · 截图测试 <span class="count">真机证据</span></h2>
+      <div class="hint"><!-- 真浏览器截图 / 真实接口调用输出。HTTP 200 / tsc 0 错误不构成证据（04-长程开发 §4.3）。 -->真机证据规则：前端改动须真实浏览器渲染截图；接口改动须真实调用并核对返回数据。</div>
+      <div class="table-wrap"><table>
+        <tr><th>验证项</th><th>方式</th><th>证据</th><th>结论</th></tr>
+        <tr><td>{验证项}</td><td>{Playwright 截图 / curl 调用}</td><td>{截图文件 / 返回数据摘录}</td><td><span class="badge badge-done">通过</span></td></tr>
+      </table></div>
+      <img class="shot" src="{截图路径}" alt="{截图说明}">
+    </section>
+
+    <section id="sec-code">
+      <h2>2 · 具体代码与位置</h2>
+      <div class="table-wrap"><table>
+        <tr><th>改动点</th><th>位置（文件:行）</th><th>说明</th></tr>
+        <tr><td>{改动点}</td><td><code>{path/to/file.py:42}</code></td><td>{一句话}</td></tr>
+      </table></div>
+      <details><summary>关键 diff（折叠）</summary><pre class="code">{diff 摘录}</pre></details>
+    </section>
+
+    <section id="sec-tasks">
+      <h2>3 · 完成 / 未完成 / 阻塞</h2>
+      <div class="table-wrap"><table>
+        <tr><th>状态</th><th>任务</th><th>一句话说明</th></tr>
+        <tr><td><span class="badge badge-done">Done</span></td><td>{任务}</td><td>{说明}</td></tr>
+        <tr><td><span class="badge badge-warn">Not Done</span></td><td>{任务}</td><td>{原因}</td></tr>
+        <tr><td><span class="badge badge-blocked">Blocked</span></td><td>{任务}</td><td>{等谁 / 等什么}</td></tr>
+      </table></div>
+    </section>
+
+    <section id="sec-design">
+      <h2>4 · Design 清单勾验</h2>
+      <div class="hint">对照 设计.md §七 验收标准逐项勾验。</div>
+      <div class="table-wrap"><table>
+        <tr><th>验收标准（设计.md §七）</th><th>验收方式</th><th>结果</th></tr>
+        <tr><td>{标准}</td><td>{方式}</td><td><span class="badge badge-done">✅</span></td></tr>
+      </table></div>
+    </section>
+
+    <section id="sec-commits">
+      <h2>5 · Commit 与 Worklog 清单</h2>
+      <div class="table-wrap"><table>
+        <tr><th>Commit</th><th>主题</th><th>Worklog</th></tr>
+        <tr><td><code>{hash}</code></td><td>{subject}</td><td><code>worklogs/YYYY-MM-DD_{描述}.md</code></td></tr>
+      </table></div>
+    </section>
+
+    <section id="sec-status">
+      <h2>6 · STATUS 完成汇报</h2>
+      <p>进度：<b>{N}/{M}</b>；本次更新行：{STATUS.md 对应行摘录}。</p>
+      <pre class="mermaid">
+pie showData
+    "已完成" : 46
+    "进行中" : 3
+    "待开始" : 2
+      </pre>
+    </section>
+
+    <section id="sec-handoff">
+      <h2>7 · 交接细则与后续方向</h2>
+      <div class="table-wrap"><table>
+        <tr><th>接手人需要知道</th><th>说明</th></tr>
+        <tr><td>{事项}</td><td>{细节}</td></tr>
+      </table></div>
+      <p><b>下一步建议</b>：{建议}</p>
+    </section>
+  </main>
+</div>
+
+<footer>由 汇报模板.html 生成 · 契约 report（8 要素）· 校验 scripts/check_html_artifact.py</footer>
+</body>
+</html>

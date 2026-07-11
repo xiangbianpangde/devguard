@@ -2,6 +2,7 @@
 
 > **👤 人类参考** | 对应规范：`conventions/06-documentation_文档规范.md`
 > 模板：`docs/templates/README-模板索引.md`
+> 更新: 2026-07-11
 
 存放**复杂功能的设计文档**（涉及 3+ 模块、重大架构变更、需求需多方对齐时）。
 
@@ -43,3 +44,29 @@
 ```
 
 > 架构决策（"为什么选 A 不选 B"）记录为 ADR，放在 `worklogs/decisions/`。ADR 仅在收束节点时创建（见 ADR 0006）。
+
+---
+
+## 8 个项目模块设计文档
+
+devguard 项目按顶层目录分区沉淀为 **8 个模块** 设计文档，每个模块按统一模板（7 件）产出深度可读的设资产。
+
+总索引：[INDEX.md](INDEX.md)
+
+| # | 模块 | 路径 | 用途 |
+|---|------|------|------|
+| M1 | 规范正文 | [M1-conventions-规范正文/](M1-conventions-规范正文/README.md) | 规则源（17 篇规范 + 10 篇 AI 流程）|
+| M2 | 文档资产 | [M2-docs-文档资产/](M2-docs-文档资产/README.md) | 调研/规格/计划/报告 |
+| M3 | 示例代码 | `M3-src-示例代码/` | 规范的可运行配置 |
+| M4 | 工具脚本 | `M4-scripts-工具脚本/` | render_meta.py 等 |
+| M5 | 工作日志 | [M5-worklogs-工作日志/](M5-worklogs-工作日志/README.md) | worklog + ADR 收束 |
+| M6 | 元信息 | `M6-meta-元信息/` | FILE_GRAPH 决策树 |
+| M7 | 顶层入口 | `M7-root-顶层入口/` | CLAUDE/README/STATUS/dashboard |
+| M8 | 基础设施 | `M8-infrastructure-基础设施/` | 钩子/CI/仪表盘渲染 |
+
+**何时读**：
+- 新人 → M7 → M1 → 其他
+- 实施者 → M4 + M8 + M2
+- 文件治理 → M6
+
+**模块新增/合并/重命名时**必须同步更新 [INDEX.md](INDEX.md)（详见 INDEX 末尾的维护规则）。

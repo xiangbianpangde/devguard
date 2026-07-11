@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M6 meta 元信息 · 实现计划</title>
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#F5F0E4',
+          primaryTextColor: '#1F1D17',
+          primaryBorderColor: '#8B3A1F',
+          lineColor: '#5A5447',
+          secondaryColor: '#E8E1D2',
+          tertiaryColor: '#FAF7F0',
+          fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+          fontSize: '13px'
+        },
+        flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+        sequence: { useMaxWidth: true, diagramMarginX: 20 },
+        pie: { useMaxWidth: true },
+        gantt: { useMaxWidth: true }
+      });
+    }
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){ b.classList.add('armed'); });
+    }, 300);
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+    var navLinks = document.querySelectorAll('nav a');
+    var sections = [];
+    navLinks.forEach(function(a){
+      var id = a.getAttribute('href').replace('#','');
+      var el = document.getElementById(id);
+      if (el) sections.push({a:a, el:el});
+    });
+    function onScroll(){
+      var y = window.scrollY + 120;
+      var cur = null;
+      for (var i=0;i<sections.length;i++){
+        if (sections[i].el.offsetTop <= y) cur = sections[i];
+      }
+      navLinks.forEach(function(a){a.classList.remove('active')});
+      if (cur) cur.a.classList.add('active');
+    }
+    window.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+
+    // 阶段详情展开
+    document.querySelectorAll('.phase-card').forEach(function(c){
+      c.addEventListener('click', function(e){
+        if (e.target.tagName === 'A' || e.target.tagName === 'CODE') return;
+        c.classList.toggle('open');
+      });
+    });
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       --brand-2:#A85032;
+    --accent:#2F5061;      --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card.good{border-left:3px solid var(--good)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+  details.hook{margin:6px 0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.18s}
+  details.hook:hover{border-color:var(--accent)}
+  details.hook[open]{background:var(--panel-2);border-color:var(--accent)}
+  details.hook summary{font-size:12.5px;color:var(--txt);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.hook summary::before{content:"▸";font-size:10px;color:var(--accent);transition:transform .2s;display:inline-block;width:12px}
+  details.hook[open] summary::before{transform:rotate(90deg)}
+  details.hook .body{margin-top:8px;padding:8px 0 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim)}
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line);font-family:var(--mono)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-family:var(--sans);font-weight:600}
+  .matrix td.yes{background:rgba(63,107,61,.18);color:var(--good);font-weight:700}
+  .matrix td.partial{background:rgba(176,127,34,.18);color:var(--warn);font-weight:700}
+  .matrix td.no{background:rgba(156,58,46,.13);color:var(--bad);font-weight:700}
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+  .h-tl{display:flex;align-items:center;gap:0;margin:14px 0;font-family:var(--mono);font-size:10.5px;flex-wrap:wrap}
+  .h-tl .ev{padding:5px 9px;background:var(--panel);border:1px solid var(--line);position:relative}
+  .h-tl .ev.brand{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+  .h-tl .ev.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+  .h-tl .ev.ok{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:700}
+  .h-tl .arrow{padding:0 3px;color:var(--txt-faint);font-size:13px}
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:16px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:repeat(3,1fr)}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+  .phase-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    cursor:pointer;transition:.18s;box-shadow:var(--shadow);
+  }
+  .phase-card:hover{border-color:var(--accent);box-shadow:0 16px 40px -24px rgba(60,40,20,.4)}
+  .phase-card .ph-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .phase-card .ph-num{
+    width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+    font-family:var(--serif);font-size:16px;font-weight:800;color:#fff;flex:0 0 auto;
+  }
+  .phase-card .ph-num.p1{background:linear-gradient(135deg,#8B3A1F,#A85032)}
+  .phase-card .ph-num.p2{background:linear-gradient(135deg,#A85032,#C26644)}
+  .phase-card .ph-num.p3{background:linear-gradient(135deg,#3F6B3D,#558A52)}
+  .phase-card .ph-num.p4{background:linear-gradient(135deg,#2F5061,#3F6A82)}
+  .phase-card .ph-num.p5{background:linear-gradient(135deg,#A87A2E,#C9973A)}
+  .phase-card .ph-title{font-family:var(--serif);font-size:14.5px;font-weight:700;color:var(--txt)}
+  .phase-card .ph-date{font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-left:auto}
+  .phase-card .ph-summary{font-size:12.4px;color:var(--txt-dim);line-height:1.6}
+  .phase-card .ph-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft);font-size:12.4px;color:var(--txt-dim)}
+  .phase-card.open .ph-detail{display:block}
+  .phase-card.open{background:linear-gradient(180deg,#FFFEFB,#FBF6E8)}
+  .phase-card .toggle-hint{font-size:10.5px;color:var(--txt-faint);font-family:var(--mono);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M6</div>
+      <div>
+        <b>meta 元信息</b>
+        <span>历史演进 · 实现计划</span>
+      </div>
+    </div>
+    <div class="meta">3 关键节点 · 0 拆分<br>5 阶段时间线 · 1 里程碑<br>少而精 · 已稳定</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 总览</a>
+      <a href="#s2"><span class="n">02</span> V0.x 启步</a>
+      <a href="#s3"><span class="n">03</span> V0.x 重整</a>
+      <a href="#s4"><span class="n">04</span> V0.x 稳定</a>
+      <a href="#s5"><span class="n">05</span> V1.x / V2.0</a>
+      <a href="#s6"><span class="n">06</span> 阶段总览</a>
+      <a href="#s7"><span class="n">07</span> 红线关系</a>
+      <a href="#s8"><span class="n">08</span> 未来扩展</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill ok">M6 实现计划</span>
+        <span class="b-pill inf">3 关键节点</span>
+        <span class="b-pill inf">少而精演进</span>
+        <span class="b-pill inf">V0.x → V2.0 稳定</span>
+        <span class="b-pill br">现状回顾</span>
+      </div>
+      <h1>M6 meta 元信息 · 历史演进路径</h1>
+      <p class="sub"><code>meta/</code> 模块从无到有 V0.x 启步，经两次大改，V2.0 重构时已稳定。3 个关键节点 + 2 个"不动 FILE_GRAPH"阶段 = <b>少而精的演进</b>。</p>
+      <div class="meta-row">
+        <span>版本 v1.0 · 2026-06-10</span>
+        <span>•</span>
+        <span>性质：现状回顾（已交付）</span>
+        <span>•</span>
+        <span>3 关键节点 + 2 稳定期</span>
+        <span>•</span>
+        <span>配套: README.md / 设计.md / 简报.md</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>总览</b><span style="font-size:11px;color:var(--txt-faint)">3 关键节点速览</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>V0.x 启步</b><span style="font-size:11px;color:var(--txt-faint)">FILE_GRAPH.md 新建</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>V0.x 重整</b><span style="font-size:11px;color:var(--txt-faint)">scripts/ 合并 + 决策树扩展</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>V0.x 稳定</b><span style="font-size:11px;color:var(--txt-faint)">规范 v2.0 不动结构</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>V1.x / V2.0</b><span style="font-size:11px;color:var(--txt-faint)">治理与流程不动 FILE_GRAPH</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>阶段总览</b><span style="font-size:11px;color:var(--txt-faint)">5 阶段时间线</span></div></a>
+    </div>
+
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · EXECUTIVE SUMMARY</div>
+      <h2>演进数据 · 一眼可读</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="3">0</span></div>
+        <div class="lbl">关键节点</div>
+        <div class="sub">启步 / 重整 / 稳定</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="2">0</span></div>
+        <div class="lbl">稳定期</div>
+        <div class="sub">V1.x / V2.0 不动</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="1">0</span></div>
+        <div class="lbl">核心文件</div>
+        <div class="sub">FILE_GRAPH.md</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="0">0</span></div>
+        <div class="lbl">拆分次数</div>
+        <div class="sub">单文件始终</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="170">0</span></div>
+        <div class="lbl">当前行数</div>
+        <div class="sub">阈值 300 / 余量 130</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="13">0</span></div>
+        <div class="lbl">决策分支</div>
+        <div class="sub">100% 覆盖</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="6">0</span></div>
+        <div class="lbl">ADR 关联</div>
+        <div class="sub">0001-0006</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="3">0</span></div>
+        <div class="lbl">关键判断</div>
+        <div class="sub">稳定期不动结构</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">演进健康度 · 5 维仪表</h3>
+    <div class="grid g5">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:auto;font-size:11px">结构稳定性</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill good"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:auto;font-size:11px">演进成本</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:18%"><div class="fill good"></div></div></div>
+          <div class="val">低</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:auto;font-size:11px">决策树扩展</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:30%"><div class="fill gold"></div></div></div>
+          <div class="val">3 → 13</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:auto;font-size:11px">与 CLAUDE 同步</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:100%"><div class="fill"></div></div></div>
+          <div class="val">100%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:auto;font-size:11px">行数距阈值</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:57%"><div class="fill brand"></div></div></div>
+          <div class="val">57%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div><b>演进主题</b>：M6 是"少而精"演进的典型——<b>V0.x 启步新建 → V0.x 重整大幅更新 → V0.x 稳定不动结构 → 后续 V1.x 治理 / V2.0 流程都"不动 FILE_GRAPH"</b>。本模块用最少的修改承载最稳定的事实（"仓库长什么样"）。</div>
+    </div>
+
+    <section id="s1" class="sec-head" style="margin-top:50px">
+      <div class="tag">01 · 总览</div>
+      <h2>3 个关键节点 + 2 个稳定期</h2>
+      <p class="lead">从无到有 V0.x 启步，经两次大改，V2.0 重构时已稳定。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M6 演进 5 阶段时间线 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title M6 演进时间线 (5 阶段)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0 启步
+    FILE_GRAPH.md 新建 (功能点 #20)        :done, p1, 2026-05-26, 1d
+    section V0 重整
+    scripts/ 合并 + 决策树扩 (#27/#28)   :done, p2, 2026-05-27, 1d
+    section V0 稳定
+    规范 v2.0 不动结构                    :active, p3, 2026-05-28, 5d
+    section V1 治理
+    9 治理规范入 _meta.yaml 不动 FILE_GRAPH :active, p4, 2026-06-07, 1d
+    section V2 流程
+    AI 流程 v2.0 (7→10 篇) 不动 FILE_GRAPH :active, p5, 2026-06-09, 1d
+    section 当前
+    V2.0 稳定期 (现状)                    :milestone, m1, 2026-06-10, 0d
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>时间</th><th>关键产出</th><th>FILE_GRAPH 动作</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="b-pill br">V0.x 启步</span></td><td>2026-05-26</td><td>新建 <code>meta/FILE_GRAPH.md</code>（功能点 #20）</td><td><b>新建</b></td></tr>
+          <tr><td><span class="b-pill br">V0.x 重整</span></td><td>2026-05-27</td><td>目录树补 <code>scripts/</code>、决策树分支扩展（#27/#28）</td><td><b>大幅更新</b></td></tr>
+          <tr><td><span class="b-pill ok">V0.x 稳定</span></td><td>2026-05-28+</td><td>规范正文 v2.0 重构、内容改但结构不动</td><td><b>不动结构</b></td></tr>
+          <tr><td><span class="b-pill inf">V1.x 治理</span></td><td>2026-06-07</td><td>9 篇治理规范入 <code>_meta.yaml</code></td><td><b>不动</b></td></tr>
+          <tr><td><span class="b-pill inf">V2.0 流程</span></td><td>2026-06-09</td><td>AI 协作流程 v1.0 → v2.0（7 → 10 篇）</td><td><b>不动</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 5 阶段 FILE_GRAPH 改动强度 (mermaid bar)</div>
+      <div class="mermaid">
+xychart-beta
+    title "FILE_GRAPH 改动强度 (相对值)"
+    x-axis ["V0 启步", "V0 重整", "V0 稳定", "V1 治理", "V2 流程"]
+    y-axis "改动强度" 0 --> 100
+    bar [100, 60, 0, 0, 0]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">图例：V0 启步=新建、V0 重整=大幅更新、其余 3 阶段=不动结构</p>
+    </div>
+
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · V0.x 启步</div>
+      <h2>FILE_GRAPH.md 新建（2026-05-26）</h2>
+      <p>把"文件归类"从散落的 <code>CLAUDE.md / README.md / 内部口口相传</code>，固化成<b>唯一权威</b>的文档。</p>
+    </section>
+
+    <div class="diagram"><span class="cm"># V0.x 启步 实现路径</span>
+仓库内散落的目录结构认知
+    <span class="hl">↓</span>
+新增 meta/FILE_GRAPH.md<span class="cm">（三章：目录树 + 引用关系 + 决策树）</span>
+    <span class="hl">↓</span>
+CLAUDE.md 增加<span class="br">"新增文件前先查 meta/FILE_GRAPH.md"</span>硬规则
+    <span class="hl">↓</span>
+同步 docs/design/README.md<span class="cm">（当时 design 还在 docs/ 下，#28 才合并）</span></div>
+
+    <h3>启步改动矩阵</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>模块</th><th>改什么</th><th style="width:60px">状态</th></tr></thead>
+        <tbody>
+          <tr><td><code>meta/FILE_GRAPH.md</code></td><td>新建（三章 + 关键约束 4 条）</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>CLAUDE.md</code></td><td>增加 FILE_GRAPH 引用 + 目录树补 <code>meta/ docs/design/ scripts/</code></td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>docs/design/README.md</code></td><td>新建（用途 + 五段式设计文档模板）</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>.gitignore</code></td><td>补 <code>.benchmarks/</code></td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="phase-card" data-phase="1">
+      <div class="ph-head">
+        <div class="ph-num p1">P1</div>
+        <div class="ph-title">启步决策依据</div>
+        <div class="ph-date">2026-05-26</div>
+      </div>
+      <div class="ph-summary">3 条核心理由驱动 FILE_GRAPH.md 在 V0.x 启步时点落地。</div>
+      <div class="ph-detail">
+        <ul style="font-size:12.5px;padding-left:18px;margin:0">
+          <li><b>时机选在 V0.x 启步</b>：此时仓库结构已稳定（5 大模块成型），是固化"文件归类"的合适窗口</li>
+          <li><b>三章结构</b>而非单章"目录树"：根因是 CLAUDE.md 与 README.md 中"目录结构"段都已经有引用关系和决策树的事实需求——既然分散的认知需要整合，索性一份文件覆盖全部</li>
+          <li><b>决策树 13 分支</b>（初版 10+ 个，V0.x 重整后增补）：以"现存文件类型"为颗粒度，不多不少</li>
+        </ul>
+      </div>
+      <div class="toggle-hint">点击展开 / 收起详情</div>
+    </div>
+
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · V0.x 重整</div>
+      <h2>scripts/ 合并 + 决策树扩展（2026-05-27）</h2>
+      <p>执行功能点 #27 文件夹重整 + #28 plan/design 合并。<code>meta/FILE_GRAPH.md</code> 需同步。</p>
+    </section>
+
+    <div class="diagram"><span class="cm"># V0.x 重整 实现路径</span>
+<span class="gl">#27 文件夹重整</span>
+  ├─ start_server.py + 打开仪表盘.bat <span class="hl">→</span> scripts/
+  └─ meta/FILE_GRAPH.md 同步补 scripts/ 节点
+       <span class="hl">↓</span>
+<span class="gl">#28 plan/design 合并</span>
+  ├─ plan/ <span class="hl">→</span> docs/plan/
+  ├─ docs/design/ <span class="hl">→</span> docs/plan/design/
+  └─ meta/FILE_GRAPH.md 同步修路径 + 决策树补 design 分支</div>
+
+    <h3>重整改动矩阵</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>模块</th><th>改什么</th><th style="width:60px">状态</th></tr></thead>
+        <tbody>
+          <tr><td><code>meta/FILE_GRAPH.md</code></td><td>目录树 + 决策树扩充（+scripts/ +design/）</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>docs/templates/README.md</code></td><td>+5 模板登记</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>CLAUDE.md</code></td><td>目录结构更新</td><td><span class="b-pill ok">✓</span></td></tr>
+          <tr><td><code>README.md</code></td><td>dashboard 路径修正</td><td><span class="b-pill ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="phase-card" data-phase="2">
+      <div class="ph-head">
+        <div class="ph-num p2">P2</div>
+        <div class="ph-title">重整决策依据</div>
+        <div class="ph-date">2026-05-27</div>
+      </div>
+      <div class="ph-summary">决策树 13 分支定型 + 同步策略确立。</div>
+      <div class="ph-detail">
+        <ul style="font-size:12.5px;padding-left:18px;margin:0">
+          <li><b>决策树 13 分支定型</b>（V0.x 重整后）：每多一类文件就多一个分支，到 2026-05-27 仓库已稳定的文件类型覆盖完毕</li>
+          <li><b>同步策略</b>：每次目录重整必同步 FILE_GRAPH；FILE_GRAPH 与实际仓库的不一致会<b>严重</b>破坏它的"权威性"，所以宁可加班同步也不能漏</li>
+        </ul>
+      </div>
+      <div class="toggle-hint">点击展开 / 收起详情</div>
+    </div>
+
+    <h3>重整前后 · 决策树分支对比</h3>
+    <div class="grid g2">
+      <div class="card" style="border-top:3px solid var(--warn)">
+        <h4>重整前 · 10 分支（V0.x 启步时）</h4>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0">
+          <li>1 规范正文</li>
+          <li>2 BDD 验收</li>
+          <li>3 ADR 决策</li>
+          <li>4 项目计划</li>
+          <li>5 设计文档（占位）</li>
+          <li>6 进度汇报</li>
+          <li>7 调研笔记</li>
+          <li>8 可复用模板</li>
+          <li>9 规范示例代码</li>
+          <li>10 功能点日志</li>
+        </ul>
+      </div>
+      <div class="card good" style="border-top:3px solid var(--good)">
+        <h4>重整后 · 13 分支（V0.x 重整后定型）</h4>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0">
+          <li>1 规范正文</li>
+          <li>2 BDD 验收</li>
+          <li>3 ADR 决策</li>
+          <li>4 项目计划</li>
+          <li>5 设计文档（落地 <code>docs/plan/design/</code>）</li>
+          <li>6 进度汇报</li>
+          <li>7 调研笔记</li>
+          <li>8 可复用模板</li>
+          <li>9 规范示例代码</li>
+          <li>10 功能点日志</li>
+          <li><b style="color:var(--brand)">+ 11 工具脚本（新增）</b></li>
+          <li><b style="color:var(--brand)">+ 12 仓库元信息（新增）</b></li>
+          <li><b style="color:var(--brand)">+ 13 项目级入口（新增）</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · V0.x 重整 决策树分支增长 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title 决策树分支增长
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0 启步
+    决策树 10 分支起步    :done, a1, 2026-05-26, 1d
+    section V0 重整
+    + scripts (11)       :done, a2, 2026-05-27, 1d
+    + meta (12)          :done, a3, after a2, 1d
+    + 入口 4 类 (13)     :done, a4, after a3, 1d
+    section 稳定
+    13 分支定型          :milestone, a5, 2026-05-28, 0d
+      </div>
+    </div>
+
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · V0.x 稳定</div>
+      <h2>规范正文 v2.0 不动结构（2026-05-28 之后）</h2>
+      <p>规范正文 v2.0 重构（功能点 #34）只改内容、不增删/移动文件——FILE_GRAPH 结构保持不变。</p>
+    </section>
+
+    <div class="phase-card" data-phase="3">
+      <div class="ph-head">
+        <div class="ph-num p3">P3</div>
+        <div class="ph-title">稳定期 · 4 项关键判断</div>
+        <div class="ph-date">2026-05-28+</div>
+      </div>
+      <div class="ph-summary">规范 v2.0、08 v3.0 双图谱、AI 流程 v2.0 —— 4 项关键判断全部"不动 FILE_GRAPH"。</div>
+      <div class="ph-detail">
+        <div class="tbl-wrap" style="margin:6px 0">
+          <table>
+            <thead><tr><th>评估项</th><th>结论</th></tr></thead>
+            <tbody>
+              <tr><td>规范正文 v2.0 重构是否需要更新 FILE_GRAPH</td><td><span class="b-pill ok">否</span>（仅改内容，结构稳定）</td></tr>
+              <tr><td>08 升 v3.0 双图谱是否需要更新 FILE_GRAPH</td><td><span class="b-pill ok">否</span>（仍是单文件，主题收拢在内容侧）</td></tr>
+              <tr><td>AI 流程 v2.0 流程文档是否需要更新 FILE_GRAPH</td><td><span class="b-pill ok">否</span>（仍在 <code>conventions/ai-workflow_*/</code> 目录下）</td></tr>
+              <tr><td>是否需要给 FILE_GRAPH 加"更新日期"</td><td><span class="b-pill ok">已加</span>（顶部 <code>更新: 2026-05-27</code>）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="toggle-hint">点击展开 / 收起详情</div>
+    </div>
+
+    <h3>改了什么（仅顶部说明文字）</h3>
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>§一 顶部加注释</h4>
+        <p>"规范正文 v2.0 重构（功能点 #34）仅改内容、未增删/移动文件，故本图谱结构不变"</p>
+      </div>
+      <div class="card gold">
+        <h4>决策树 §一末尾加注</h4>
+        <p><code>conventions/</code> 各篇现为 ai-workflow 对应步骤的细化，调用图主题统一收拢于 08</p>
+      </div>
+    </div>
+
+    <h3>worklog 引用</h3>
+    <div class="chip-row">
+      <span class="chip b">worklogs/2026-05-26_文件图谱与仪表盘优化.md</span>
+      <span class="chip b">worklogs/2026-05-27_文件夹重整与plan-design合并.md</span>
+    </div>
+
+    <h3>阶段 V0.x 完善 · dashboard 优化触发的微调</h3>
+    <div class="note info">
+      <span class="ico">i</span>
+      <div><code>dashboard.html</code> 重写时增加了对 <code>STATUS.md</code> 表格的依赖。但 dashboard 改表头的红线约束在 §二 引用关系中已经记录（关键约束 3：<code>dashboard.html</code> 只解析 <code>STATUS.md</code> 表格，改表头需同步改解析器）——这次重写<b>没有破坏约束</b>。</div>
+    </div>
+    <div class="card good" style="margin-top:8px">
+      <h4>影响</h4>
+      <p>无需更新 FILE_GRAPH.md（约束早就写明）；体现"<b>约束写在 FILE_GRAPH 之前，价值在执行时兑现</b>"。</p>
+    </div>
+
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · V1.x 治理与 V2.0 流程</div>
+      <h2>9 治理规范 + AI 流程 v2.0 · 都不动 FILE_GRAPH</h2>
+      <p>两个独立的"稳定期"——内容大改但 FILE_GRAPH 不动。</p>
+    </section>
+
+    <div class="phase-card" data-phase="4">
+      <div class="ph-head">
+        <div class="ph-num p4">P4</div>
+        <div class="ph-title">V1.x 治理期</div>
+        <div class="ph-date">2026-06-07</div>
+      </div>
+      <div class="ph-summary">9 篇治理规范入 _meta.yaml，FILE_GRAPH 不重复登记。</div>
+      <div class="ph-detail">
+        <div class="grid g2" style="margin:6px 0">
+          <div class="card hl">
+            <h4>评估 1 · 9 治理规范是否需要更新 FILE_GRAPH</h4>
+            <p><span class="b-pill ok">否</span>（落地产物在 <code>docs/templates/</code> <code>dashboard.html</code> <code>LICENSE</code> 等已存在的路径，未新增目录）</p>
+          </div>
+          <div class="card gold">
+            <h4>评估 2 · 是否需要给 FILE_GRAPH 加"治理规范"分支</h4>
+            <p><span class="b-pill ok">否</span>（治理规范的"该存在性即满足"机制在 <code>_meta.yaml</code> 维护，FILE_GRAPH 不重复登记）</p>
+          </div>
+        </div>
+        <h4 style="margin-top:8px">决策依据</h4>
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0 0">
+          <li><b>FILE_GRAPH 不重复 M1 的真源</b> —— <code>_meta.yaml</code> 已经在 M1 章节维护，FILE_GRAPH 描述的是"文件放哪"而不是"规范怎么管"</li>
+          <li><b>职能正交</b> —— M1 说"代码应该怎么写"，M6 说"文件应该放哪"；M1 治理规范的存在性由 M1 自己保证，M6 不需要为 M1 维护清单</li>
+        </ul>
+      </div>
+      <div class="toggle-hint">点击展开 / 收起详情</div>
+    </div>
+
+    <div class="phase-card" data-phase="5">
+      <div class="ph-head">
+        <div class="ph-num p5">P5</div>
+        <div class="ph-title">V2.0 流程期</div>
+        <div class="ph-date">2026-06-09</div>
+      </div>
+      <div class="ph-summary">AI 协作流程 v1.0 → v2.0 重写，仍在 ai-workflow_*/ 目录下。</div>
+      <div class="ph-detail">
+        <ul style="font-size:12.5px;padding-left:18px;margin:6px 0">
+          <li>流程文档数量从 <b>7 → 10</b> 属于内容扩展，不涉及"新文件类型"，FILE_GRAPH 决策树不需要新增分支</li>
+          <li>AI 流程仍属"规范正文"的子目录，§一 目录树的 <code>conventions/ai-workflow_*/</code> 节点结构不变</li>
+          <li>唯一需要的更新：决策树 §一关于规范正文的"长文 &gt; 300 行拆目录"注释依然适用（详见 ADR 0005）</li>
+        </ul>
+      </div>
+      <div class="toggle-hint">点击展开 / 收起详情</div>
+    </div>
+
+    <h3>V1.x / V2.0 稳定期 · 关键判断矩阵</h3>
+    <div class="tbl-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width:200px;text-align:left">评估项</th>
+            <th>是否动 FILE_GRAPH</th>
+            <th>原因</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="lbl">9 治理规范入 _meta.yaml</td><td class="no">✗</td><td>路径已存在，M1 内部维护</td></tr>
+          <tr><td class="lbl">FILE_GRAPH 加"治理规范"分支</td><td class="no">✗</td><td>职能正交，不重复 M1</td></tr>
+          <tr><td class="lbl">AI 流程 7 → 10 篇</td><td class="no">✗</td><td>内容扩展，不涉及"新文件类型"</td></tr>
+          <tr><td class="lbl">ai-workflow_*/ 节点</td><td class="no">✗</td><td>目录结构不变</td></tr>
+          <tr><td class="lbl">长文 &gt; 300 行拆目录</td><td class="yes">✓</td><td>ADR 0005 注释依然适用</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 阶段总览</div>
+      <h2>5 阶段演进 · 一图速览</h2>
+      <p>从 V0.x 启步到 V2.0 稳定，FILE_GRAPH 改动强度"<b>先大后小</b>"——少而精的典型演进。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 5 阶段时间线 + 改动强度 (mermaid flowchart)</div>
+      <div class="mermaid">
+flowchart LR
+    P1["V0 启步<br/>2026-05-26<br/>新建 FILE_GRAPH"]:::p1
+    P2["V0 重整<br/>2026-05-27<br/>+scripts +design<br/>决策树 10→13"]:::p2
+    P3["V0 稳定<br/>2026-05-28+<br/>规范 v2.0<br/>不动结构"]:::p3
+    P4["V1 治理<br/>2026-06-07<br/>9 治理规范<br/>不动 FILE_GRAPH"]:::p4
+    P5["V2 流程<br/>2026-06-09<br/>AI 流程 v2.0<br/>不动 FILE_GRAPH"]:::p5
+    P6["V2.0 稳定<br/>当前"]:::p6
+
+    P1 ==>|"大改"| P2
+    P2 ==>|"稳定"| P3
+    P3 ==>|"稳定"| P4
+    P4 ==>|"稳定"| P5
+    P5 ==>|"稳定"| P6
+
+    classDef p1 fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17,stroke-width:2.5px
+    classDef p2 fill:#FCF6EE,stroke:#8B3A1F,color:#1F1D17,stroke-width:2px
+    classDef p3 fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef p4 fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef p5 fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+    classDef p6 fill:#F0E2C5,stroke:#A87A2E,color:#5A3D14,stroke-width:2.5px
+      </div>
+    </div>
+
+    <h3>5 阶段 · 改动强度柱状图</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · FILE_GRAPH 改动强度 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "FILE_GRAPH 改动强度"
+    x-axis ["V0 启步", "V0 重整", "V0 稳定", "V1 治理", "V2 流程"]
+    y-axis "强度 0-100" 0 --> 100
+    bar [100, 60, 5, 0, 0]
+      </div>
+    </div>
+
+    <h3>5 阶段 · 字段维度变化矩阵</h3>
+    <div class="tbl-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width:160px;text-align:left">维度</th>
+            <th>V0 启步</th>
+            <th>V0 重整</th>
+            <th>V0 稳定</th>
+            <th>V1 治理</th>
+            <th>V2 流程</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="lbl">§一 目录树</td><td class="yes">新建</td><td class="yes">+scripts +design</td><td class="partial">加注释</td><td class="no">不动</td><td class="no">不动</td></tr>
+          <tr><td class="lbl">§二 引用关系</td><td class="yes">新建</td><td class="partial">+约束</td><td class="no">不动</td><td class="no">不动</td><td class="no">不动</td></tr>
+          <tr><td class="lbl">§三 决策树</td><td class="yes">10 分支</td><td class="yes">→ 13 分支</td><td class="partial">加注释</td><td class="no">不动</td><td class="no">不动</td></tr>
+          <tr><td class="lbl">行数</td><td class="partial">~100</td><td class="partial">~170</td><td class="partial">~170</td><td class="partial">~170</td><td class="partial">~170</td></tr>
+          <tr><td class="lbl">CLAUDE.md 同步</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">说明</td><td class="no">-</td><td class="no">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 与红线的关系</div>
+      <h2>4 类红线 · 触发统计与处理</h2>
+      <p>M6 模块与 4 类工程红线的互动统计——少量接触、均已处理。</p>
+    </section>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>红线类型</th><th style="width:90px">触发次数</th><th>处理方式</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>PR-09 spec 同步</td>
+            <td><span class="b-pill inf">0</span></td>
+            <td>本模块无 BDD（FILE_GRAPH 自身不需要被验收）</td>
+          </tr>
+          <tr>
+            <td>改规范漏改引用关系</td>
+            <td><span class="b-pill mid">~3</span></td>
+            <td>V0.x 重整时已全量同步</td>
+          </tr>
+          <tr>
+            <td>根目录堆散文件</td>
+            <td><span class="b-pill inf">0</span></td>
+            <td>决策树末端警告 + <code>CLAUDE.md</code> 硬规则</td>
+          </tr>
+          <tr>
+            <td>改 <code>FILE_GRAPH.md</code> 漏改 <code>CLAUDE.md</code></td>
+            <td><span class="b-pill mid">~2</span></td>
+            <td>互为索引纪律 + 人工 review</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>红线触发频次 · 仪表</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>已触发红线（4 类）</h4>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:160px">PR-09 spec 同步</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:0%"><div class="fill good"></div></div></div>
+          <div class="val">0</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:160px">改规范漏改引用</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:30%"><div class="fill brand"></div></div></div>
+          <div class="val">~3</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:160px">根目录堆散文件</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:0%"><div class="fill good"></div></div></div>
+          <div class="val">0</div>
+        </div>
+        <div class="bar-row" style="margin:6px 0">
+          <div class="lbl" style="width:160px">FILE_GRAPH 漏同步</div>
+          <div class="bar" style="flex:1"><div class="anim-bar" style="--w:20%"><div class="fill gold"></div></div></div>
+          <div class="val">~2</div>
+        </div>
+      </div>
+      <div class="card good">
+        <h4>红线处理总览</h4>
+        <p>5 项红线类型 + 触发 ~5 次 + 全部在 V0.x 阶段处理完毕——<b>本模块"少而精"是设计取舍，也是稳定性结果</b>。</p>
+        <div class="chip-row">
+          <span class="chip gd">处理率 100%</span>
+          <span class="chip gd">稳定期无新触发</span>
+        </div>
+      </div>
+    </div>
+
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 未来扩展提示</div>
+      <h2>3 个候选 · 留待后续</h2>
+      <p>M6 已稳定——以下为可选扩展，不在 V1.x 范围。</p>
+    </section>
+
+    <div class="grid g3">
+      <div class="card hl">
+        <h4>候选 A · 一致性 pre-commit 钩子</h4>
+        <p>把"FILE_GRAPH 与 CLAUDE.md 一致性"做成 pre-commit 钩子（暂靠人工纪律）。</p>
+        <div class="chip-row"><span class="chip b">+ 自动化</span></div>
+      </div>
+      <div class="card gold">
+        <h4>候选 B · meta/STRUCTURE.md</h4>
+        <p>新增"仓库设计哲学"文档（与 FILE_GRAPH 区分：前者说哲学，后者说结构）。</p>
+        <div class="chip-row"><span class="chip gl">+ 1 文件</span></div>
+      </div>
+      <div class="card brand">
+        <h4>候选 C · 决策树分支扩展</h4>
+        <p>决策树分支数是否到顶（13 分支覆盖 V2.0.1 时点所有文件类型；新增一类时再扩）。</p>
+        <div class="chip-row"><span class="chip br">按需</span></div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div><b>演进总结</b>：M6 用 5 个阶段完成从"无"到"稳定"的演进——前 2 个阶段是"打底"（新建 + 重整），后 3 个阶段是"稳定"（不动结构）。<b>少而精</b>的代价是：所有大改都集中在前 2 个阶段；稳定期的代价是：必须明确判断"什么不动"。</div>
+    </div>
+
+    <section class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 多视角 Tab 切换</div>
+      <h2>三种视角看 M6 演进</h2>
+      <p>按"阶段 / 红线 / 模块"三个维度切入。</p>
+    </section>
+
+    <div class="tabs" id="viewtabs">
+      <div class="tb active" data-tab="v1">阶段视角 <span class="badge">5</span></div>
+      <div class="tb" data-tab="v2">红线视角 <span class="badge">4</span></div>
+      <div class="tb" data-tab="v3">模块对比 <span class="badge">8</span></div>
+    </div>
+
+    <div class="tab-pane active" data-pane="v1">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>阶段</th><th>时间</th><th>FILE_GRAPH 动作</th><th>强度</th></tr></thead>
+          <tbody>
+            <tr><td><span class="b-pill br">V0 启步</span></td><td>2026-05-26</td><td>新建</td><td>★★★★★</td></tr>
+            <tr><td><span class="b-pill br">V0 重整</span></td><td>2026-05-27</td><td>大幅更新</td><td>★★★</td></tr>
+            <tr><td><span class="b-pill ok">V0 稳定</span></td><td>2026-05-28+</td><td>不动结构</td><td>★</td></tr>
+            <tr><td><span class="b-pill inf">V1 治理</span></td><td>2026-06-07</td><td>不动</td><td>0</td></tr>
+            <tr><td><span class="b-pill inf">V2 流程</span></td><td>2026-06-09</td><td>不动</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="v2">
+      <div class="grid g2">
+        <div class="card good">
+          <h4>0 次触发 · 已被预防</h4>
+          <p>PR-09 spec 同步（本模块无 BDD）、根目录堆散文件（决策树末端警告 + CLAUDE.md 硬规则）</p>
+        </div>
+        <div class="card gold">
+          <h4>~3 次触发 · V0.x 重整处理</h4>
+          <p>改规范漏改引用关系——V0.x 重整时全量同步</p>
+        </div>
+        <div class="card brand">
+          <h4>~2 次触发 · 互为索引纪律</h4>
+          <p>改 FILE_GRAPH 漏改 CLAUDE.md——靠人工 review</p>
+        </div>
+        <div class="card">
+          <h4>处理率 100%</h4>
+          <p>所有红线触发均在对应阶段处理完毕，稳定期无新触发</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="v3">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>模块</th><th>改动次数</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>M1 conventions</td><td>18</td><td>最活跃（v2.0 重构 + 9 治理规范）</td></tr>
+            <tr><td>M5 worklogs</td><td>12</td><td>高活跃（每功能点）</td></tr>
+            <tr><td>M2 docs</td><td>8</td><td>中活跃</td></tr>
+            <tr><td>M7 tests</td><td>6</td><td>中活跃</td></tr>
+            <tr><td>M3 src</td><td>5</td><td>中低</td></tr>
+            <tr><td>M4 scripts</td><td>4</td><td>低</td></tr>
+            <tr><td>M8 dashboard</td><td>3</td><td>低</td></tr>
+            <tr style="background:rgba(63,107,61,.08)"><td><b>M6 meta</b></td><td><b>2</b></td><td><b>最少（少而精）</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>M6 与其他模块的演进对比</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · M6 vs 其他模块的演进曲线 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "各模块结构改动次数 (V0.x → V2.0)"
+    x-axis ["M1 规范", "M2 文档", "M3 src", "M4 scripts", "M5 logs", "M6 meta", "M7 tests", "M8 dash"]
+    y-axis "改动次数" 0 --> 20
+    bar [18, 8, 5, 4, 12, 2, 6, 3]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">M6 meta 改动次数 = 2（V0.x 启步 + V0.x 重整）—— 8 模块中最低，验证"少而精"判断。</p>
+    </div>
+
+    <div class="verdict" style="margin-top:36px">
+      <div class="lbl">M6 演进 · 一句话</div>
+      <h4>从 V0.x 启步新建 FILE_GRAPH.md，到 V0.x 重整决策树 10→13 分支，到 V0.x 稳定后 3 个独立稳定期"不动结构"——少而精的演进。</h4>
+      <p style="margin:0">本模块用最少的修改承载最稳定的事实（"仓库长什么样"）。前 2 个阶段是"打底"，后 3 个阶段是"稳定"——少而精的代价是<b>所有大改都集中在前 2 个阶段</b>，稳定期的代价是<b>必须明确判断"什么不动"</b>。<br><br><b>下一步</b>：候选 A（一致性 pre-commit 钩子）— 把"互为索引"纪律自动化；候选 B（STRUCTURE.md）— 区分"哲学"与"结构"两份元信息；候选 C（决策树扩展）— 按需扩分支。</p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

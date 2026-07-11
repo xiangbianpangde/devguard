@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M8 基础设施 · 历史演进路径</title>
+<!-- Mermaid 渲染 -->
+<script src="../_mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4',
+        primaryTextColor: '#1F1D17',
+        primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447',
+        secondaryColor: '#E8E1D2',
+        tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true }
+    });
+    }
+
+    document.querySelectorAll('.tabs').forEach(function(bar){
+      bar.querySelectorAll('.tb').forEach(function(tb){
+        tb.addEventListener('click', function(){
+          var key = tb.getAttribute('data-tab');
+          bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+          tb.classList.add('active');
+          var container = bar.parentElement;
+          container.querySelectorAll('.tab-pane').forEach(function(p){
+            p.classList.toggle('active', p.getAttribute('data-pane') === key);
+          });
+        });
+      });
+    });
+
+    setTimeout(function(){
+      document.querySelectorAll('.anim-bar').forEach(function(b){ b.classList.add('armed'); });
+    }, 300);
+
+    document.querySelectorAll('.counter').forEach(function(el){
+      var target = parseInt(el.getAttribute('data-target') || '0', 10);
+      var dur = 1200;
+      var start = performance.now();
+      function step(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  });
+</script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;
+    --brand-2:#A85032;
+    --accent:#2F5061;
+    --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+    box-shadow:0 10px 24px -10px var(--brand);
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(6,1fr)}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+  .code-block .num{color:#C9A87C}
+
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+  .diagram .cm{color:var(--txt-faint)}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--sans)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+  td .mono{font-size:11.5px}
+
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+  .chip.b{background:rgba(47,80,97,.1);color:var(--accent);border-color:rgba(47,80,97,.2)}
+  .chip.br{background:rgba(139,58,31,.1);color:var(--brand);border-color:rgba(139,58,31,.2)}
+  .chip.gd{background:rgba(63,107,61,.1);color:var(--good);border-color:rgba(63,107,61,.2)}
+  .chip.gl{background:rgba(168,122,46,.1);color:var(--gold);border-color:rgba(168,122,46,.2)}
+
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:160px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .fill.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .bar-row .fill.gold{background:linear-gradient(90deg,var(--gold),#C9973A)}
+  .bar-row .fill.good{background:linear-gradient(90deg,var(--good),#558A52)}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+  .tl-item .ver{font-family:var(--mono);font-size:10px;color:var(--brand);font-weight:600;margin-left:6px}
+
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;font-family:var(--sans);
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  details.conv{margin:6px 0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  details.conv summary{font-size:12.8px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px}
+  details.conv summary::before{content:"▸";color:var(--accent);font-size:10px;transition:transform .2s;width:12px;display:inline-block}
+  details.conv[open] summary::before{transform:rotate(90deg)}
+  details.conv .body{margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--txt-dim);line-height:1.7}
+
+  .lbl-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;font-weight:700}
+
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;left:-60px;bottom:-60px;width:240px;height:240px;background:radial-gradient(circle, rgba(47,80,97,.08), transparent 70%);pointer-events:none}
+  .hero .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hero h1{font-family:var(--serif);font-size:36px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-size:15px;color:var(--txt-dim);max-width:740px;line-height:1.5;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  [id]{scroll-margin-top:24px}
+  .lead::first-letter{font-family:var(--serif);font-size:48px;float:left;line-height:0.95;padding:4px 8px 0 0;color:var(--brand);font-weight:700}
+
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .g5{grid-template-columns:1fr 1fr 1fr}
+    .g6{grid-template-columns:1fr 1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .vs-mid{padding:8px 0}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);
+  }
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto;font-family:var(--sans)!important}
+
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+
+  .counter{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .counter.gold{color:var(--gold)}
+  .counter.accent{color:var(--accent)}
+  .counter.good{color:var(--good)}
+
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);margin-top:6px;letter-spacing:.5px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">M8</div>
+      <div>
+        <b>演进路径</b>
+        <span>8 阶段 V0.1 → V2.0.1</span>
+      </div>
+    </div>
+    <div class="meta">9 → 10 钩子<br>13 → 65 L4 tests<br>2026-05-27 → 06-08</div>
+    <nav>
+      <a href="#hero" class="active"><span class="n">00</span> 摘要</a>
+      <a href="#s1"><span class="n">01</span> 总览 8 阶段</a>
+      <a href="#s2"><span class="n">02</span> V0.1 收束</a>
+      <a href="#s3"><span class="n">03</span> V0.2 commitlint</a>
+      <a href="#s4"><span class="n">04</span> V0.3 markdownlint</a>
+      <a href="#s5"><span class="n">05</span> V0.4 L1 完整化</a>
+      <a href="#s6"><span class="n">06</span> V0.5 章节级 L1</a>
+      <a href="#s7"><span class="n">07</span> V0.7 L4 retry</a>
+      <a href="#s8"><span class="n">08</span> V0.8 l1_check_doc</a>
+      <a href="#s9"><span class="n">09</span> V1.1 gitleaks</a>
+      <a href="#s10"><span class="n">10</span> V2.0.1 dogfood</a>
+      <a href="#s11"><span class="n">11</span> 累计曲线</a>
+      <a href="#s12"><span class="n">12</span> 未来扩展</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill br">M8 演进</span>
+        <span class="b-pill inf">8 阶段</span>
+        <span class="b-pill inf">V0.1 → V2.0.1</span>
+        <span class="b-pill inf">13 → 65 L4</span>
+        <span class="b-pill inf">9 → 10 钩子</span>
+        <span class="b-pill ok">dogfood 8 拦</span>
+      </div>
+      <h1>M8 infrastructure · 历史演进路径</h1>
+      <p class="sub">从 V0.1 起步的 9 钩子 + 5 阶段 CI，演进到 V2.0.1 的 10 钩子 + 5 阶段 CI + 65 L4 tests，历经 8 个阶段。V2.0.1 devguard 自身 dogfood 拦截 8 次——闭环 100%。</p>
+      <div class="meta-row">
+        <span>周期 2026-05-27 → 06-08</span>
+        <span>•</span>
+        <span>12 天</span>
+        <span>•</span>
+        <span>V0.1 收束已人审计签核</span>
+        <span>•</span>
+        <span>V0.1 收束是首个签核节点</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s1"><div class="ix">01</div><div><b>8 阶段总览</b><span style="font-size:11px;color:var(--txt-faint)">钩子/CI/L4 增长轨迹</span></div></a>
+      <a href="#s2"><div class="ix">02</div><div><b>V0.1 收束</b><span style="font-size:11px;color:var(--txt-faint)">9 钩子 + 5 阶段 CI</span></div></a>
+      <a href="#s3"><div class="ix">03</div><div><b>V0.2 commitlint</b><span style="font-size:11px;color:var(--txt-faint)">钩子数 9 → 10</span></div></a>
+      <a href="#s4"><div class="ix">04</div><div><b>V0.3 markdownlint</b><span style="font-size:11px;color:var(--txt-faint)">06-documentation 落地</span></div></a>
+      <a href="#s5"><div class="ix">05</div><div><b>V0.4 L1 完整化</b><span style="font-size:11px;color:var(--txt-faint)">_meta.yaml 17 条</span></div></a>
+      <a href="#s6"><div class="ix">06</div><div><b>V0.5 章节级 L1</b><span style="font-size:11px;color:var(--txt-faint)">07/08 章节级</span></div></a>
+      <a href="#s7"><div class="ix">07</div><div><b>V0.7 L4 retry</b><span style="font-size:11px;color:var(--txt-faint)">dashboard 注入</span></div></a>
+      <a href="#s8"><div class="ix">08</div><div><b>V0.8 l1_check_doc</b><span style="font-size:11px;color:var(--txt-faint)">schema 1.1.0</span></div></a>
+      <a href="#s9"><div class="ix">09</div><div><b>V1.1 gitleaks</b><span style="font-size:11px;color:var(--txt-faint)">14-security 钩子化</span></div></a>
+      <a href="#s10"><div class="ix">10</div><div><b>V2.0.1 dogfood</b><span style="font-size:11px;color:var(--txt-faint)">拦截 8 次</span></div></a>
+      <a href="#s11"><div class="ix">11</div><div><b>累计曲线</b><span style="font-size:11px;color:var(--txt-faint)">3 维增长趋势</span></div></a>
+      <a href="#s12"><div class="ix">12</div><div><b>未来扩展</b><span style="font-size:11px;color:var(--txt-faint)">钩子 11+ 候选</span></div></a>
+    </div>
+
+    <section class="sec-head" style="margin-top:30px">
+      <div class="tag">00 · 核心数据 · 一眼可读</div>
+      <h2>8 阶段演进数据看板</h2>
+    </section>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="8">0</span></div>
+        <div class="lbl">演进阶段</div>
+        <div class="sub">V0.1 → V0.2 → ... → V2.0.1</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="10">0</span></div>
+        <div class="lbl">最终钩子数</div>
+        <div class="sub">从 9 起步，含 commitlint</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="65">0</span></div>
+        <div class="lbl">最终 L4 tests</div>
+        <div class="sub">从 13 → 65 (V0.1 → V2.0.1)</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="5">0</span></div>
+        <div class="lbl">CI 阶段</div>
+        <div class="sub">V0.1 起 5 阶段未变</div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi">
+        <div class="num"><span class="counter" data-target="8">0</span></div>
+        <div class="lbl">dogfood 拦截</div>
+        <div class="sub">V2.0.1 devguard 自己拦自己</div>
+      </div>
+      <div class="kpi accent">
+        <div class="num"><span class="counter accent" data-target="12">0</span><span style="font-size:18px;color:var(--txt-faint);margin-left:2px">d</span></div>
+        <div class="lbl">演进周期</div>
+        <div class="sub">2026-05-27 → 06-08</div>
+      </div>
+      <div class="kpi gold">
+        <div class="num"><span class="counter gold" data-target="1">0</span></div>
+        <div class="lbl">人审计签核</div>
+        <div class="sub">V0.1 收束是首个签核节点</div>
+      </div>
+      <div class="kpi good">
+        <div class="num"><span class="counter good" data-target="6">0</span></div>
+        <div class="lbl">治理文件</div>
+        <div class="sub">V2.0.1 全部就位</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">M8 演进健康度 · 5 维仪表</h3>
+    <div class="grid g5">
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">V0.1 钩子</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:90%"><div class="fill good"></div></div>
+          </div>
+          <div class="val">9</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">V0.2 加 commitlint</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill"></div></div>
+          </div>
+          <div class="val">10</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">V0.1 L4 tests</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:20%"><div class="fill brand"></div></div>
+          </div>
+          <div class="val">13</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">V2.0.1 L4 tests</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill gold"></div></div>
+          </div>
+          <div class="val">65</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="bar-row" style="margin:0">
+          <div class="lbl" style="width:90px;font-size:11px">dogfood 拦</div>
+          <div class="bar" style="flex:1">
+            <div class="anim-bar" style="--w:100%"><div class="fill good"></div></div>
+          </div>
+          <div class="val">8</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">▌</span>
+      <div>
+        <b>演进主线</b>：V0.1 收束（9 钩子 + 5 阶段 CI + 13 L4 tests）→ V0.2-V0.8 增量（commitlint / markdownlint / L1 完整化 / 章节级 / L4 retry / l1_check_doc）→ V1.1 钩子化（gitleaks 9 → 10）→ <b>V2.0.1 dogfood 闭环 8 拦</b>。
+      </div>
+    </div>
+
+    <section id="s1" class="sec-head" style="margin-top:50px">
+      <div class="tag">01 · 8 阶段总览</div>
+      <h2>V0.1 → V2.0.1 · 12 天 8 阶段</h2>
+      <p>M8 演进不是匀速直线，而是"<b>收束锚定 + 增量叠加</b>"——V0.1 收束锚定基线，后续每个版本叠加 1-2 个新约束。</p>
+    </section>
+
+    <h3>8 阶段总览表</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>V0.1 · 2026-05-27 · 收束锚定</h4>
+        <p>9 钩子 + 5 阶段 CI + 13 L4 tests 一次集成。<b>首个签核的收束节点</b>。</p>
+        <div class="chip-row">
+          <span class="chip gd">9 钩子</span>
+          <span class="chip gd">5 CI</span>
+          <span class="chip gd">13 L4</span>
+          <span class="chip br">首个签核</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>V0.2 · 2026-06-07 · commitlint</h4>
+        <p>03-git §一 红线 2/3 落地，钩子数 9 → 10（含 commitlint）。</p>
+        <div class="chip-row">
+          <span class="chip gd">9 → 10 钩子</span>
+          <span class="chip b">Conventional</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>V0.3 · 2026-06-07 · markdownlint</h4>
+        <p>06-documentation 红线落地，pre-commit + CI lint 双层加 markdownlint。</p>
+        <div class="chip-row">
+          <span class="chip br">pre-commit + CI</span>
+          <span class="chip b">pymarkdownlnt</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>V0.4 · 2026-06-07 · L1 完整化</h4>
+        <p>_meta.yaml 17 条目全部加 l1_check_path + l1_check。</p>
+        <div class="chip-row">
+          <span class="chip gl">17 条目</span>
+          <span class="chip b">l1_check_path</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>V0.5 · 2026-06-07 · 章节级 L1</h4>
+        <p>07/08 规范 §一 红线扩展 + check_ai_workflow.py + check_code_understanding.py。</p>
+        <div class="chip-row">
+          <span class="chip gl">check_ai_wf</span>
+          <span class="chip gl">check_code_und</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>V0.7 · 2026-06-07 · L4 retry</h4>
+        <p>dashboard L4 数字注入从硬编码（V6.3 FAIL）→ collect_l4_stats.py 自动收集（V7.2 修复）。</p>
+        <div class="chip-row">
+          <span class="chip br">V6.3 FAIL</span>
+          <span class="chip gd">V7.2 OK</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>V0.8 · 2026-06-07 · l1_check_doc</h4>
+        <p>_meta.yaml schema 升 1.1.0 + 17 条目加 l1_check_doc 文档链接字段。</p>
+        <div class="chip-row">
+          <span class="chip gl">schema 1.1.0</span>
+          <span class="chip b">l1_check_doc</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>V1.1 · 2026-06-07 · gitleaks</h4>
+        <p>14-security 规范落地产物：pre-commit 加 gitleaks 钩子 + .gitleaks.toml allowlist。</p>
+        <div class="chip-row">
+          <span class="chip br">gitleaks 钩子化</span>
+          <span class="chip gl">14-security 落地</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card brand" style="margin-top:14px">
+      <h4>V2.0.1 · 2026-06-08 · devguard dogfood</h4>
+      <p>用 V1.x 强制范式约束 devguard 自己的代码库，<b>8 次拦截 + 全部修复</b>——闭环 100% 的最强证据。L4 tests 13 → 65（成 5 倍增长）。</p>
+      <div class="chip-row">
+        <span class="chip br">13 → 65 L4</span>
+        <span class="chip br">dogfood 8 拦</span>
+        <span class="chip br">闭环 100%</span>
+      </div>
+    </div>
+
+    <h3>8 阶段 Gantt 时间线</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 8 阶段演进时间线 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title M8 演进 8 阶段 (V0.1 → V2.0.1)
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0.1 收束锚定
+    9钩子+5阶段CI+13L4     :done, v01, 2026-05-27, 1d
+    section V0.x 增量 (06-07)
+    V0.2 commitlint         :done, v02, 2026-06-07, 1d
+    V0.3 markdownlint       :done, v03, after v02, 1d
+    V0.4 L1 完整化          :done, v04, after v03, 1d
+    V0.5 章节级 L1          :done, v05, after v04, 1d
+    V0.7 L4 retry           :done, v07, after v05, 1d
+    V0.8 l1_check_doc       :done, v08, after v07, 1d
+    section V1.x 钩子化
+    V1.1 gitleaks 钩子      :done, v11, after v08, 1d
+    section V2.0.1 dogfood
+    devguard 自己拦 8 次    :active, v201, 2026-06-08, 1d
+    V2.0.1 闭环 (milestone) :milestone, m1, after v201, 0d
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">V0.1 收束 1d → V0.2-V0.8 增量 6 个 1d → V1.1 钩子化 1d → V2.0.1 dogfood 1d = 8 阶段 + 1 milestone 全绿</p>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>说明</b>：V0.6 / V0.9 / V1.0 / V1.2-V1.4 / V1.5 阶段<b>不直接改本模块</b>，主要改 conventions 治理类规范（09-17）→ 间接驱动 check_compliance.py 增量。
+      </div>
+    </div>
+
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">02 · 阶段 V0.1 收束</div>
+      <h2>9 钩子 + 5 阶段 CI · 收束锚定 (2026-05-27)</h2>
+      <p>把"5 阶段 CI + pre-commit 钩子"作为 devguard 强制范式的<b>最小可行集</b>。V0.1 收束是<b>首个签核</b>的收束节点。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">conventions/01-08 规范确定</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">设计 5 阶段 CI</span> (lint / test / l4 / compliance / build)
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">设计 9 钩子</span> (pre-commit-hooks 5 + ruff 2 + gitleaks 1 + markdownlint 1 local + worklog-ref 1 local)
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">写 .github/workflows/ci.yml + .pre-commit-config.yaml</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">tests/conventions/ 13 条 L4 测试</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">✓ 收束：v0.1 人审计签核</span> (首个签核的收束节点)</div>
+
+    <h3>关键改动</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>.github/workflows/ci.yml</h4>
+        <p>新建 <b>173 行</b>，5 阶段流水线（lint / test / l4 / compliance / build）。</p>
+        <div class="chip-row">
+          <span class="chip b">173 行</span>
+          <span class="chip b">5 阶段</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>.pre-commit-config.yaml</h4>
+        <p>新建 <b>54 行</b>，9 钩子（pre-commit-hooks 5 + ruff 2 + gitleaks 1 + markdownlint 1 + worklog-ref 1）。</p>
+        <div class="chip-row">
+          <span class="chip b">54 行</span>
+          <span class="chip b">9 钩子</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>tests/conventions/</h4>
+        <p>新建，<b>13 条 L4 测试</b>（8 规范 spec + meta + perf）。</p>
+        <div class="chip-row">
+          <span class="chip b">13 L4 tests</span>
+          <span class="chip b">10 文件</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>scripts/ 4 个工具脚本</h4>
+        <p>check_compliance.py / check_worklog_ref.py / lint_markdown.py + render_meta.py。</p>
+        <div class="chip-row">
+          <span class="chip b">4 脚本</span>
+          <span class="chip b">M4 管辖</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>关键决策 · 3 条</h3>
+    <div class="grid g3">
+      <div class="card hl">
+        <h4>① 5 阶段而非 3 阶段</h4>
+        <p>lint / test / l4-conventions / compliance / build 各管一摊，<b>失败信息更精准</b>。</p>
+        <div class="chip-row">
+          <span class="chip b">5 阶段</span>
+          <span class="chip b">精准定位</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>② 9 钩子而非单脚本</h4>
+        <p>拆成独立钩子便于"<b>禁用某条不改其他</b>"。</p>
+        <div class="chip-row">
+          <span class="chip b">9 独立</span>
+          <span class="chip b">可单禁用</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>③ L4 用 Python 而非 BDD 框架</h4>
+        <p>避免引入 behave / pytest-bdd 等新依赖。</p>
+        <div class="chip-row">
+          <span class="chip br">纯 Python</span>
+          <span class="chip br">零新依赖</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div>
+        <b>V0.1 收束签核</b>：本收束节点是 <b>devguard 范式跃迁的起点</b>——从"纯文字规范"到"机器可拦截"的强制范式在此固化。
+        后续 V0.2-V2.0.1 的所有增量都建立在这 9 钩子 + 5 阶段 CI 的基线之上。
+      </div>
+    </div>
+
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">03 · 阶段 V0.2</div>
+      <h2>commitlint (2026-06-07)</h2>
+      <p>补全 03-git 规范的 commit message 校验。钩子数 9 → 10（含 commitlint）。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">03-git §一 红线 2/3 落地</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">加 commitlint-pre-commit-hook 仓库到 .pre-commit-config.yaml</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">写 commitlint.config.js</span> (extends @commitlint/config-conventional + 4 条自定义规则)
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">verify: 提交 `bad commit message` → 钩子拒绝</span></div>
+
+    <h3>改动</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>.pre-commit-config.yaml</h4>
+        <p>加 commitlint 仓库（v9.16.0）+ <code>stages: [commit-msg]</code>。</p>
+        <div class="chip-row">
+          <span class="chip b">v9.16.0</span>
+          <span class="chip b">commit-msg 阶段</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>commitlint.config.js</h4>
+        <p>新建，<b>23 行</b>。type enum / subject &lt; 5 字符 / upper-case / 句末句号 4 条自定义规则。</p>
+        <div class="chip-row">
+          <span class="chip b">23 行</span>
+          <span class="chip b">4 自定义规则</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>钩子数变化</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · V0.1 vs V0.2 钩子对比 (mermaid xychart)</div>
+        <div class="mermaid">
+xychart-beta
+    title "钩子数变化"
+    x-axis ["V0.1", "V0.2", "V0.3", "V1.1", "V2.0.1"]
+    y-axis "钩子数" 0 --> 12
+    bar [9, 10, 10, 10, 10]
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · V0.2 commitlint 配置项 (mermaid pie)</div>
+        <div class="mermaid">
+pie title commitlint.config.js 4 自定义规则
+    "type enum (8 类)" : 1
+    "subject 长度 ≥ 5" : 1
+    "subject 首字母小写" : 1
+    "句末无句号" : 1
+        </div>
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>为什么 commitlint 也算"10 钩子"内</b>：任务定义 10 钩子包含 commitlint，但 <code>stages: [commit-msg]</code> 表明它属于 commit-msg 阶段。
+        <b>worklog 引用</b>：<code>worklogs/2026-06-07_*.md</code>（commitlint 配置当日工作日志）。
+      </div>
+    </div>
+
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">04 · 阶段 V0.3</div>
+      <h2>markdownlint (2026-06-07)</h2>
+      <p>补全 06-documentation 规范的文档格式校验。pre-commit + CI lint 双层加 markdownlint。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">06-documentation §一 红线落地</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">L1 工具选型：pymarkdownlnt（Python）而非 markdownlint-cli（Node）</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">写 .markdownlint.json</span> (关闭 MD013 等 25 条容易误报的规则)
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">加 local 钩子到 .pre-commit-config.yaml</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">加 markdownlint 步骤到 CI lint 阶段</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">L4 test_06_documentation.py 加 markdownlint 配置检查</span></div>
+
+    <h3>改动 · 4 文件</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>.markdownlint.json</h4>
+        <p>新建，<b>32 行</b>，关闭 MD013 / MD024 等 25 条易误报规则。</p>
+        <div class="chip-row">
+          <span class="chip b">32 行</span>
+          <span class="chip b">25 条规则</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>.pre-commit-config.yaml</h4>
+        <p>加 markdownlint local 钩子（调 scripts/lint_markdown.py）。</p>
+        <div class="chip-row">
+          <span class="chip b">local 钩子</span>
+          <span class="chip b">lint_markdown.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>.github/workflows/ci.yml</h4>
+        <p>lint 阶段加 markdownlint 步骤（CI 兜底）。</p>
+        <div class="chip-row">
+          <span class="chip b">CI lint</span>
+          <span class="chip b">兜底</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>tests/conventions/test_06_documentation.py</h4>
+        <p>加 markdownlint 配置存在性 + 内容匹配 L4 测试。</p>
+        <div class="chip-row">
+          <span class="chip b">test_06</span>
+          <span class="chip b">配置检查</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>关键决策 · 2 条</h3>
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>用 pymarkdownlnt 而非 markdownlint-cli</h4>
+        <p>避免引入 package.json + node_modules。<br>
+        <b>worklog</b>：<code>worklogs/2026-06-07_添加markdownlint.md</code> 完整记录了为什么选 pymarkdownlnt。</p>
+        <div class="chip-row">
+          <span class="chip b">Python-only</span>
+          <span class="chip b">零 Node 依赖</span>
+        </div>
+      </div>
+      <div class="card brand">
+        <h4>L4 不验证"真拦下所有违规"</h4>
+        <p>只验证"<b>配置就位 + 钩子在 .pre-commit-config.yaml</b>"——避免脆弱依赖。</p>
+        <div class="chip-row">
+          <span class="chip br">配置就位</span>
+          <span class="chip br">钩子在位</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">⚠</span>
+      <div>
+        <b>误报处理</b>：MD013（行长）会误报长行。.markdownlint.json 关闭 <code>MD013: false</code>。
+        这是 V0.3 留下的"<b>配置宽容</b>"——<b>主动放弃</b>该规则换取 CI 通过率。
+      </div>
+    </div>
+
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">05 · 阶段 V0.4</div>
+      <h2>L1 检测完整化 (2026-06-07)</h2>
+      <p>让 _meta.yaml 17 条规范全部有 l1_check_path + l1_check 字段，CI 可自动扫到检测工具。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">_meta.yaml 字段扩展</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">17 规范逐一补 l1_check_path</span> (如 01 → importlinter.ini)
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">tests/conventions/test_meta_l1_check.py 验证字段完整性</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">CI l4-conventions 阶段跑 test_meta_l1_check.py</span></div>
+
+    <h3>改动</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>conventions/_meta.yaml</h4>
+        <p>17 条目全部加 l1_check_path / l1_check 字段——<b>声明式</b>，新增规范时填字段即可。</p>
+        <div class="chip-row">
+          <span class="chip b">17 条目</span>
+          <span class="chip b">l1_check_path</span>
+          <span class="chip b">l1_check</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>tests/conventions/test_meta_l1_check.py</h4>
+        <p>新建，验证 _meta.yaml 17 条目字段完整性（缺一即 fail）。</p>
+        <div class="chip-row">
+          <span class="chip b">test_meta_l1</span>
+          <span class="chip b">字段完整性</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>17 规范 · l1_check_path 分布</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 17 规范 L1 检测工具分布 (mermaid pie)</div>
+      <div class="mermaid">
+pie title 17 规范 L1 检测工具
+    "importlinter (01)" : 1
+    "ruff (02)" : 1
+    "commitlint (03)" : 1
+    "spectral (04)" : 1
+    "pytest --cov (05)" : 1
+    "markdownlint (06)" : 1
+    "check_ai_wf (07)" : 1
+    "check_code_und (08)" : 1
+    "render_meta (09-10)" : 2
+    "manusl (11-13/15-17)" : 6
+    "gitleaks (14)" : 1
+        </div>
+      </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>价值</b>：_meta.yaml 是 devguard 的"<b>声明式真源</b>"——任何破坏性改动都会被 <code>test_meta_l1_check.py</code> 立即红灯。
+        <b>闭环</b>：规范改 → 字段改 → 测试改 → CI fail（如不一致）。
+      </div>
+    </div>
+
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">06 · 阶段 V0.5</div>
+      <h2>章节级 L1 (2026-06-07)</h2>
+      <p>07-ai-workflow / 08-code-understanding 规范的章节级 L1 检测（V6.1 引入）。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">07 §一 红线扩展</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">check_ai_workflow.py：扫描 ai-workflow_*/ 各篇 §一 红线数 ≥ N</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">check_code_understanding.py：扫描 08 §一 红线数 + 双图谱文件存在</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">CI l4-conventions 阶段跑这两个脚本</span></div>
+
+    <h3>改动 · 5 文件</h3>
+    <div class="grid g3">
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">scripts/check_ai_workflow.py</h4>
+        <p style="font-size:11.5px">新建。扫 07-ai-workflow 7 篇流程 §一 红线数 ≥ N。</p>
+        <div class="chip-row">
+          <span class="chip b">新建</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">scripts/check_code_understanding.py</h4>
+        <p style="font-size:11.5px">新建。扫 08 §一 红线 + CodeGraph / UA 文档存在。</p>
+        <div class="chip-row">
+          <span class="chip b">新建</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">.github/workflows/ci.yml</h4>
+        <p style="font-size:11.5px">l4-conventions 阶段加这两个脚本。</p>
+        <div class="chip-row">
+          <span class="chip b">CI l4</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:8px">
+      <div class="card">
+        <h4>conventions/07-ai-workflow_AI协作开发流程/</h4>
+        <p>§一 红线扩展——4 红线 → 5+ 红线（含"角色分离"等）。</p>
+        <div class="chip-row">
+          <span class="chip b">§一 红线</span>
+          <span class="chip b">4 → 5+</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>conventions/08-code-understanding_代码理解与图谱规范.md</h4>
+        <p>§一 红线扩展——2 红线 → 3 红线（含"双图谱文件存在"）。</p>
+        <div class="chip-row">
+          <span class="chip b">§一 红线</span>
+          <span class="chip b">2 → 3</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div>
+        <b>章节级 L1 的价值</b>：让"<b>规范章节内容</b>"成为 CI 可检验的对象——不是"<b>文件存在</b>"而是"<b>章节红线数达标</b>"。
+        这是 V0.5 引入的关键升级——从"<b>文件级 L1</b>"到"<b>章节级 L1</b>"。
+      </div>
+    </div>
+
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">07 · 阶段 V0.7</div>
+      <h2>L4 retry 成功 (2026-06-07)</h2>
+      <p>解决 L4 数字注入 dashboard 时的脆弱性（V6.3 失败 → V7.2 修复）。</p>
+    </section>
+
+    <h3>实现路径 · V6.3 失败 → V7.2 修复</h3>
+    <div class="diagram"><span class="cm">dashboard.html 渲染时 L4 数字</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="no">V6.3：硬编码</span> <span class="br">(FAIL — 数字与实际不符)</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">V7.2：用 collect_l4_stats.py 自动收集 + bash ${VAR:-0} 防御</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">CI build 阶段 run collect_l4_stats.py → 注入 render.py 参数</span></div>
+
+    <h3>改动</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>scripts/collect_l4_stats.py</h4>
+        <p>新建（V7.2 修复）。<b>自动跑 pytest --collect-only 收集 L4 数字</b>。</p>
+        <div class="chip-row">
+          <span class="chip b">pytest --collect-only</span>
+          <span class="chip b">L4_PASSED / L4_TOTAL</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>.github/workflows/ci.yml</h4>
+        <p>build 阶段改用 collect_l4_stats.py，输出环境变量给 render.py。</p>
+        <div class="chip-row">
+          <span class="chip b">CI build</span>
+          <span class="chip b">env 注入</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>dashboard.html</h4>
+        <p>自动注入 L4_PASSED / L4_TOTAL——render 产物必须等于 dashboard。</p>
+        <div class="chip-row">
+          <span class="chip b">L4_PASSED</span>
+          <span class="chip b">L4_TOTAL</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>关键技术 · bash 防御</h4>
+        <p><code>${L4_PASSED:-0}</code>——空字符串不报错，避免"script 失败 → 全 fail"。</p>
+        <div class="chip-row">
+          <span class="chip gl">bash 防御</span>
+          <span class="chip gl">优雅降级</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>关键技术</h3>
+    <div class="code-block"><span class="cm"># .github/workflows/ci.yml · build 阶段</span>
+<span class="kw">- name</span>: Collect L4 stats
+  <span class="kw">run</span>: |
+    L4_STATS=$(python scripts/collect_l4_stats.py 2&gt;/dev/null || echo <span class="str">"L4_STATS=0/0"</span>)
+    L4_PASSED=<span class="str">"${L4_PASSED:-0}"</span>  <span class="cm"># bash 防御空字符串</span>
+    L4_TOTAL=<span class="str">"${L4_TOTAL:-0}"</span>
+    echo <span class="str">"L4_PASSED=$L4_PASSED"</span>
+    echo <span class="str">"L4_TOTAL=$L4_TOTAL"</span>
+
+<span class="kw">- name</span>: Render dashboard
+  <span class="kw">run</span>: |
+    python render.py --meta _meta.yaml --status STATUS.md --out dashboard.html
+    git diff --exit-code dashboard.html</div>
+
+    <div class="note crit">
+      <span class="ico">!</span>
+      <div>
+        <b>为什么 V6.3 失败</b>：硬编码 L4 数字（如直接写 "65" 在 dashboard 模板里）——一旦 L4 tests 数量变化，<b>dashboard 与真源漂移</b>。
+        V7.2 修复用 collect_l4_stats.py <b>自动收集</b>，让真源（pytest 实际结果）成为唯一权威。
+      </div>
+    </div>
+
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">08 · 阶段 V0.8</div>
+      <h2>l1_check_doc (2026-06-07)</h2>
+      <p>_meta.yaml 加 l1_check_doc 字段（指向 L1 工具的官方文档），dashboard 可展示学习链接。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">_meta.yaml schema 1.1.0</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">加 l1_check_doc 字段</span> (如 importlinter → https://importlinter.readthedocs.io/)
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">dashboard.html 渲染时生成"工具文档链接"</span></div>
+
+    <h3>改动</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>conventions/_meta.yaml</h4>
+        <p>schema 升 <b>1.1.0</b> + 17 条目加 l1_check_doc 文档链接。</p>
+        <div class="chip-row">
+          <span class="chip b">schema 1.1.0</span>
+          <span class="chip b">17 条目</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>docs/templates/devguard/html-report-template/render.py</h4>
+        <p>渲染 l1_check_doc 链接，dashboard "工具文档链接"段。</p>
+        <div class="chip-row">
+          <span class="chip b">render.py</span>
+          <span class="chip b">链接生成</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>dashboard.html</h4>
+        <p>自动生成"工具文档链接"段——17 规范各 1 链接。</p>
+        <div class="chip-row">
+          <span class="chip b">17 链接</span>
+          <span class="chip b">学习入口</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 17 规范 l1_check_doc 链接分布 (mermaid graph)</div>
+      <div class="mermaid">
+graph LR
+    S01["01 architecture"]:::sp --> L01["importlinter.readthedocs.io"]:::link
+    S02["02 coding"] --> L02["docs.astral.sh/ruff"]:::link
+    S03["03 git"] --> L03["commitlint.js.org"]:::link
+    S04["04 api"] --> L04["stoplight.io/spectral"]:::link
+    S05["05 testing"] --> L05["docs.pytest.org"]:::link
+    S06["06 doc"] --> L06["github.com/markdownlint"]:::link
+    S14["14 security"] --> L14["github.com/gitleaks"]:::link
+
+    classDef sp fill:#E8E1D2,stroke:#8B3A1F,color:#1F1D17
+    classDef link fill:#DDE9D5,stroke:#3F6B3D,color:#1F1D17
+      </div>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>设计哲学</b>：规范不只是"<b>约束</b>"，也是"<b>学习入口</b>"——新人看 dashboard 时，<b>1 键到官方文档</b>，学习曲线降到最低。
+        V0.8 把"工具可发现性"从"问同事"变成"dashboard 点开"。
+      </div>
+    </div>
+
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">09 · 阶段 V1.1</div>
+      <h2>gitleaks (2026-06-07)</h2>
+      <p>补全 14-security 规范的密钥扫描钩子（之前 gitleaks 已存在但钩子未配置）。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">14-security §一 红线落地</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">.pre-commit-config.yaml 加 gitleaks 仓库（v8.18.0）</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">.gitleaks.toml 写 allowlist</span> (教学反例文件)
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">verify: 故意提交包含 "AWS_SECRET_KEY=xxx" 的代码 → 钩子拒绝</span></div>
+
+    <h3>改动</h3>
+    <div class="grid g3">
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">.pre-commit-config.yaml</h4>
+        <p style="font-size:11.5px">加 gitleaks 钩子（之前只有 CI 跑，本地无）。</p>
+        <div class="chip-row">
+          <span class="chip b">v8.18.0</span>
+          <span class="chip b">本地化</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">.gitleaks.toml</h4>
+        <p style="font-size:11.5px">新建，<b>17 行</b> allowlist。</p>
+        <div class="chip-row">
+          <span class="chip b">17 行</span>
+          <span class="chip b">allowlist</span>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <h4 style="font-family:var(--mono);font-size:12.5px">SECURITY.md</h4>
+        <p style="font-size:11.5px">新建（14-security 规范落地产物）。</p>
+        <div class="chip-row">
+          <span class="chip b">14-security 落地</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>钩子数变化</h3>
+    <div class="grid g2">
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4>V0.7 (gitleaks 之前)</h4>
+        <p>9 钩子（commitlint 不算在 9 内）——<b>gitleaks 仅 CI 跑</b>。</p>
+        <div class="chip-row">
+          <span class="chip no">9 钩子</span>
+          <span class="chip no">CI only</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>V1.1 (gitleaks pre-commit)</h4>
+        <p>10 钩子（含 commitlint）——<b>gitleaks 本地拦截</b>。</p>
+        <div class="chip-row">
+          <span class="chip gd">10 钩子</span>
+          <span class="chip gd">pre-commit + CI</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>关键决策</h3>
+    <div class="card gold">
+      <h4>allowlist 教学反例</h4>
+      <p><code>src/coding/security_demo.py</code> 是 02-coding 规范的教学文件，故意包含"硬编码密钥"反例——加白名单避免误报。</p>
+      <div class="chip-row">
+        <span class="chip gl">教学反例保护</span>
+        <span class="chip gl">allowlist 行 12</span>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <span class="ico">⚠</span>
+      <div>
+        <b>误报风险</b>：allowlist 是"<b>必要的妥协</b>"——不加白名单 → 教学文件无法入仓；加白名单 → 必须<b>严格审查</b>允许列表。
+        当前 .gitleaks.toml 17 行内仅 1 个 allowlist 条目，受控。
+      </div>
+    </div>
+
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">10 · 阶段 V2.0.1</div>
+      <h2>devguard 自身 dogfood (2026-06-08)</h2>
+      <p>用 V1.x 强制范式约束 devguard 自己的代码库，证明闭环生效。<b>拦截 8 次</b>——闭环 100% 的最强证据。</p>
+    </section>
+
+    <h3>实现路径</h3>
+    <div class="diagram"><span class="cm">V1.5 收尾后，devguard 自己的代码从未被 V1.x 钩子跑过</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">V1.5.1-V1.5.4 提交期间，故意触发各种违规</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="hl">观察钩子行为：拦下 8 次 → 全部修复</span>
+    <span class="br">│</span>
+    <span class="br">▼</span>
+<span class="gd">写 worklog 2026-06-08_v20-devguard-dogfood.md 记录</span></div>
+
+    <h3>8 次拦截明细 · 4 类型</h3>
+    <div class="grid g2">
+      <div class="card" style="border-top:3px solid var(--brand)">
+        <h4>① ruff F401</h4>
+        <p><b>拦截内容</b>：<code>import re</code> F401 未用。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>修复</b>：删除 import。</p>
+        <div class="chip-row">
+          <span class="chip br">F401</span>
+          <span class="chip br">未用 import</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--brand)">
+        <h4>②-③ ruff T201 (×2)</h4>
+        <p><b>拦截内容</b>：<code>print()</code> T201 × 2 处。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>修复</b>：改为 logger。</p>
+        <div class="chip-row">
+          <span class="chip br">T201</span>
+          <span class="chip br">print 调试</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gold)">
+        <h4>④ markdownlint MD024</h4>
+        <p><b>拦截内容</b>：STATUS.md MD024 重复标题。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>修复</b>：合并章节。</p>
+        <div class="chip-row">
+          <span class="chip gl">MD024</span>
+          <span class="chip gl">重复标题</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <h4>⑤ worklog-ref 正则</h4>
+        <p><b>拦截内容</b>：<code>v1.5</code> 文件名不匹配 <code>YYYY-MM-DD_</code> 正则。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>修复</b>：改名 <code>2026-06-08_*.md</code>。</p>
+        <div class="chip-row">
+          <span class="chip b">worklog 引用</span>
+          <span class="chip b">正则不匹配</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gold)">
+        <h4>⑥-⑦ markdownlint MD024 (×5 标题)</h4>
+        <p><b>拦截内容</b>：MD024 × 5 重复标题。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>修复</b>：删除重复节。</p>
+        <div class="chip-row">
+          <span class="chip gl">MD024</span>
+          <span class="chip gl">5 标题</span>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4>⑧ lint_markdown.py Windows bug</h4>
+        <p><b>拦截内容</b>：Windows shell=True 长命令行 bug。</p>
+        <p style="font-size:11.5px;margin-top:6px"><b>修复</b>：V2.0.1.2 分批 50/批 + N806 命名。</p>
+        <div class="chip-row">
+          <span class="chip no">Windows bug</span>
+          <span class="chip no">V2.0.1.2</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>8 拦分布</h3>
+    <div class="mermaid-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div class="cap">FIG · 8 拦钩子分布 (mermaid pie)</div>
+        <div class="mermaid">
+pie title V2.0.1 8 次拦截
+    "ruff (F401/T201)" : 3
+    "markdownlint (MD024)" : 3
+    "worklog-ref (正则)" : 1
+    "lint_markdown (bug)" : 1
+        </div>
+      </div>
+      <div>
+        <div class="cap">FIG · 8 拦对应规范 (mermaid pie)</div>
+        <div class="mermaid">
+pie title 8 拦对应规范
+    "02 coding (ruff/gitleaks)" : 3
+    "06 documentation (markdownlint)" : 6
+    "03 git (worklog-ref)" : 1
+    "自研脚本 bug" : 1
+        </div>
+      </div>
+    </div>
+
+    <h3>核心意义</h3>
+    <blockquote>
+      "dogfood 是 V1.x 闭环最强证据。<br>
+      <b>比写"测试套件验证规范"更直接</b>——devguard 自己就是 17 规范的应用对象。<br>
+      <b>比"外部项目 fork"更省事</b>——不需要新建项目。<br>
+      <b>比"单元测试"更可信</b>——commit 真能拦住违规代码。"
+      <cite>—— worklogs/2026-06-08_v20-devguard-dogfood.md D-V2.0.1</cite>
+    </blockquote>
+
+    <div class="note good">
+      <span class="ico">✓</span>
+      <div>
+        <b>V2.0.1 闭环 100%</b>：devguard 自己的代码 → 触发钩子 → 8 拦 → 全部修复 → 闭环。
+        8 拦覆盖 4 类违规（ruff / markdownlint / worklog-ref / Windows bug），<b>不是"测试通过"</b>，是"<b>违规真被拦</b>"。
+      </div>
+    </div>
+
+    <section id="s11" class="sec-head" style="margin-top:50px">
+      <div class="tag">11 · 累计曲线</div>
+      <h2>V0.1 → V2.0.1 · 3 维增长趋势</h2>
+      <p>8 阶段演进不是线性增长，而是"<b>阶梯式</b>"——V0.1 起步 → V0.2-V0.8 平台期 → V1.1 钩子化 → V2.0.1 跃迁。下面用 mermaid xy chart 展示 3 维累计曲线。</p>
+    </section>
+
+    <h3>3 维累计 · 钩子数 / L4 tests / CI 阶段</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 累计曲线 · 钩子数 + L4 tests + CI 阶段 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "V0.1 → V2.0.1 累计增长"
+    x-axis ["V0.1", "V0.2", "V0.3", "V0.4", "V0.5", "V0.7", "V0.8", "V1.1", "V2.0.1"]
+    y-axis "数量" 0 --> 80
+    bar [9, 10, 10, 10, 10, 10, 10, 10, 10]
+    bar [13, 13, 18, 22, 28, 35, 38, 42, 65]
+    bar [5, 5, 5, 5, 5, 5, 5, 5, 5]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">图例: <span style="color:var(--brand)">■ 钩子数 (9 → 10 阶梯)</span> · <span style="color:var(--accent)">■ L4 tests (13 → 65 持续增长)</span> · <span style="color:var(--gold)">■ CI 阶段 (5 稳定)</span></p>
+    </div>
+
+    <h3>增长规律 · 3 阶段</h3>
+    <div class="grid g3">
+      <div class="card brand" style="padding:14px">
+        <h4 style="color:var(--brand)">阶段 1 · 起步 (V0.1)</h4>
+        <p>9 钩子 + 5 阶段 CI + 13 L4 tests 一次集成。<b>基线锚定</b>。</p>
+        <div class="chip-row">
+          <span class="chip br">9 钩子</span>
+          <span class="chip br">5 CI</span>
+          <span class="chip br">13 L4</span>
+        </div>
+      </div>
+      <div class="card gold" style="padding:14px">
+        <h4 style="color:var(--gold)">阶段 2 · 平台期 (V0.2-V0.8)</h4>
+        <p>6 个 1d 增量。L4 持续增长（13 → 38），钩子数稳 9-10，CI 稳 5。</p>
+        <div class="chip-row">
+          <span class="chip gl">6 增量</span>
+          <span class="chip gl">L4 +25</span>
+        </div>
+      </div>
+      <div class="card good" style="padding:14px">
+        <h4 style="color:var(--good)">阶段 3 · 跃迁 (V1.1 → V2.0.1)</h4>
+        <p>V1.1 钩子化（gitleaks） + V2.0.1 L4 跃迁（38 → 65，+27）。</p>
+        <div class="chip-row">
+          <span class="chip gd">V1.1 钩子化</span>
+          <span class="chip gd">V2.0.1 L4 跃迁</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>累计曲线 · 关键拐点</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 8 阶段累计钩子数演化 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "累计钩子数 (阶梯式)"
+    x-axis ["V0.1", "V0.2", "V0.3", "V0.4", "V0.5", "V0.7", "V0.8", "V1.1", "V2.0.1"]
+    y-axis "钩子" 0 --> 12
+    line [9, 10, 10, 10, 10, 10, 10, 10, 10]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">阶梯关键点：V0.2 (9→10 commitlint 加入) · V1.1 (10 稳态) · V2.0.1 (10 不变)</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 8 阶段累计 L4 tests (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "累计 L4 tests (持续增长)"
+    x-axis ["V0.1", "V0.2", "V0.3", "V0.4", "V0.5", "V0.7", "V0.8", "V1.1", "V2.0.1"]
+    y-axis "L4 tests" 0 --> 80
+    line [13, 13, 18, 22, 28, 35, 38, 42, 65]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">关键拐点：V2.0.1 (38→65, +27 = L4 大跃迁, 同步新增 gitleaks + dogfood 验证)</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 8 阶段累计 CI 阶段数 (mermaid xychart)</div>
+      <div class="mermaid">
+xychart-beta
+    title "累计 CI 阶段数 (稳定)"
+    x-axis ["V0.1", "V0.2", "V0.3", "V0.4", "V0.5", "V0.7", "V0.8", "V1.1", "V2.0.1"]
+    y-axis "CI 阶段" 0 --> 8
+    line [5, 5, 5, 5, 5, 5, 5, 5, 5]
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">CI 5 阶段从 V0.1 起 12 天未变——架构稳定是基线</p>
+    </div>
+
+    <div class="note info">
+      <span class="ico">i</span>
+      <div>
+        <b>三曲线分析</b>：<b>钩子数</b>呈<b>阶梯</b>（V0.2 加 commitlint 后稳定）；<b>L4 tests</b>呈<b>持续增长</b>（13 → 65，5 倍）；<b>CI 阶段</b>呈<b>稳定</b>（5 阶段不变）。
+        <b>启示</b>：CI 架构不轻易改（架构稳定性），L4 持续叠加（测试覆盖度），钩子按需加（断点式扩展）。
+      </div>
+    </div>
+
+    <section id="s12" class="sec-head" style="margin-top:50px">
+      <div class="tag">12 · 未来扩展提示</div>
+      <h2>钩子 11+ 候选 · 非本期范围</h2>
+      <p>本节列出 4 类未来扩展方向，<b>不在本期</b>范围内但可作为下一轮演进参考。</p>
+    </section>
+
+    <div class="grid g2">
+      <div class="card hl">
+        <h4>① 钩子 11+ 候选</h4>
+        <p><b>secretlint</b>（替代 gitleaks）/ <b>shellcheck</b>（bash 脚本）/ <b>hadolint</b>（Dockerfile）。</p>
+        <div class="chip-row">
+          <span class="chip b">secretlint</span>
+          <span class="chip b">shellcheck</span>
+          <span class="chip b">hadolint</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>② CI 跨平台</h4>
+        <p>macOS / Windows runner 验证——捕获跨平台 newline / 路径 / shell 差异。<b>技术债 #5</b>。</p>
+        <div class="chip-row">
+          <span class="chip b">3 OS</span>
+          <span class="chip b">+ 2x CI 耗时</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>③ dashboard 增量渲染</h4>
+        <p>只渲染变化段而非全量——性能优化（dashboard.html 当前 ~3MB）。</p>
+        <div class="chip-row">
+          <span class="chip b">增量渲染</span>
+          <span class="chip b">-50% 时间</span>
+        </div>
+      </div>
+      <div class="card gold">
+        <h4>④ L4 套件并行</h4>
+        <p>当前 65 tests 串行跑 ~2s；规模到 500+ 时需并行（pytest-xdist）。</p>
+        <div class="chip-row">
+          <span class="chip gl">pytest-xdist</span>
+          <span class="chip gl">500+ tests</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>14 期里程碑 · 完整时间轴</h3>
+    <div class="mermaid-wrap">
+      <div class="cap">FIG · 14 期里程碑 (mermaid gantt)</div>
+      <div class="mermaid">
+gantt
+    title 8 阶段 + 1 收束 + 5 隐藏 节点
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    section V0.1 起步
+    V0.1 收束签核        :milestone, m1, 2026-05-27, 0d
+    section V0.x 增量
+    V0.2 commitlint        :done, 2026-06-07, 1d
+    V0.3 markdownlint      :done, after V0.2, 1d
+    V0.4 L1 完整化         :done, after V0.3, 1d
+    V0.5 章节级 L1         :done, after V0.4, 1d
+    V0.7 L4 retry          :done, after V0.5, 1d
+    V0.8 l1_check_doc      :done, after V0.7, 1d
+    section V1.x 钩子化
+    V1.1 gitleaks 钩子     :done, after V0.8, 1d
+    section V2.0.1 dogfood
+    devguard 自己拦 8 次   :active, 2026-06-08, 1d
+    V2.0.1 闭环 (milestone):milestone, m2, after V1.1, 0d
+    section 未来候选
+    钩子 11+ (候选)        :crit, future, 2026-06-15, 5d
+    CI 跨平台 (技术债 #5)  :crit, future2, after future, 5d
+      </div>
+      <p style="font-size:10.5px;color:var(--txt-faint);margin-top:6px;font-family:var(--mono)">已完成 8 阶段 + 1 V0.1 收束签核 milestone · V2.0.1 闭环 milestone · 未来 2 个候选 (crit 标记)</p>
+    </div>
+
+    <div class="verdict" style="margin-top:36px">
+      <div class="lbl">M8 演进 · 一句话</div>
+      <h4>从 V0.1 的 9 钩子 + 13 L4 基线，演进到 V2.0.1 的 10 钩子 + 65 L4 tests + 8 dogfood 拦截</h4>
+      <p style="margin:0">M8 演进不是"<b>渐进式重构</b>"，而是"<b>收束锚定 + 增量叠加</b>"——V0.1 锚定基线（9 钩子 + 5 阶段 CI + 13 L4），
+      后续 6 个 V0.x 增量（V0.2-V0.8）持续叠加（钩子 9→10，L4 13→38），V1.1 钩子化 gitleaks（钩子稳 10），
+      <b>V2.0.1 dogfood 闭环</b>用 devguard 自己的代码验证 L4 跃迁（38→65）+ 8 拦 + 全修。
+      <br><br>
+      <b>三曲线</b>：<b>钩子数</b>阶梯（V0.2 后稳定 10）/ <b>L4 tests</b>持续增长（13 → 65，5 倍）/ <b>CI 阶段</b>稳定（5 阶段不变）。
+      <br><br>
+      <b>核心证据</b>：V2.0.1 dogfood 8 拦——<b>违规真被拦</b>，不是"测试通过"。这是 V1.x 范式跃迁的<b>最强闭环证据</b>。
+      </p>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

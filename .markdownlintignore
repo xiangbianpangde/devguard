@@ -16,3 +16,8 @@
 **/package-lock.json
 **/CHANGELOG.md
 **/*.html
+
+# Frozen pre-governance worklogs retained as historical evidence.
+worklogs/2026-05-26_模板规约与汇报模板.md
+worklogs/2026-05-27_图谱与代码理解规范v2实施.md
+worklogs/2026-05-27_规范正文v2重构.md

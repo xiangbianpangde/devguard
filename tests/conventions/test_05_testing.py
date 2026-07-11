@@ -83,6 +83,17 @@ class TestTestingContracts:
                 "test_08_code_understanding",
                 "test_perf_baseline",  # V2.5: 性能基线
                 "test_meta_l1_check",  # V4.4: _meta.yaml l1_check 字段一致性
+                "test_status",  # V2.1 #40: STATUS.md 章节级 L1
+                "test_claude",  # V2.1 #41: CLAUDE.md 结构 L1
+                "test_plan",  # V2.1 #42: 开发清单格式 L1
+                "test_file_placement",  # V2.1 #45 强化: 文件放置规则 L1
+                "test_exemption_log",  # V2.3 #51: 豁免登记强制化
+                "test_updated_tag",  # V2.3 #53: 更新时间标签强制化
+                "test_convergence_gate",  # V2.3 #52: 收束硬闸门
+                "test_html_artifact",  # V2.3 #48: HTML 产出物结构校验
+                "test_decision_alignment",  # V2.3 #50: 决策对齐拦开工
+                "test_doc_sync",  # V2.3 阶段C 补遗: 四件套硬同步
+                "test_scaffold",  # V2.3 #49: 基准约束脚手架
             ]
         )
         missing = set(expected) - set(existing)

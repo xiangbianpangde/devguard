@@ -19,6 +19,7 @@
 > 更新: 2026-07-11
 > **👤 本文件供人类阅读**。AI Agent 请阅读 `CLAUDE.md`。
 > 约 3 分钟读完。本文件夹是一套通用开发规范的**项目模板**，可直接复制到新项目中使用。
+> 更新: 2026-06-11
 
 ## 当前状态
 
@@ -97,7 +98,6 @@ py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --verify --require-hook
 ---
 
 **维护者**：袁 (xiangbianpangde)  **版本**：V2.0.1  **许可**：MIT License
-
 
 ## 快速开始（新项目）
 
