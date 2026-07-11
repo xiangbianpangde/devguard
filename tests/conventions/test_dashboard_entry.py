@@ -51,9 +51,7 @@ def test_windows_friendly_entry_runs_tests_then_renders_in_temp_project(tmp_path
         encoding="utf-8",
     )
     (tmp_path / "conventions").mkdir()
-    (tmp_path / "conventions" / "_meta.yaml").write_text(
-        "project: Temp\n", encoding="utf-8"
-    )
+    (tmp_path / "conventions" / "_meta.yaml").write_text("project: Temp\n", encoding="utf-8")
     (tmp_path / "STATUS.md").write_text("# Status\n", encoding="utf-8")
     (renderer_dir / "render.py").write_text(
         """import argparse

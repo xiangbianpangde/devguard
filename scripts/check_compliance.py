@@ -297,9 +297,7 @@ def print_text_report(report: dict) -> int:
         marker = "PASS" if status == "PASS" else "FAIL"
         print(f"[{marker}] {conv_report['id']} {conv_report['title']}")
         for r in conv_report["results"]:
-            line = (
-                f"    {r['target']:4s} {r['name']:50s} {r['path']:55s} {r['status']:5s}"
-            )
+            line = f"    {r['target']:4s} {r['name']:50s} {r['path']:55s} {r['status']:5s}"
             if r["status"] == "FAIL":
                 print(f"\033[91m{line}\033[0m  ({r['msg']})")
             elif r["status"] == "INFO":
@@ -315,9 +313,7 @@ def print_text_report(report: dict) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="扫描 conventions/_meta.yaml 跑合规检查"
-    )
+    parser = argparse.ArgumentParser(description="扫描 conventions/_meta.yaml 跑合规检查")
     parser.add_argument("--json", action="store_true", help="输出 JSON 报告")
     args = parser.parse_args()
     report = run_compliance()

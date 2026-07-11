@@ -20,9 +20,7 @@ def _load():
 
 def test_status_only_feature_addition_is_rejected():
     mod = _load()
-    errors, structural = mod.sync_errors(
-        {48}, {48, 49}, {48}, {48}, ai_context_staged=True
-    )
+    errors, structural = mod.sync_errors({48}, {48, 49}, {48}, {48}, ai_context_staged=True)
     assert structural
     assert errors
 

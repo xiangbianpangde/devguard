@@ -80,9 +80,7 @@ def _registry() -> str:
         ("[skip-docsync]", "check_doc_sync.py"),
         ("[skip-gate]", "check_convergence_gate.py"),
     )
-    catalog = "\n".join(
-        f"| `{marker}` | {gate} | emergency only |" for marker, gate in markers
-    )
+    catalog = "\n".join(f"| `{marker}` | {gate} | emergency only |" for marker, gate in markers)
     return (
         "## 二、已登记豁免标记\n\n"
         "| 豁免标记 | 钩子 | 说明 |\n|---|---|---|\n"
@@ -317,9 +315,7 @@ def run_matrix(script_root: Path) -> EnforcementReport:
     return EnforcementReport(tuple(results))
 
 
-def format_report(
-    report: EnforcementReport, threshold: float = DEFAULT_THRESHOLD
-) -> str:
+def format_report(report: EnforcementReport, threshold: float = DEFAULT_THRESHOLD) -> str:
     lines = ["=== 强制性故障注入矩阵 ==="]
     for case in report.cases:
         state = "BLOCKED" if case.blocked else "MISSED"
@@ -340,9 +336,7 @@ def format_report(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
-    parser.add_argument(
-        "--repo-root", type=Path, default=Path(__file__).resolve().parents[1]
-    )
+    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args(argv)
     report = run_matrix(args.repo_root)
     print(format_report(report, args.threshold))

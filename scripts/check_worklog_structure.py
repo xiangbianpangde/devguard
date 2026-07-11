@@ -37,9 +37,7 @@ def default_repo_root() -> Path:
 
 def check_content(relative: str, content: str) -> tuple[list[str], list[str]]:
     headings = "\n".join(
-        line.strip()
-        for line in content.splitlines()
-        if re.match(r"^\s*#{1,6}\s+", line)
+        line.strip() for line in content.splitlines() if re.match(r"^\s*#{1,6}\s+", line)
     )
     errors = [
         f"{relative}: 缺必需段「{label}」"
@@ -72,9 +70,7 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
     if len(args) != 1 or not Path(args[0]).is_file():
-        print(
-            "用法: python check_worklog_structure.py <commit_msg_file>", file=sys.stderr
-        )
+        print("用法: python check_worklog_structure.py <commit_msg_file>", file=sys.stderr)
         return 1
     root = default_repo_root()
     message = Path(args[0]).read_text(encoding="utf-8")

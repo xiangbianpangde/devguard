@@ -20,20 +20,14 @@ USAGE_HEADING = re.compile(r"^##\s+三[、.]", re.MULTILINE)
 
 def default_repo_root() -> Path:
     configured = os.environ.get("DEVGUARD_REPO_ROOT")
-    return (
-        Path(configured).resolve()
-        if configured
-        else Path(__file__).resolve().parents[1]
-    )
+    return Path(configured).resolve() if configured else Path(__file__).resolve().parents[1]
 
 
 def extract_skip_markers(message: str) -> set[str]:
     return {marker.lower() for marker in SKIP_MARKER.findall(message)}
 
 
-def _section(
-    text: str, heading: re.Pattern[str], next_heading: re.Pattern[str] | None
-) -> str:
+def _section(text: str, heading: re.Pattern[str], next_heading: re.Pattern[str] | None) -> str:
     start = heading.search(text)
     if not start:
         return ""
@@ -50,10 +44,7 @@ def registry_markers(text: str) -> set[str]:
     for line in catalog.splitlines():
         if not line.lstrip().startswith("|"):
             continue
-        cells = [
-            cell.strip().strip("`").lower()
-            for cell in line.strip().strip("|").split("|")
-        ]
+        cells = [cell.strip().strip("`").lower() for cell in line.strip().strip("|").split("|")]
         if cells and re.fullmatch(r"\[skip-[a-z0-9-]+\]", cells[0]):
             markers.add(cells[0])
     return markers
@@ -99,9 +90,7 @@ def _staged_files(root: Path) -> set[str] | None:
     return_code, output = _git(root, "diff", "--cached", "--name-only")
     if return_code != 0:
         return None
-    return {
-        line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()
-    }
+    return {line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()}
 
 
 def validate_exemptions(message: str, repo_root: Path | None = None) -> list[str]:
@@ -128,9 +117,7 @@ def validate_exemptions(message: str, repo_root: Path | None = None) -> list[str
     head = _git_text(root, f"HEAD:{REGISTRY_REL}")
     before = usage_counts(head)
     after = usage_counts(staged)
-    missing_records = sorted(
-        marker for marker in markers if after[marker] <= before[marker]
-    )
+    missing_records = sorted(marker for marker in markers if after[marker] <= before[marker])
     if missing_records:
         errors.append(f"本次暂存未为这些豁免新增完整使用记录: {missing_records}")
     return errors
@@ -160,9 +147,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.commit_msg_file is None or not args.commit_msg_file.is_file():
         print("FAIL: 必须提供存在的 commit message 文件", file=sys.stderr)
         return 1
-    errors = validate_exemptions(
-        args.commit_msg_file.read_text(encoding="utf-8"), args.repo_root
-    )
+    errors = validate_exemptions(args.commit_msg_file.read_text(encoding="utf-8"), args.repo_root)
     if errors:
         print("FAIL 豁免登记检查不通过：", file=sys.stderr)
         for error in errors:

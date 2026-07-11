@@ -72,8 +72,7 @@ def evaluate(root: Path) -> Report:
     facts = (
         Fact(
             "skills-first",
-            _has_all(skill, "name: devguard", "conventions/README.md")
-            and "skills-first" in agents,
+            _has_all(skill, "name: devguard", "conventions/README.md") and "skills-first" in agents,
             "canonical DevGuard skill is installed and routed from AGENTS.md",
         ),
         Fact(
@@ -86,9 +85,7 @@ def evaluate(root: Path) -> Report:
         Fact(
             "cross-harness Codex/Claude",
             _has_all(setup, "core/AGENTS.md.tmpl", "core/CLAUDE.md.tmpl")
-            and _has_all(
-                codex, 'sandbox_mode = "workspace-write"', "multi_agent = false"
-            )
+            and _has_all(codex, 'sandbox_mode = "workspace-write"', "multi_agent = false")
             and "mcp_servers." not in codex,
             "Claude and Codex entrypoints ship with a credential-free local config",
         ),
@@ -160,9 +157,7 @@ def evaluate(root: Path) -> Report:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--root", type=Path, default=Path(__file__).resolve().parents[1]
-    )
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     args = parser.parse_args()
     report = evaluate(args.root)

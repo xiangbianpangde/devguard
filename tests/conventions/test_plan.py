@@ -17,9 +17,7 @@ CHECKER = REPO_ROOT / "scripts" / "check_plan.py"
 
 class TestPlanStructure:
     def test_checker_passes(self):
-        r = subprocess.run(
-            [sys.executable, str(CHECKER)], capture_output=True, text=True
-        )
+        r = subprocess.run([sys.executable, str(CHECKER)], capture_output=True, text=True)
         assert r.returncode == 0, f"check_plan 失败:\n{r.stdout}\n{r.stderr}"
 
     def test_has_feature_list_section(self):

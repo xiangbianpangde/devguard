@@ -33,9 +33,7 @@ class TestTestingContracts:
     def test_pytest_testpaths_defined(self):
         """pytest 必须配置 testpaths 指向 tests 目录"""
         content = PYPROJECT.read_text(encoding="utf-8")
-        assert (
-            "testpaths" in content
-        ), "pyproject.toml 缺 [tool.pytest.ini_options] testpaths 配置"
+        assert "testpaths" in content, "pyproject.toml 缺 [tool.pytest.ini_options] testpaths 配置"
 
     def test_pytest_collection_runs_clean(self):
         """红线 1：pytest 收集能跑通（不依赖执行顺序：每次 collect 顺序可能不同）"""
@@ -97,8 +95,7 @@ class TestTestingContracts:
         )
         missing = set(expected) - set(existing)
         assert not missing, (
-            f"L4 核心测试缺失（实际 {len(existing)}，"
-            f"核心期望 {len(expected)}）：{missing}"
+            f"L4 核心测试缺失（实际 {len(existing)}，" f"核心期望 {len(expected)}）：{missing}"
         )
 
     def test_redline_2_mock_boundary_documented(self):
@@ -119,9 +116,5 @@ class TestTestingContracts:
         """红线 5（BDD+TDD）：docs/specs/ 至少有 BDD 规格"""
         if not SPECS_DIR.exists():
             pytest.skip("docs/specs/ 不存在（v0.1 项目可能未建 BDD）")
-        bdd_files = list(SPECS_DIR.glob("**/*.md")) + list(
-            SPECS_DIR.glob("**/*.feature")
-        )
-        assert (
-            bdd_files
-        ), "docs/specs/ 没有 BDD 规格文件（红线 5：开发按 BDD+TDD 流程，缺 BDD 源）"
+        bdd_files = list(SPECS_DIR.glob("**/*.md")) + list(SPECS_DIR.glob("**/*.feature"))
+        assert bdd_files, "docs/specs/ 没有 BDD 规格文件（红线 5：开发按 BDD+TDD 流程，缺 BDD 源）"

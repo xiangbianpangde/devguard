@@ -74,9 +74,9 @@ def test_core_setup_instantiates_required_docs_and_verifies(tmp_path):
     assert (target / ".agents/skills/devguard/agents/openai.yaml").is_file()
     assert (target / ".codex/config.toml").is_file()
     assert "skills-first" in (target / "AGENTS.md").read_text(encoding="utf-8")
-    assert "conventions/README.md" in (
-        target / ".agents/skills/devguard/SKILL.md"
-    ).read_text(encoding="utf-8")
+    assert "conventions/README.md" in (target / ".agents/skills/devguard/SKILL.md").read_text(
+        encoding="utf-8"
+    )
     assert module.verify(target, profile="core", require_hooks=False) == []
 
 
@@ -89,9 +89,7 @@ def test_optional_profile_is_core_plus_optional(tmp_path):
     core_destinations = {entry.destination for entry in module.CORE_MANIFEST}
     optional_destinations = {entry.destination for entry in module.OPTIONAL_MANIFEST}
     assert core_destinations < core_destinations | optional_destinations
-    assert all(
-        (target / relative_path).is_file() for relative_path in optional_destinations
-    )
+    assert all((target / relative_path).is_file() for relative_path in optional_destinations)
     assert module.verify(target, profile="optional", require_hooks=False) == []
 
 
@@ -109,9 +107,7 @@ def test_non_empty_target_is_refused_without_force_and_preserved_with_force(tmp_
     assert unrelated.read_text(encoding="utf-8") == "owner data"
 
 
-def test_setup_rolls_back_every_managed_write_when_atomic_replace_fails(
-    tmp_path, monkeypatch
-):
+def test_setup_rolls_back_every_managed_write_when_atomic_replace_fails(tmp_path, monkeypatch):
     module = load_scaffold()
     target = tmp_path / "occupied"
     target.mkdir()
@@ -189,11 +185,7 @@ def test_payload_closes_ci_dependencies_and_documents_both_hooks(tmp_path):
 
     assert "pip install -r requirements-dev.txt" in workflow
     assert "python scripts/devguard.py verify" in workflow
-    assert (
-        "pytest" in requirements
-        and "pre-commit" in requirements
-        and "ruff" in requirements
-    )
+    assert "pytest" in requirements and "pre-commit" in requirements and "ruff" in requirements
     assert "scripts\\install_hooks.py --root ." in readme
     assert '"pre-commit"' in hook_installer
     assert '"commit-msg"' in hook_installer

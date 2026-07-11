@@ -54,9 +54,7 @@ class TestDocumentationContracts:
             "Security",
         ]
         missing = [
-            s
-            for s in required_sections
-            if f"### {s}" not in content and f"## {s}" not in content
+            s for s in required_sections if f"### {s}" not in content and f"## {s}" not in content
         ]
         assert not missing, f"CHANGELOG 缺 6 分类：{missing}"
 
@@ -76,9 +74,7 @@ class TestDocumentationContracts:
 
         # FastAPI handler 大量是 async，允许豁免
         # 检查非 async 的 public func 都有 docstring
-        sync_public = [
-            node for node in public_funcs if not isinstance(node, ast.AsyncFunctionDef)
-        ]
+        sync_public = [node for node in public_funcs if not isinstance(node, ast.AsyncFunctionDef)]
         for func in sync_public:
             docstring = ast.get_docstring(func)
             assert (
@@ -95,9 +91,7 @@ class TestDocumentationContracts:
     def test_markdownlint_config_exists(self):
         """L1 检测：.markdownlint.json 必须存在（markdown 格式 L1 配置就位）"""
         # V3.1: 钩子已启用（pre-commit + ci.yml L1 lint 都加 markdownlint 步）
-        assert (
-            MARKDOWNLINT_JSON.exists()
-        ), ".markdownlint.json 缺失——markdown L1 检测无配置"
+        assert MARKDOWNLINT_JSON.exists(), ".markdownlint.json 缺失——markdown L1 检测无配置"
 
     def test_markdownlint_in_precommit_enabled(self):
         """V3.1: markdownlint 钩子必须启用（红线 1：文档格式 L1 自动检测）

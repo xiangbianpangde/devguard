@@ -92,18 +92,14 @@ def apply_data(template_text: str, data: dict) -> str:
         else:
             missing.append(ph)
     if missing:
-        print(
-            f"[warn] {len(missing)} 个占位符未提供：{missing[:5]}...", file=sys.stderr
-        )  # noqa: T201 (CLI 必要输出)
+        print(f"[warn] {len(missing)} 个占位符未提供：{missing[:5]}...", file=sys.stderr)  # noqa: T201 (CLI 必要输出)
     return out
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", type=Path, help="JSON 数据文件（key=占位符名去花括号）")
-    ap.add_argument(
-        "--out", type=Path, default=Path("report.html"), help="输出 HTML 路径"
-    )
+    ap.add_argument("--out", type=Path, default=Path("report.html"), help="输出 HTML 路径")
     args = ap.parse_args()
 
     text = TEMPLATE.read_text(encoding="utf-8")

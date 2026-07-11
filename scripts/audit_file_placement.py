@@ -59,9 +59,7 @@ def main() -> int:
             print(f"  - {e}")
         print("")
         print("  依据: meta/FILE_GRAPH.md §一 目录树 + §三 决策树")
-        print(
-            "  修复: 移入认可目录，或更新 FILE_GRAPH + check_file_placement.VALID_DIRS"
-        )
+        print("  修复: 移入认可目录，或更新 FILE_GRAPH + check_file_placement.VALID_DIRS")
         return 1
 
     if not quiet:

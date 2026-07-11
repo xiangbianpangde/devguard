@@ -33,9 +33,7 @@ class TestApiContracts:
     def test_spectral_rule_path_kebab(self):
         """红线 1：spectral 必须含 path-kebab-case 规则（kebab-case 路径）"""
         content = SPECTRAL.read_text(encoding="utf-8")
-        assert (
-            "path-kebab-case" in content
-        ), ".spectral.yaml 缺 path-kebab-case 规则（红线 1）"
+        assert "path-kebab-case" in content, ".spectral.yaml 缺 path-kebab-case 规则（红线 1）"
 
     def test_spectral_rule_no_verb(self):
         """红线 1：spectral 必须含 no-verb-in-path 规则（URL 无动词）"""
@@ -60,18 +58,14 @@ class TestApiContracts:
             "code" in content and "message" in content and "data" in content
         ), "src/api/main.py 缺统一响应结构演示（红线 2：code/message/data）"
         # 检查 pydantic BaseModel
-        assert (
-            "BaseModel" in content
-        ), "src/api/main.py 应使用 pydantic BaseModel 演示响应结构"
+        assert "BaseModel" in content, "src/api/main.py 应使用 pydantic BaseModel 演示响应结构"
 
     @pytest.mark.skipif(not API_MAIN.exists(), reason="src/api/main.py 不存在")
     def test_error_code_pattern_in_code(self):
         """红线 3/4：src/api/main.py 应演示错误码体系（40401 / 40001 / 40901 等）"""
         content = API_MAIN.read_text(encoding="utf-8")
         # 5 位错误码（项目/模块/序号）
-        assert re.search(
-            r"\b\d{5}\b", content
-        ), "src/api/main.py 应演示 5 位错误码体系（红线 3/4）"
+        assert re.search(r"\b\d{5}\b", content), "src/api/main.py 应演示 5 位错误码体系（红线 3/4）"
 
     def test_backward_compat_in_spec(self):
         """红线 7：04 §二 落地必须提到向后兼容（spectral diff + 审查）"""

@@ -91,9 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     if code != 0:
         print("FAIL 无法读取 Git 暂存区", file=sys.stderr)
         return 1
-    files = [
-        line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()
-    ]
+    files = [line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()]
 
     def read_staged(relative: str) -> str:
         read_code, text = _git(root, "show", f":{relative}")

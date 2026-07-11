@@ -99,9 +99,7 @@ def main() -> int:
         errors.append("未找到任何功能点行（首列为整数的表格行）")
     for r in fp_rows:
         if not any(sym in cell for cell in r for sym in LEGAL_STATUS):
-            errors.append(
-                f"功能点行 #{r[0]} 缺合法状态符号 {sorted(LEGAL_STATUS)}：{r[:4]}"
-            )
+            errors.append(f"功能点行 #{r[0]} 缺合法状态符号 {sorted(LEGAL_STATUS)}：{r[:4]}")
 
     # d. 与 STATUS.md 跨文件口径一致：比 `<!-- fp -->` 标签数（WARN）
     plan_tags = fp_tag_count(PLAN_FILE)
@@ -109,9 +107,7 @@ def main() -> int:
     if status_tags is None:
         warnings.append("STATUS.md 不存在，跳过功能点标签交叉计数")
     elif plan_tags == 0:
-        warnings.append(
-            "开发清单未发现 `<!-- fp -->` 功能点标签——口径统一方案要求逐功能点行打标"
-        )
+        warnings.append("开发清单未发现 `<!-- fp -->` 功能点标签——口径统一方案要求逐功能点行打标")
     elif plan_tags != status_tags:
         warnings.append(
             f"功能点标签数不一致：开发清单({plan_tags}) ≠ STATUS 详细列表({status_tags})"

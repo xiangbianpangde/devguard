@@ -106,8 +106,7 @@ def list_users(
         users = [
             u
             for u in users
-            if search.lower() in u["name"].lower()
-            or search.lower() in u["email"].lower()
+            if search.lower() in u["name"].lower() or search.lower() in u["email"].lower()
         ]
 
     # 排序

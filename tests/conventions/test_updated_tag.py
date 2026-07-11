@@ -20,9 +20,7 @@ def _load():
 
 def test_missing_and_stale_tags_are_rejected():
     mod = _load()
-    assert mod.validate_update_tags(
-        ["docs/specs/x.md"], lambda _path: "# x\n", "2026-07-10"
-    )
+    assert mod.validate_update_tags(["docs/specs/x.md"], lambda _path: "# x\n", "2026-07-10")
     assert mod.validate_update_tags(
         ["docs/specs/x.md"],
         lambda _path: "> 更新: 2026-07-09\n",

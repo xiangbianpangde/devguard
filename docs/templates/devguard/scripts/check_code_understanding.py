@@ -46,9 +46,7 @@ def main() -> int:
         }
         for expected in expected_funcs:
             if expected not in func_names:
-                errors.append(
-                    f"{filename} 缺关键函数 {expected!r}（实际: {sorted(func_names)}）"
-                )
+                errors.append(f"{filename} 缺关键函数 {expected!r}（实际: {sorted(func_names)}）")
 
     if errors:
         print("FAIL code-understanding 章节级 L1 验证不通过：")
@@ -56,9 +54,7 @@ def main() -> int:
             print(f"  - {e}")
         return 1
 
-    print(
-        f"OK code-understanding 章节级 L1 验证通过（{len(EXPECTED_FILES_AND_FUNCS)} 个示例文件）"
-    )
+    print(f"OK code-understanding 章节级 L1 验证通过（{len(EXPECTED_FILES_AND_FUNCS)} 个示例文件）")
     return 0
 
 

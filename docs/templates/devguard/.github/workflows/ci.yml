@@ -83,8 +83,8 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install pytest + pyyaml
-        run: pip install pytest pyyaml
+      - name: Install pytest + pyyaml + pinned ruff
+        run: pip install pytest pyyaml ruff==0.6.0
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
@@ -108,7 +108,7 @@ jobs:
           cache: 'pip'
 
       - name: Install deps
-        run: pip install pytest pyyaml ruff
+        run: pip install pytest pyyaml ruff==0.6.0
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check

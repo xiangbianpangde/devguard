@@ -101,13 +101,9 @@ def main() -> int:
         pass
 
     if signed_count > 0 and adr_count == 0:
-        errors.append(
-            f"有 {signed_count} 个已签核收束节点，但 worklogs/decisions/ 无 ADR"
-        )
+        errors.append(f"有 {signed_count} 个已签核收束节点，但 worklogs/decisions/ 无 ADR")
     if signed_count > 0 and report_count == 0:
-        errors.append(
-            f"有 {signed_count} 个已签核收束节点，但 docs/reports/ 无收束报告"
-        )
+        errors.append(f"有 {signed_count} 个已签核收束节点，但 docs/reports/ 无收束报告")
     # 保守：已签核数 > ADR/报告数 → WARN（可能少数节点共用 ADR）
     if signed_count > 0 and adr_count < signed_count:
         warnings.append(

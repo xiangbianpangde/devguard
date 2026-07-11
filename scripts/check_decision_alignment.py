@@ -98,9 +98,7 @@ def check_proposal(rel: str, content: str) -> tuple[list[str], bool]:
     """返回 (errors, has_pending)。"""
     errors: list[str] = []
     if not DECISION_HEADING.search(content):
-        errors.append(
-            f"{rel}: 缺「Owner 决策」节（交流 agent 产出契约：决策点必须呈交人拍板）"
-        )
+        errors.append(f"{rel}: 缺「Owner 决策」节（交流 agent 产出契约：决策点必须呈交人拍板）")
     return errors, PENDING_MARK in content
 
 

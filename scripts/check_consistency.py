@@ -22,9 +22,7 @@ import yaml
 
 
 DEFAULT_THRESHOLD = 80.0
-PROGRESS_MARKER = re.compile(
-    r"<!--\s*devguard-progress:\s*completed=(\d+)\s+total=(\d+)\s*-->"
-)
+PROGRESS_MARKER = re.compile(r"<!--\s*devguard-progress:\s*completed=(\d+)\s+total=(\d+)\s*-->")
 CONVENTION_IDS = (
     "01-architecture",
     "02-coding",
@@ -167,9 +165,7 @@ def evaluate_spec_contract(root: Path) -> Dimension:
         convention = matches[0] if len(matches) == 1 else None
         spec = root / "docs" / "specs" / f"{convention_id}.md"
         convention_text = (
-            convention.read_text(encoding="utf-8")
-            if convention and convention.is_file()
-            else ""
+            convention.read_text(encoding="utf-8") if convention and convention.is_file() else ""
         )
         spec_text = spec.read_text(encoding="utf-8") if spec.is_file() else ""
         reciprocal = bool(
@@ -182,9 +178,7 @@ def evaluate_spec_contract(root: Path) -> Dimension:
             Fact(
                 convention_id,
                 reciprocal,
-                "规范与 BDD 双向引用一致"
-                if reciprocal
-                else "规范/BDD 缺失、重名或未双向引用",
+                "规范与 BDD 双向引用一致" if reciprocal else "规范/BDD 缺失、重名或未双向引用",
             )
         )
     return Dimension("规范-BDD契约", tuple(facts))
@@ -321,9 +315,7 @@ def evaluate_repository(
     return ConsistencyReport(dimensions)
 
 
-def format_report(
-    report: ConsistencyReport, threshold: float = DEFAULT_THRESHOLD
-) -> str:
+def format_report(report: ConsistencyReport, threshold: float = DEFAULT_THRESHOLD) -> str:
     lines = ["=== 一致性事实矩阵 ==="]
     for dimension in report.dimensions:
         lines.append(f"{dimension.name}: {dimension.passed}/{dimension.total}")
@@ -331,8 +323,7 @@ def format_report(
             state = "PASS" if fact.passed else "FAIL"
             lines.append(f"  [{state}] {fact.name}: {fact.detail}")
     lines.append(
-        f"总计: {report.passed}/{report.total} = {report.score:.1f}% "
-        f"(阈值 {threshold:.1f}%)"
+        f"总计: {report.passed}/{report.total} = {report.score:.1f}% " f"(阈值 {threshold:.1f}%)"
     )
     lines.append("OK 一致性达标" if report.score >= threshold else "FAIL 一致性未达标")
     return "\n".join(lines)
@@ -341,9 +332,7 @@ def format_report(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
-    parser.add_argument(
-        "--repo-root", type=Path, default=Path(__file__).resolve().parents[1]
-    )
+    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args(argv)
     report = evaluate_repository(args.repo_root)
     print(format_report(report, args.threshold))

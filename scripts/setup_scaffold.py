@@ -59,9 +59,7 @@ CORE_MANIFEST: tuple[ManifestEntry, ...] = (
     ManifestEntry("core/.gitignore", ".gitignore"),
     ManifestEntry("core/.pre-commit-config.yaml", ".pre-commit-config.yaml"),
     ManifestEntry("core/devguard.json.tmpl", ".devguard.json", render=True),
-    ManifestEntry(
-        "core/.github/workflows/devguard.yml", ".github/workflows/devguard.yml"
-    ),
+    ManifestEntry("core/.github/workflows/devguard.yml", ".github/workflows/devguard.yml"),
     ManifestEntry("core/README.md.tmpl", "README.md", render=True),
     ManifestEntry("core/STATUS.md.tmpl", "STATUS.md", render=True),
     ManifestEntry("core/CLAUDE.md.tmpl", "CLAUDE.md", render=True),
@@ -81,14 +79,10 @@ CORE_MANIFEST: tuple[ManifestEntry, ...] = (
     ManifestEntry("core/requirements-dev.txt", "requirements-dev.txt"),
     ManifestEntry("core/conventions/README.md", "conventions/README.md"),
     ManifestEntry("core/docs/plan/背景.md.tmpl", "docs/plan/背景.md", render=True),
-    ManifestEntry(
-        "core/docs/plan/开发清单.md.tmpl", "docs/plan/开发清单.md", render=True
-    ),
+    ManifestEntry("core/docs/plan/开发清单.md.tmpl", "docs/plan/开发清单.md", render=True),
     ManifestEntry("core/scripts/devguard.py", "scripts/devguard.py"),
     ManifestEntry("core/scripts/install_hooks.py", "scripts/install_hooks.py"),
-    ManifestEntry(
-        "core/tests/governance/test_devguard.py", "tests/governance/test_devguard.py"
-    ),
+    ManifestEntry("core/tests/governance/test_devguard.py", "tests/governance/test_devguard.py"),
     ManifestEntry("core/worklogs/.gitkeep", "worklogs/.gitkeep"),
 )
 
@@ -98,12 +92,8 @@ OPTIONAL_MANIFEST: tuple[ManifestEntry, ...] = (
     ManifestEntry("optional/docs/decisions/.gitkeep", "docs/decisions/.gitkeep"),
 )
 
-REQUIRED_CORE_PATHS: tuple[str, ...] = tuple(
-    entry.destination for entry in CORE_MANIFEST
-)
-REQUIRED_OPTIONAL_PATHS: tuple[str, ...] = tuple(
-    entry.destination for entry in OPTIONAL_MANIFEST
-)
+REQUIRED_CORE_PATHS: tuple[str, ...] = tuple(entry.destination for entry in CORE_MANIFEST)
+REQUIRED_OPTIONAL_PATHS: tuple[str, ...] = tuple(entry.destination for entry in OPTIONAL_MANIFEST)
 
 
 def entries_for(profile: str) -> tuple[ManifestEntry, ...]:
@@ -116,11 +106,7 @@ def entries_for(profile: str) -> tuple[ManifestEntry, ...]:
 
 
 def _validate_sources(entries: Sequence[ManifestEntry]) -> None:
-    missing = [
-        entry.source
-        for entry in entries
-        if not (TEMPLATE_ROOT / entry.source).is_file()
-    ]
+    missing = [entry.source for entry in entries if not (TEMPLATE_ROOT / entry.source).is_file()]
     if missing:
         raise ScaffoldError(f"manifest 源文件缺失，未写入任何文件：{missing}")
 
@@ -132,8 +118,7 @@ def _validate_sources(entries: Sequence[ManifestEntry]) -> None:
     forbidden = [
         path
         for path in TEMPLATE_ROOT.rglob("*")
-        if path.name in FORBIDDEN_PAYLOAD_NAMES
-        or path.suffix in FORBIDDEN_PAYLOAD_SUFFIXES
+        if path.name in FORBIDDEN_PAYLOAD_NAMES or path.suffix in FORBIDDEN_PAYLOAD_SUFFIXES
     ]
     if forbidden:
         raise ScaffoldError(f"模板载荷含临时/生成文件，未写入任何文件：{forbidden}")
@@ -232,9 +217,7 @@ def _build_payloads(
     for entry in entries:
         source = TEMPLATE_ROOT / entry.source
         if entry.render:
-            content = _render_text(
-                source.read_text(encoding="utf-8"), project_name, profile
-            )
+            content = _render_text(source.read_text(encoding="utf-8"), project_name, profile)
             payloads[entry.destination] = content.encode("utf-8")
         else:
             payloads[entry.destination] = source.read_bytes()
@@ -267,9 +250,7 @@ def _validate_receipt(
     if receipt.get("schema") != 1:
         errors.append("初始化回执 schema 必须为 1")
     if receipt.get("profile") != profile:
-        errors.append(
-            f"初始化回执 profile={receipt.get('profile')!r} 与目标 {profile!r} 不一致"
-        )
+        errors.append(f"初始化回执 profile={receipt.get('profile')!r} 与目标 {profile!r} 不一致")
     records = receipt.get("files")
     if not isinstance(records, list):
         return [*errors, "初始化回执 files 必须是数组"]
@@ -348,9 +329,7 @@ def setup(
 
         receipt_errors = _validate_receipt(target, profile=profile, check_hashes=True)
         if receipt_errors:
-            raise ScaffoldError(
-                "初始化回执校验失败：\n- " + "\n- ".join(receipt_errors)
-            )
+            raise ScaffoldError("初始化回执校验失败：\n- " + "\n- ".join(receipt_errors))
         errors = verify(target, profile=profile, require_hooks=False)
         if errors:
             raise ScaffoldError("初始化后校验失败：\n- " + "\n- ".join(errors))
@@ -393,9 +372,7 @@ def verify(target: Path, *, profile: str | None, require_hooks: bool) -> list[st
         if entry.render and TOKEN_PATTERN.search(path.read_text(encoding="utf-8")):
             errors.append(f"仍含模板变量：{entry.destination}")
 
-    errors.extend(
-        _validate_receipt(target, profile=effective_profile, check_hashes=False)
-    )
+    errors.extend(_validate_receipt(target, profile=effective_profile, check_hashes=False))
 
     generated_verifier = target / "scripts" / "devguard.py"
     if generated_verifier.is_file():
@@ -434,9 +411,7 @@ def _venv_python(target: Path) -> Path:
 def _run(command: Sequence[str], *, cwd: Path) -> None:
     result = subprocess.run(command, cwd=cwd, check=False)
     if result.returncode != 0:
-        raise ScaffoldError(
-            f"命令失败（exit={result.returncode}）：{' '.join(command)}"
-        )
+        raise ScaffoldError(f"命令失败（exit={result.returncode}）：{' '.join(command)}")
 
 
 def install(target: Path) -> None:
@@ -447,9 +422,7 @@ def install(target: Path) -> None:
     python = _venv_python(target)
     if not python.is_file():
         raise ScaffoldError("虚拟环境创建后找不到 Python")
-    _run(
-        [str(python), "-m", "pip", "install", "-r", "requirements-dev.txt"], cwd=target
-    )
+    _run([str(python), "-m", "pip", "install", "-r", "requirements-dev.txt"], cwd=target)
     _run(
         [
             str(python),
@@ -466,9 +439,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("target", type=Path, help="目标项目根目录")
     parser.add_argument("--profile", choices=("core", "optional"))
     parser.add_argument("--project-name", help="项目名；默认使用目标目录名")
-    parser.add_argument(
-        "--force", action="store_true", help="允许写入非空目录并覆盖同名文件"
-    )
+    parser.add_argument("--force", action="store_true", help="允许写入非空目录并覆盖同名文件")
     parser.add_argument(
         "--install",
         action="store_true",
@@ -479,9 +450,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="只验证并列出将写入的 manifest，不创建或修改目标",
     )
-    parser.add_argument(
-        "--verify", action="store_true", help="不写文件，只校验既有目标"
-    )
+    parser.add_argument("--verify", action="store_true", help="不写文件，只校验既有目标")
     parser.add_argument(
         "--require-hooks",
         action="store_true",

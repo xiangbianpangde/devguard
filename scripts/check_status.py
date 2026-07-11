@@ -43,9 +43,7 @@ def first_table_after(lines: list[str], heading_kw: str) -> list[list[str]]:
     return rows
 
 
-def _table_after(
-    lines: list[str], heading_kw: str
-) -> tuple[list[list[str]], list[str]]:
+def _table_after(lines: list[str], heading_kw: str) -> tuple[list[list[str]], list[str]]:
     in_section = False
     in_table = False
     seen_sep = False
@@ -100,9 +98,7 @@ def main() -> int:
     else:
         # b. 列数 ≥ 4
         if len(progress_header) < 4:
-            errors.append(
-                f"`## 当前进度` 表列数 {len(progress_header)} < 4（{progress_header}）"
-            )
+            errors.append(f"`## 当前进度` 表列数 {len(progress_header)} < 4（{progress_header}）")
         # c. 状态列合法
         # 状态列：表头里含「状态」的列，取不到则默认第 3 列（index 2）
         status_idx = next((i for i, h in enumerate(progress_header) if "状态" in h), 2)
@@ -120,9 +116,7 @@ def main() -> int:
     if not conv_header:
         errors.append("缺 `## 收束节点历史` 节或该节无表格")
     elif len(conv_header) < 9:
-        errors.append(
-            f"`## 收束节点历史` 表列数 {len(conv_header)} < 9（{conv_header}）"
-        )
+        errors.append(f"`## 收束节点历史` 表列数 {len(conv_header)} < 9（{conv_header}）")
 
     if errors:
         print("FAIL STATUS.md 章节级 L1 验证不通过：", file=sys.stderr)

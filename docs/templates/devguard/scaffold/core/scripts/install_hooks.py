@@ -40,11 +40,7 @@ def _path_value(root: Path, *config_args: str) -> Path | None:
             f"git config {' '.join(config_args)} failed: {result.stderr.strip()}"
         )
     configured = Path(result.stdout.strip()).expanduser()
-    return (
-        configured.resolve()
-        if configured.is_absolute()
-        else (root / configured).resolve()
-    )
+    return configured.resolve() if configured.is_absolute() else (root / configured).resolve()
 
 
 def _effective_external_hooks_path(root: Path) -> Path | None:
@@ -120,9 +116,7 @@ def _chain_external_hooks(root: Path, external_hooks: Path) -> None:
         if local_hook.is_file():
             devguard_hook = local_hooks / f"{hook_name}.devguard"
             if devguard_hook.exists():
-                raise HookInstallError(
-                    f"refusing to overwrite hook chain: {devguard_hook}"
-                )
+                raise HookInstallError(f"refusing to overwrite hook chain: {devguard_hook}")
             local_hook.replace(devguard_hook)
             commands.append(f'exec {shlex.quote(devguard_hook.as_posix())} "$@"')
         else:
@@ -162,9 +156,7 @@ def install_hooks(root: Path) -> Path:
         check=False,
     )
     if result.returncode != 0:
-        raise HookInstallError(
-            f"pre-commit hook installation failed: exit={result.returncode}"
-        )
+        raise HookInstallError(f"pre-commit hook installation failed: exit={result.returncode}")
     if external_hooks is not None:
         _chain_external_hooks(root, external_hooks)
     local_hooks = (root / ".git" / "hooks").resolve()

@@ -44,6 +44,7 @@ def test_ci_pins_and_enforces_the_same_ruff_formatter_as_precommit():
     assert "pip install ruff==0.6.0 pyyaml" in workflow
     assert "ruff format --check . --config src/coding/ruff.toml" in workflow
     assert "rev: v0.6.0" in pre_commit
+    assert "id: ruff-format\n        args: ['--config=src/coding/ruff.toml']" in pre_commit
 
 
 def test_ci_build_installs_pytest_before_collecting_l4_stats():

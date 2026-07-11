@@ -27,6 +27,7 @@ repos:
         args: ['--config=src/coding/ruff.toml']
         stages: [pre-commit]
       - id: ruff-format
+        args: ['--config=src/coding/ruff.toml']
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.18.0

@@ -4,6 +4,9 @@
 
 line-length = 100
 
+[format]
+line-ending = "lf"
+
 [lint]
 # T20=print/pprint  S=安全(bandit)  E722=裸except  T100=调试断点(pdb)  N=命名  PLR0915=函数过长
 select = ["E", "F", "N", "T20", "T100", "S", "PLR0915"]

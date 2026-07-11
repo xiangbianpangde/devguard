@@ -43,9 +43,7 @@ def main() -> int:
         return 1
 
     passed = int(passed_match.group(1))
-    non_passing = sum(
-        _count_outcome(output, outcome) for outcome in NON_PASSING_SUCCESS_OUTCOMES
-    )
+    non_passing = sum(_count_outcome(output, outcome) for outcome in NON_PASSING_SUCCESS_OUTCOMES)
     total = passed + non_passing
     print(f"L4_STATS={passed}/{total}", end="")
     return 0

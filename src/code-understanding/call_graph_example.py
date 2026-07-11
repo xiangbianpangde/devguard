@@ -58,15 +58,11 @@ class CodeGraph:
 
     def find_callers(self, func_name: str) -> List[Relation]:
         """上游分析：谁调用了这个函数？"""
-        return [
-            r for r in self.relations if func_name in r.target and r.rel_type == "CALLS"
-        ]
+        return [r for r in self.relations if func_name in r.target and r.rel_type == "CALLS"]
 
     def find_callees(self, func_name: str) -> List[Relation]:
         """下游分析：这个函数调用了谁？"""
-        return [
-            r for r in self.relations if func_name in r.source and r.rel_type == "CALLS"
-        ]
+        return [r for r in self.relations if func_name in r.source and r.rel_type == "CALLS"]
 
     def detect_orphans(self) -> List[str]:
         """检测孤儿节点（无人调用也无人被调用）"""
@@ -90,15 +86,11 @@ class CallGraphVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         # 1. 抽取函数实体
-        entity = Entity(
-            type="FUNCTION", name=node.name, module=self.module_path, line=node.lineno
-        )
+        entity = Entity(type="FUNCTION", name=node.name, module=self.module_path, line=node.lineno)
         self.graph.add_entity(entity)
 
         # 记录模块 DEFINED 关系
-        self.graph.add_relation(
-            self.module_path, f"{self.module_path}::{node.name}", "DEFINES"
-        )
+        self.graph.add_relation(self.module_path, f"{self.module_path}::{node.name}", "DEFINES")
 
         # 2. 遍历函数体内的调用
         prev_func = self.current_function
@@ -107,13 +99,9 @@ class CallGraphVisitor(ast.NodeVisitor):
         self.current_function = prev_func
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        entity = Entity(
-            type="CLASS", name=node.name, module=self.module_path, line=node.lineno
-        )
+        entity = Entity(type="CLASS", name=node.name, module=self.module_path, line=node.lineno)
         self.graph.add_entity(entity)
-        self.graph.add_relation(
-            self.module_path, f"{self.module_path}::{node.name}", "DEFINES"
-        )
+        self.graph.add_relation(self.module_path, f"{self.module_path}::{node.name}", "DEFINES")
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
@@ -129,16 +117,12 @@ class CallGraphVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
-            self.graph.add_relation(
-                self.module_path, f"__import__::{alias.name}", "IMPORTS"
-            )
+            self.graph.add_relation(self.module_path, f"__import__::{alias.name}", "IMPORTS")
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = node.module or "__unknown__"
         for alias in node.names:
-            self.graph.add_relation(
-                self.module_path, f"{module}::{alias.name}", "IMPORTS"
-            )
+            self.graph.add_relation(self.module_path, f"{module}::{alias.name}", "IMPORTS")
 
     def _resolve_callee(self, node: ast.Call) -> str | None:
         """解析被调用函数名"""
@@ -158,11 +142,7 @@ def build_graph(root_dir: str) -> CodeGraph:
 
     py_files = list(Path(root_dir).rglob("*.py"))
     # 跳过 __pycache__ 和测试文件
-    py_files = [
-        f
-        for f in py_files
-        if "__pycache__" not in str(f) and not str(f).endswith("test_")
-    ]
+    py_files = [f for f in py_files if "__pycache__" not in str(f) and not str(f).endswith("test_")]
 
     for py_file in py_files:
         try:

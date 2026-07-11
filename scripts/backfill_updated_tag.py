@@ -133,16 +133,13 @@ def main() -> int:
     mode = sys.argv[1] if len(sys.argv) == 2 else ""
     if mode not in ("--dry-run", "--apply", "--refresh-staged"):
         print(
-            "用法: python scripts/backfill_updated_tag.py "
-            "--dry-run|--apply|--refresh-staged",
+            "用法: python scripts/backfill_updated_tag.py " "--dry-run|--apply|--refresh-staged",
             file=sys.stderr,
         )
         return 1
 
     files = [
-        f
-        for f in (staged_md() if mode == "--refresh-staged" else tracked_md())
-        if in_scope(f)
+        f for f in (staged_md() if mode == "--refresh-staged" else tracked_md()) if in_scope(f)
     ]
     changed = 0
     skipped = 0
@@ -150,14 +147,10 @@ def main() -> int:
         path = REPO_ROOT / rel
         content = path.read_text(encoding="utf-8")
         date = (
-            datetime.date.today().isoformat()
-            if mode == "--refresh-staged"
-            else git_last_date(rel)
+            datetime.date.today().isoformat() if mode == "--refresh-staged" else git_last_date(rel)
         )
         new = (
-            refresh_tag(content, date)
-            if mode == "--refresh-staged"
-            else insert_tag(content, date)
+            refresh_tag(content, date) if mode == "--refresh-staged" else insert_tag(content, date)
         )
         if new is None:
             skipped += 1
@@ -167,9 +160,7 @@ def main() -> int:
             print(f"+ {rel}  →  > 更新: {date}")
         else:
             path.write_text(new, encoding="utf-8", newline="\n")
-    print(
-        f"\n在范围 {len(files)} 个；将回填 {changed}，已有标签跳过 {skipped}（{mode}）"
-    )
+    print(f"\n在范围 {len(files)} 个；将回填 {changed}，已有标签跳过 {skipped}（{mode}）")
     return 0
 
 

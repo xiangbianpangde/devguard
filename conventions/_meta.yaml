@@ -327,6 +327,7 @@ pre_commit:
     grade: red_line
     maps_to: 02-coding
     description: 格式化（取代 black）
+    args: ["--config=src/coding/ruff.toml"]
 
   - id: gitleaks
     source: gitleaks/gitleaks

@@ -16,9 +16,7 @@ CHECKER = REPO_ROOT / "scripts" / "check_claude.py"
 
 class TestClaudeStructure:
     def test_checker_passes(self):
-        r = subprocess.run(
-            [sys.executable, str(CHECKER)], capture_output=True, text=True
-        )
+        r = subprocess.run([sys.executable, str(CHECKER)], capture_output=True, text=True)
         assert r.returncode == 0, f"check_claude 失败:\n{r.stdout}\n{r.stderr}"
 
     def test_required_sections_present(self):
@@ -32,15 +30,11 @@ class TestClaudeStructure:
             "文件放置": ["文件放置", "FILE_GRAPH"],
             "当前状态": ["当前状态"],
         }
-        missing = [
-            c for c, kws in required.items() if not any(k in content for k in kws)
-        ]
+        missing = [c for c, kws in required.items() if not any(k in content for k in kws)]
         assert not missing, f"CLAUDE.md 缺必需章节：{missing}"
 
     def test_redline_table_has_min_rows(self):
         """红线/规范速查表 ≥ 6 维度行"""
-        r = subprocess.run(
-            [sys.executable, str(CHECKER)], capture_output=True, text=True
-        )
+        r = subprocess.run([sys.executable, str(CHECKER)], capture_output=True, text=True)
         # checker 通过即代表红线表 ≥ 6 行
         assert r.returncode == 0

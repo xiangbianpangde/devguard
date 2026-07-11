@@ -36,9 +36,7 @@ class TestAgentDefinition:
 class TestProposalContract:
     def test_missing_decision_section_fails(self):
         mod = _load()
-        errs, _ = mod.check_proposal(
-            "docs/plan/design/设计提案-x.md", "# 提案\n## 一、背景\n"
-        )
+        errs, _ = mod.check_proposal("docs/plan/design/设计提案-x.md", "# 提案\n## 一、背景\n")
         assert errs and "Owner 决策" in errs[0]
 
     def test_decision_section_passes(self):
@@ -70,9 +68,7 @@ class TestHook:
     def test_skip_align_passes(self, tmp_path):
         msg = tmp_path / "COMMIT_EDITMSG"
         msg.write_text("feat: x [skip-align]", encoding="utf-8")
-        r = subprocess.run(
-            [sys.executable, str(CHECKER), str(msg)], capture_output=True, text=True
-        )
+        r = subprocess.run([sys.executable, str(CHECKER), str(msg)], capture_output=True, text=True)
         assert r.returncode == 0, f"[skip-align] 应放行：\n{r.stdout}\n{r.stderr}"
 
     def test_audit_all_passes_repo(self):

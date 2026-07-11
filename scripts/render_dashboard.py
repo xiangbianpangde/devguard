@@ -57,9 +57,7 @@ def run_l4_tests(root: Path) -> tuple[int, int]:
     output = result.stdout + result.stderr
     passed, total = parse_pytest_counts(output)
     if result.returncode != 0:
-        raise DashboardError(
-            f"L4 测试失败（{passed}/{total} passed, exit={result.returncode}）"
-        )
+        raise DashboardError(f"L4 测试失败（{passed}/{total} passed, exit={result.returncode}）")
     return passed, total
 
 
@@ -67,9 +65,7 @@ def render_dashboard(root: Path) -> tuple[int, int]:
     """Run L4 and render the dashboard only when the evidence is green."""
     root = root.resolve()
     passed, total = run_l4_tests(root)
-    renderer = (
-        root / "docs" / "templates" / "devguard" / "html-report-template" / "render.py"
-    )
+    renderer = root / "docs" / "templates" / "devguard" / "html-report-template" / "render.py"
     meta = root / "conventions" / "_meta.yaml"
     status = root / "STATUS.md"
     output = root / "dashboard.html"

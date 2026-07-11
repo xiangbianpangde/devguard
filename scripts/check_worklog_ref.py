@@ -18,8 +18,7 @@ from check_exemption_log import validate_exemptions  # noqa: E402
 
 
 WORKLOG_PATTERN = re.compile(
-    r"(?<![\w/])worklogs[\\/]+(?!decisions[\\/])"
-    r"\d{4}-\d{2}-\d{2}[_-][^\s)\]}>]+\.md",
+    r"(?<![\w/])worklogs[\\/]+(?!decisions[\\/])" r"\d{4}-\d{2}-\d{2}[_-][^\s)\]}>]+\.md",
     re.IGNORECASE,
 )
 SKIP_MARKER = "[skip-worklog]"
@@ -27,17 +26,11 @@ SKIP_MARKER = "[skip-worklog]"
 
 def default_repo_root() -> Path:
     configured = os.environ.get("DEVGUARD_REPO_ROOT")
-    return (
-        Path(configured).resolve()
-        if configured
-        else Path(__file__).resolve().parents[1]
-    )
+    return Path(configured).resolve() if configured else Path(__file__).resolve().parents[1]
 
 
 def referenced_worklogs(message: str) -> set[str]:
-    return {
-        match.group(0).replace("\\", "/") for match in WORKLOG_PATTERN.finditer(message)
-    }
+    return {match.group(0).replace("\\", "/") for match in WORKLOG_PATTERN.finditer(message)}
 
 
 def staged_changed_files(root: Path) -> set[str] | None:
@@ -61,9 +54,7 @@ def staged_changed_files(root: Path) -> set[str] | None:
     if completed.returncode != 0:
         return None
     return {
-        line.strip().replace("\\", "/")
-        for line in completed.stdout.splitlines()
-        if line.strip()
+        line.strip().replace("\\", "/") for line in completed.stdout.splitlines() if line.strip()
     }
 
 
@@ -77,9 +68,7 @@ def _staged_blob_exists(root: Path, relative: str) -> bool:
     return completed.returncode == 0
 
 
-def validate_worklog_reference(
-    message: str, repo_root: Path | None = None
-) -> list[str]:
+def validate_worklog_reference(message: str, repo_root: Path | None = None) -> list[str]:
     root = (repo_root or default_repo_root()).resolve()
     if SKIP_MARKER in message.lower():
         errors = validate_exemptions(message, root)

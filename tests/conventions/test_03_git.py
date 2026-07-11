@@ -65,14 +65,10 @@ class TestGitContracts:
 
     def test_pr_template_exists(self):
         """03 §二：.github/pull_request_template.md 应存在（PR 描述引导）"""
-        assert (
-            PR_TEMPLATE.exists()
-        ), ".github/pull_request_template.md 缺失——PR 描述无引导"
+        assert PR_TEMPLATE.exists(), ".github/pull_request_template.md 缺失——PR 描述无引导"
 
     def test_branch_protection_documented(self):
         """红线 1/4/5（平台分支保护）必须在 03 §二 落地有文档指引"""
         content = CONV_03.read_text(encoding="utf-8")
         # §二 落地应该提到 "分支保护" 或 "branch protection"
-        assert (
-            "分支保护" in content
-        ), "03 §二 落地缺分支保护设置指引（红线 1/4/5 无落地说明）"
+        assert "分支保护" in content, "03 §二 落地缺分支保护设置指引（红线 1/4/5 无落地说明）"

@@ -177,9 +177,7 @@ def render_pre_commit_config(meta: dict) -> str:
             if "language" in hook:
                 lines.append(f"        language: {hook['language']}")
             if "pass_filenames" in hook:
-                lines.append(
-                    f"        pass_filenames: {_yaml_bool(hook['pass_filenames'])}"
-                )
+                lines.append(f"        pass_filenames: {_yaml_bool(hook['pass_filenames'])}")
         lines.append("")
 
     rendered = "\n".join(lines)
@@ -328,9 +326,7 @@ def check_target(target: str, meta: dict) -> tuple[bool, str]:
                 if line.startswith("# ") and not line.startswith("#!"):
                     insert_idx = i
                     break
-            expected_lines = (
-                lines[:insert_idx] + expected_section.splitlines() + lines[insert_idx:]
-            )
+            expected_lines = lines[:insert_idx] + expected_section.splitlines() + lines[insert_idx:]
             expected_full = _canonical_text("\n".join(expected_lines))
             if content != expected_full:
                 mismatches.append(

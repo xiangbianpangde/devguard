@@ -107,9 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     if code != 0:
         print("FAIL 无法读取 Git 暂存区", file=sys.stderr)
         return 1
-    staged = {
-        line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()
-    }
+    staged = {line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()}
     if not ({STATUS_REL, PLAN_REL} & staged):
         return 0
     status_head = status_fps(_content(root, STATUS_REL, staged=False))

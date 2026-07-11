@@ -32,9 +32,7 @@ def check_doc(path: Path) -> list[str]:
     mermaid = text.count("```mermaid")
     tables = count_tables(text)
     if mermaid < 1 and tables < 2:
-        errors.append(
-            f"图表不足: mermaid {mermaid}, 表格 {tables}（需 ≥1 mermaid 或 ≥2 表格）"
-        )
+        errors.append(f"图表不足: mermaid {mermaid}, 表格 {tables}（需 ≥1 mermaid 或 ≥2 表格）")
 
     para_len = 0
     for line in text.split("\n"):
@@ -51,9 +49,7 @@ def check_doc(path: Path) -> list[str]:
 
 def main() -> int:
     candidates = list(REPORTS_DIR.glob("收束报告-*.md"))
-    invalid_names = sorted(
-        path.name for path in candidates if not REPORT_NAME.fullmatch(path.name)
-    )
+    invalid_names = sorted(path.name for path in candidates if not REPORT_NAME.fullmatch(path.name))
     if invalid_names:
         print(f"FAIL 收束报告文件名不符合 收束报告-vN.N.md: {invalid_names}")
         return 1

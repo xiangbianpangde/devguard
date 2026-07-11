@@ -37,9 +37,7 @@ class TestTemplateFamily:
             fp = TEMPLATES / name
             assert fp.exists(), f"模板族缺 {name}"
             m = mod.META_TYPE.search(fp.read_text(encoding="utf-8"))
-            assert (
-                m and m.group(1) == expected_type
-            ), f"{name} 类型声明应为 {expected_type}"
+            assert m and m.group(1) == expected_type, f"{name} 类型声明应为 {expected_type}"
 
     def test_templates_pass_own_contract(self):
         """模板族每个文件必须通过自身契约（自举：模板违约即坏）"""
@@ -91,9 +89,7 @@ class TestHook:
     def test_skip_html_passes(self, tmp_path):
         msg = tmp_path / "COMMIT_EDITMSG"
         msg.write_text("feat: x [skip-html]", encoding="utf-8")
-        r = subprocess.run(
-            [sys.executable, str(CHECKER), str(msg)], capture_output=True, text=True
-        )
+        r = subprocess.run([sys.executable, str(CHECKER), str(msg)], capture_output=True, text=True)
         assert r.returncode == 0, f"[skip-html] 应放行：\n{r.stdout}\n{r.stderr}"
 
     def test_audit_all_passes_repo(self):

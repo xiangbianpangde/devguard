@@ -41,9 +41,7 @@ SKIP_MARKER = "[skip-html]"
 # 受查范围：HTML 产出物落点 + 模板族自身
 SCOPE_PREFIXES = ("docs/reports/", "docs/plan/design/", "docs/templates/")
 
-META_TYPE = re.compile(
-    r'<meta\s+name="doc-template"\s+content="([\w-]+)"', re.IGNORECASE
-)
+META_TYPE = re.compile(r'<meta\s+name="doc-template"\s+content="([\w-]+)"', re.IGNORECASE)
 SECTION_ID = re.compile(r'<section\s+[^>]*id="([\w-]+)"', re.IGNORECASE)
 
 # 类型 → 必备章节锚点（结构契约，校验存在性而非逐字）
@@ -221,8 +219,7 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         print("", file=sys.stderr)
         print(
-            "  契约: docs/templates/ HTML 模板族"
-            "（汇报8要素/计划五段/实施设计8节/素材库4区）",
+            "  契约: docs/templates/ HTML 模板族" "（汇报8要素/计划五段/实施设计8节/素材库4区）",
             file=sys.stderr,
         )
         print("  豁免: 末尾加 [skip-html]（须登记 meta/豁免清单.md）", file=sys.stderr)

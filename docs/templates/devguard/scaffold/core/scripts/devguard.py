@@ -74,11 +74,7 @@ def local_hooks_path(root: Path) -> Path | None:
     if result.returncode != 0 or not result.stdout.strip():
         return None
     configured = Path(result.stdout.strip())
-    return (
-        configured.resolve()
-        if configured.is_absolute()
-        else (root / configured).resolve()
-    )
+    return configured.resolve() if configured.is_absolute() else (root / configured).resolve()
 
 
 def hook_exists(hooks: Path, hook_name: str) -> bool:

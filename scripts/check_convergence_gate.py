@@ -19,9 +19,7 @@ from check_exemption_log import validate_exemptions  # noqa: E402
 STATUS_REL = "STATUS.md"
 PLAN_REL = "docs/plan/开发清单.md"
 SKIP_MARKER = "[skip-gate]"
-MARKER = re.compile(
-    r"<!--\s*convergence-gate:\s*nodes=([\d,\s]+?)\s+last_converged_fp=(\d+)\s*-->"
-)
+MARKER = re.compile(r"<!--\s*convergence-gate:\s*nodes=([\d,\s]+?)\s+last_converged_fp=(\d+)\s*-->")
 
 
 def default_repo_root() -> Path:
@@ -33,9 +31,7 @@ def parse_marker(text: str) -> tuple[list[int], int] | None:
     match = MARKER.search(text)
     if not match:
         return None
-    nodes = sorted(
-        {int(value.strip()) for value in match.group(1).split(",") if value.strip()}
-    )
+    nodes = sorted({int(value.strip()) for value in match.group(1).split(",") if value.strip()})
     last = int(match.group(2))
     if not nodes or any(node <= 0 for node in nodes) or last < 0:
         return None
@@ -48,11 +44,7 @@ def max_done_fp(plan_text: str) -> int:
         if not line.lstrip().startswith("|"):
             continue
         cells = [cell.strip().strip("*") for cell in line.strip().strip("|").split("|")]
-        if (
-            cells
-            and cells[0].lstrip("#").isdigit()
-            and any("✅" in cell for cell in cells)
-        ):
+        if cells and cells[0].lstrip("#").isdigit() and any("✅" in cell for cell in cells):
             maximum = max(maximum, int(cells[0].lstrip("#")))
     return maximum
 
@@ -97,9 +89,7 @@ def _show(root: Path, ref: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
     if len(args) != 1 or not Path(args[0]).is_file():
-        print(
-            "用法: python check_convergence_gate.py <commit_msg_file>", file=sys.stderr
-        )
+        print("用法: python check_convergence_gate.py <commit_msg_file>", file=sys.stderr)
         return 1
     root = default_repo_root()
     message = Path(args[0]).read_text(encoding="utf-8")

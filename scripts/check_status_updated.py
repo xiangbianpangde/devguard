@@ -77,15 +77,11 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print("OK 已登记豁免")
         return 0
-    return_code, output = _git(
-        root, "diff", "--cached", "--name-only", "--diff-filter=ACMR"
-    )
+    return_code, output = _git(root, "diff", "--cached", "--name-only", "--diff-filter=ACMR")
     if return_code != 0:
         print("FAIL 无法读取 Git 暂存区", file=sys.stderr)
         return 1
-    staged = {
-        line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()
-    }
+    staged = {line.strip().replace("\\", "/") for line in output.splitlines() if line.strip()}
 
     def read_staged(relative: str) -> str:
         code, text = _git(root, "show", f":{relative}")

@@ -68,9 +68,7 @@ class TestArchitectureContracts:
             if section.startswith("importlinter:contract:")
             and config.get(section, "type", fallback="") == "layers"
         ]
-        assert (
-            layers_contracts
-        ), "importlinter.ini 缺 layers 契约（红线 3 跨层调用无自动检测）"
+        assert layers_contracts, "importlinter.ini 缺 layers 契约（红线 3 跨层调用无自动检测）"
 
     def test_importlinter_domain_pure_contract_defined(self):
         """红线 2：领域层不依赖框架（type=forbidden）契约必须定义"""

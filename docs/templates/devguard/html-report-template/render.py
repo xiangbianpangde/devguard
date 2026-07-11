@@ -138,9 +138,7 @@ def render(
     meta = load_meta(meta_path)
     status_rows = parse_status(status_path)
     done, total, pct = compute_progress(status_rows)
-    red_line_total = sum(
-        c.get("grade", {}).get("red_line", 0) for c in meta.get("conventions", [])
-    )
+    red_line_total = sum(c.get("grade", {}).get("red_line", 0) for c in meta.get("conventions", []))
     template_text = TEMPLATE_FILE.read_text(encoding="utf-8")
     template = Template(template_text)
     # V3.3 幂等性修复：render_date 改为 static "latest"（不调 git，CI drift = 0）
@@ -184,12 +182,8 @@ def main() -> int:
             return 0
         return int(s)
 
-    parser.add_argument(
-        "--l4-passed", type=_to_int_or_zero, default=0, help="L4 规范测试通过数"
-    )
-    parser.add_argument(
-        "--l4-total", type=_to_int_or_zero, default=0, help="L4 规范测试总数"
-    )
+    parser.add_argument("--l4-passed", type=_to_int_or_zero, default=0, help="L4 规范测试通过数")
+    parser.add_argument("--l4-total", type=_to_int_or_zero, default=0, help="L4 规范测试总数")
     args = parser.parse_args()
     render(
         Path(args.meta),

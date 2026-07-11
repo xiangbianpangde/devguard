@@ -100,6 +100,7 @@
 ├── README.md                         # 顶层：人类使用指南（仅供人类阅读）
 ├── STATUS.md                         # 顶层：进度仪表盘数据源（dashboard 解析它）
 ├── dashboard.html                    # 顶层：可视化进度面板
+├── .gitattributes                    # Python 行尾统一 LF，保证 Windows/Ubuntu formatter 同值
 └── .gitignore                        # 顶层：忽略规则
 ```
 
