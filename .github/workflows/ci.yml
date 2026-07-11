@@ -184,7 +184,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install build verification dependencies
-        run: pip install pytest pyyaml
+        run: pip install pytest pyyaml ruff==0.6.0
 
       - name: Python compile check
         run: python -m compileall src/ -q

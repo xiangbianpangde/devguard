@@ -54,6 +54,7 @@ def test_ci_build_installs_pytest_before_collecting_l4_stats():
     install_index = build.index("pip install")
     collect_index = build.index("python scripts/collect_l4_stats.py")
     assert "pytest" in build[install_index:collect_index]
+    assert "ruff==0.6.0" in build[install_index:collect_index]
 
 
 def test_l4_collector_propagates_pytest_failure(

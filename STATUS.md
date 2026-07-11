@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-07-11（#50-#52 全部交付；修复 CI 的 ruff 配置/依赖闭包后完成收束）
+> 更新: 2026-07-11（#50-#52 全部交付；修复 CI 全 job 的 ruff 配置/依赖闭包后完成收束）
 <!-- devguard-progress: completed=52 total=52 -->
 <!-- convergence-gate: nodes=31,35,46,49,52 last_converged_fp=52 -->
 
