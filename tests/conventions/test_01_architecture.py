@@ -31,7 +31,7 @@ FORBIDDEN_FRAMEWORKS = frozenset(
         "tornado",
         "starlette",
         "pydantic",
-        "peewee",  # pydantic 虽常用于领域但按严格定义也算框架
+        "peewee",  # 严格定义下也视为 ORM 框架依赖
     }
 )
 

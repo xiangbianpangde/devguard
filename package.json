@@ -1,18 +1,18 @@
 {
   "name": "devguard",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "private": true,
-  "description": "通用开发规范 V2.0.1 模板（可复制到新项目）",
+  "description": "通用开发规范 V2.1.0：可测治理与一键初始化",
   "scripts": {
     "render": "python scripts/render_meta.py --render all",
     "render:check": "python scripts/render_meta.py --check",
     "test": "pytest tests/conventions/ -v",
     "compliance": "python scripts/check_compliance.py",
-    "dashboard": "bash scripts/render_dashboard.sh"
+    "dashboard": "python scripts/render_dashboard.py"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
-    "markdownlint-cli": "^0.48.0"
+    "markdownlint-cli": "^0.49.0"
   }
 }

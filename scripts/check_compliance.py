@@ -18,8 +18,11 @@ check_compliance.py — 合规扫描（#10 任务 v2 实现）
 from __future__ import annotations
 
 import argparse
+import ast
+import configparser
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -74,6 +77,71 @@ L4_CHECKS: dict[str, str] = {
 }
 
 
+def validate_artifact(path: Path) -> tuple[bool, str]:
+    """Validate that one declared artifact is substantive and parseable."""
+    if path.is_dir():
+        files = [candidate for candidate in path.rglob("*") if candidate.is_file()]
+        return (True, f"目录含 {len(files)} 个文件") if files else (False, "目录为空")
+    if not path.is_file():
+        return False, "文件缺失"
+    try:
+        raw = path.read_bytes()
+    except OSError as error:
+        return False, f"无法读取: {error}"
+    if not raw.strip():
+        return False, "文件为空"
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        return False, f"不是 UTF-8: {error}"
+
+    suffix = path.suffix.lower()
+    try:
+        if suffix in {".yaml", ".yml"}:
+            if yaml.safe_load(text) is None:
+                return False, "YAML 没有有效内容"
+        elif suffix == ".json":
+            json.loads(text)
+        elif suffix == ".toml":
+            tomllib.loads(text)
+        elif suffix == ".ini":
+            parser = configparser.ConfigParser()
+            parser.read_string(text)
+            if not parser.sections():
+                return False, "INI 没有 section"
+        elif suffix == ".py":
+            compile(text, str(path), "exec")
+        elif suffix == ".md" and not any(
+            line.lstrip().startswith("#") for line in text.splitlines()
+        ):
+            return False, "Markdown 缺标题"
+    except (ValueError, SyntaxError, configparser.Error, yaml.YAMLError) as error:
+        return False, f"解析失败: {error}"
+    return True, "非空且语义可解析"
+
+
+def contains_test_contract(path: Path) -> tuple[bool, str]:
+    """Require at least one real pytest-style test definition."""
+    valid, detail = validate_artifact(path)
+    if not valid:
+        return False, detail
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except (OSError, SyntaxError) as error:
+        return False, f"测试文件解析失败: {error}"
+    definitions = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.startswith("test_")
+    ]
+    return (
+        (True, f"包含 {len(definitions)} 个 test 定义")
+        if definitions
+        else (False, "没有真实 test_ 定义")
+    )
+
+
 def load_meta() -> dict:
     """读 _meta.yaml（UTF-8 强制）"""
     if not META_FILE.exists():
@@ -106,13 +174,14 @@ def check_convention(conv: dict) -> list[dict]:
                 }
             )
         elif path.exists():
+            valid, detail = validate_artifact(path)
             results.append(
                 {
                     "target": "doc",
                     "name": f"{cid} 规范文件",
                     "path": file_rel,
-                    "status": "PASS",
-                    "msg": "文件存在",
+                    "status": "PASS" if valid else "FAIL",
+                    "msg": detail,
                 }
             )
         else:
@@ -129,13 +198,36 @@ def check_convention(conv: dict) -> list[dict]:
     # 2. L1 配置检查
     for rel_path, desc in L1_CHECKS.get(cid, []):
         path = REPO_ROOT / rel_path
+        valid, detail = validate_artifact(path)
         results.append(
             {
                 "target": "L1",
                 "name": desc,
                 "path": rel_path,
-                "status": "PASS" if path.exists() else "FAIL",
-                "msg": "文件存在" if path.exists() else "文件缺失",
+                "status": "PASS" if valid else "FAIL",
+                "msg": detail,
+            }
+        )
+
+    # _meta.yaml is the authoritative declaration. Validate every declared L1
+    # path even when it is not part of the older hard-coded compatibility map.
+    grade = conv.get("grade") if isinstance(conv.get("grade"), dict) else {}
+    declared = grade.get("l1_check_path", [])
+    if isinstance(declared, str):
+        declared = [declared]
+    already_checked = {relative for relative, _description in L1_CHECKS.get(cid, [])}
+    for rel_path in declared if isinstance(declared, list) else []:
+        if not isinstance(rel_path, str) or rel_path in already_checked:
+            continue
+        path = REPO_ROOT / rel_path
+        valid, detail = validate_artifact(path)
+        results.append(
+            {
+                "target": "L1",
+                "name": f"{cid} _meta 声明的 L1 产物",
+                "path": rel_path,
+                "status": "PASS" if valid else "FAIL",
+                "msg": detail,
             }
         )
 
@@ -143,13 +235,14 @@ def check_convention(conv: dict) -> list[dict]:
     l4_filename = L4_CHECKS.get(cid)
     if l4_filename:
         l4_path = REPO_ROOT / "tests" / "conventions" / l4_filename
+        valid, detail = contains_test_contract(l4_path)
         results.append(
             {
                 "target": "L4",
                 "name": f"{cid} L4 规范测试",
                 "path": f"tests/conventions/{l4_filename}",
-                "status": "PASS" if l4_path.exists() else "FAIL",
-                "msg": "测试文件存在" if l4_path.exists() else "测试文件缺失",
+                "status": "PASS" if valid else "FAIL",
+                "msg": detail,
             }
         )
 

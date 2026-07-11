@@ -46,13 +46,13 @@ class DiscountCalculator:
 
         if is_vip:
             discount = total * (1 - self.VIP_DISCOUNT_RATE)
-            reasons.append(f"VIP {self.VIP_DISCOUNT_RATE*100:.0f}% 折扣")
+            reasons.append(f"VIP {self.VIP_DISCOUNT_RATE * 100:.0f}% 折扣")
 
         if quantity >= self.BULK_THRESHOLD:
             bulk_discount = total * (1 - self.BULK_DISCOUNT_RATE)
             discount = max(discount, bulk_discount)  # 取最优折扣
             reasons.append(
-                f"满{self.BULK_THRESHOLD}件 {self.BULK_DISCOUNT_RATE*100:.0f}% 折扣"
+                f"满{self.BULK_THRESHOLD}件 {self.BULK_DISCOUNT_RATE * 100:.0f}% 折扣"
             )
 
         if not reasons:

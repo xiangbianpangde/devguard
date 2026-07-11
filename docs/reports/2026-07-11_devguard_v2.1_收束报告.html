@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DevGuard v2.1 收束报告</title>
+  <style>
+    body{font:16px/1.6 system-ui,sans-serif;max-width:1000px;margin:40px auto;padding:0 24px;color:#18212f;background:#f7f9fc}
+    h1,h2{color:#102a43} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+    .card{background:white;border:1px solid #d9e2ec;border-radius:12px;padding:18px}.n{font-size:2rem;font-weight:700;color:#0b7285}
+    table{width:100%;border-collapse:collapse;background:white}th,td{border:1px solid #d9e2ec;padding:10px;text-align:left}.pass{color:#087f5b;font-weight:700}.pending{color:#b35c00;font-weight:700}
+  </style>
+</head>
+<body>
+  <h1>DevGuard v2.1 · P0/P1 收束</h1>
+  <p>更新：2026-07-11 · 本地四阶段完成，GitHub 平台保护待认证回读。</p>
+  <div class="grid">
+    <div class="card"><div class="n">100%</div><div>一致性 24/24</div></div>
+    <div class="card"><div class="n">100%</div><div>强制拦截 10/10</div></div>
+    <div class="card"><div class="n">PASS</div><div>仓外一键初始化 E2E</div></div>
+    <div class="card"><div class="n">18</div><div>本仓 pre-commit/commit-msg hooks</div></div>
+  </div>
+  <h2>四阶段结果</h2>
+  <table><thead><tr><th>阶段</th><th>结果</th><th>关键证据</th></tr></thead><tbody>
+    <tr><td>整理</td><td class="pass">PASS</td><td>1-49 连续编号；三处同值进度投影；原生 LICENSE/CODEOWNERS</td></tr>
+    <tr><td>测试</td><td class="pass">PASS</td><td>全量 pytest 128/128、pre-commit、仓外 scaffold E2E</td></tr>
+    <tr><td>审计</td><td class="pass">PASS</td><td>一致性 100%；拦截率 100%；依赖和契约扫描</td></tr>
+    <tr><td>验证</td><td class="pass">PASS</td><td>真实联网安装、双 hook、目标测试、目标自身复验</td></tr>
+  </tbody></table>
+  <h2>收束结论</h2>
+  <p>本地门槛全部达到；<span class="pending">GitHub master 保护规则仍待登录后配置与回读</span>。在平台证据补齐前，不宣称 #49 或项目级收束全部完成。</p>
+</body>
+</html>

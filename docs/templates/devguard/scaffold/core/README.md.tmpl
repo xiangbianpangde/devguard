@@ -1,0 +1,41 @@
+# {{PROJECT_NAME}}
+
+> DevGuard profile: `{{PROFILE}}` · initialized: {{DATE}}
+
+This repository starts with a minimal, self-contained governance baseline. The
+same checks run locally and in `.github/workflows/devguard.yml`.
+
+## PowerShell quick start
+
+Run these commands from the project root:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+git init
+.\.venv\Scripts\python.exe -m pre_commit install --hook-type pre-commit --hook-type commit-msg
+.\.venv\Scripts\python.exe scripts\devguard.py verify --require-hooks
+```
+
+The fourth command installs **both** the normal `pre-commit` gate and the
+`commit-msg` gate. A successful verification prints `DEVGUARD OK`; every missing
+dependency, file, configuration link, or required hook returns a non-zero exit.
+
+## Daily commands
+
+```powershell
+.\.venv\Scripts\python.exe -m pre_commit run --all-files
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe scripts\devguard.py verify --require-hooks
+```
+
+## Project records
+
+- Current state: `STATUS.md`
+- Work plan: `docs/plan/开发清单.md`
+- Decisions and constraints: `CLAUDE.md`
+- Per-change evidence: `worklogs/`
+
+Keep documentation and implementation in the same pull request. Protect the
+default branch in the hosting service and require the `governance` CI check;
+local hooks alone are intentionally not presented as server-side enforcement.

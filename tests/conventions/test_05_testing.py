@@ -64,9 +64,9 @@ class TestTestingContracts:
         ), f"pytest 收集不稳定（第一次 {n1}，第二次 {n2}）—— 红线 1：测试可能依赖执行顺序"
 
     def test_l4_tests_for_every_convention(self):
-        """红线 5（BDD+TDD）：每篇规范必须严格 1 个 L4 test（_meta.yaml l4_tests.rule）
+        """红线 5（BDD+TDD）：每篇规范必须至少有 1 个 L4 test。
 
-        #3 任务完成后状态：8 篇全覆盖
+        治理能力可以继续增加独立契约测试，不能把新增测试误判为漂移。
         """
         if not L4_TESTS_DIR.exists():
             pytest.fail("tests/conventions/ 缺失——L4 规范测试不存在")
@@ -85,10 +85,10 @@ class TestTestingContracts:
                 "test_meta_l1_check",  # V4.4: _meta.yaml l1_check 字段一致性
             ]
         )
-        assert existing == expected, (
-            f"L4 测试文件集不匹配（实际 {len(existing)}，期望 {len(expected)}）\n"
-            f"多余: {set(existing) - set(expected)}\n"
-            f"缺失: {set(expected) - set(existing)}"
+        missing = set(expected) - set(existing)
+        assert not missing, (
+            f"L4 核心测试缺失（实际 {len(existing)}，"
+            f"核心期望 {len(expected)}）：{missing}"
         )
 
     def test_redline_2_mock_boundary_documented(self):

@@ -25,49 +25,71 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install ruff
-        run: pip install ruff
+      - name: Install lint and governance dependencies
+        run: pip install ruff==0.6.0 pyyaml
 
       - name: ruff check
         run: ruff check . --config src/coding/ruff.toml
 
-      # ruff format check 跨平台 newline 差异会误报，V0.1 暂跳过（V2 修 newline 处理后启用）
+      - name: ruff format check
+        run: ruff format --check . --config src/coding/ruff.toml
 
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: gitleaks manual run V3.3
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          tar -xzf /tmp/gitleaks.tgz -C /tmp
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --log-opts="--no-merges --first-parent" --exit-code=1
+
+      # V3.4: ci.yml L1 lint 阶段加 markdownlint 步（V3.1 已启用 pre-commit 钩子）
+      - name: markdownlint V3.4
+        run: |
+          npm ci --silent
+          python scripts/lint_markdown.py
+
+      # V10: 01-architecture L1 — importlinter（分层依赖契约 + 领域层纯净）
+      - name: importlinter（01-architecture L1）
+        run: |
+          pip install import-linter
+          lint-imports --config importlinter.ini
+
+      # V10: 04-api L1 — spectral（OpenAPI lint，规则见 .spectral.yaml）
+      - name: spectral（04-api L1）
+        run: npx --yes @stoplight/spectral-cli lint src/api/openapi.yaml --ruleset .spectral.yaml
+
+      # V10: 汇报一致性 L1 — 收束报告结构 + 文档质量 + 一致性评分 ≥80%
+      - name: 汇报一致性（check_report + check_doc_quality + check_consistency）
+        run: |
+          python scripts/check_report.py
+          python scripts/check_doc_quality.py
+          python scripts/check_consistency.py
 
   # -------------------------------------------------------------
-  # 阶段 2：test（pytest + 覆盖率门禁）
+  # 阶段 2：test（文档规范仓库的 Python/契约测试）
   # -------------------------------------------------------------
   test:
-    name: pytest + coverage gate
+    name: Repository pytest suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install pytest + pytest-cov + pyyaml
-        run: pip install pytest pytest-cov pyyaml
+      - name: Install pytest + pyyaml
+        run: pip install pytest pyyaml
 
-      - name: render_meta.py --render convention-grade（保证工作区最新）
-        run: python scripts/render_meta.py --render convention-grade
-
-      - name: render_meta.py --check
+      - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
 
-      - name: pytest collect
-        run: pytest -q --co || echo "no tests collected (OK for v0.1)"
+      - name: Run repository tests
+        run: pytest -q
 
   # -------------------------------------------------------------
   # 阶段 3：l4-conventions（L4 规范测试）
@@ -79,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -87,14 +109,18 @@ jobs:
       - name: Install deps
         run: pip install pytest pyyaml ruff
 
-      - name: render_meta.py --render convention-grade（保证工作区最新）
-        run: python scripts/render_meta.py --render convention-grade
-
-      - name: render_meta.py --check
+      - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
 
       - name: pytest tests/conventions/
         run: pytest tests/conventions/ -v
+
+      # V6.1: 07-ai-workflow + 08-code-understanding 章节级 L1 钩子
+      - name: check_ai_workflow.py（V6.1 07 章节级 L1）
+        run: python scripts/check_ai_workflow.py
+
+      - name: check_code_understanding.py（V6.1 08 章节级 L1）
+        run: python scripts/check_code_understanding.py
 
   # -------------------------------------------------------------
   # 阶段 4：compliance（合规扫描）
@@ -106,7 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -126,9 +152,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      - name: Install build verification dependencies
+        run: pip install pytest pyyaml
+
       - name: Python compile check
         run: python -m compileall src/ -q
+
+      # V3.2: html-report-template 渲染（修 render.py 数据 bug 后启用 + dashboard.html 整体切换）
+      # V4.2: 传 --l4-passed/--l4-total 注入到 dashboard.html 模板的 L4 卡片
+      # V6.3 失败后回退硬编码 + V7.2 修订：自动收集 L4 + ${VAR:-0} 默认值防御
+      - name: Render dashboard.html（V3.2 + V7.2 自动收集 L4）
+        run: |
+          # L4 collector runs pytest and fails closed; Build cannot publish fake 0/0.
+          L4_STATS=$(python scripts/collect_l4_stats.py)
+          L4_PASSED=$(echo "$L4_STATS" | sed 's/L4_STATS=\([0-9]*\)\/\([0-9]*\)/\1/')
+          L4_TOTAL=$(echo "$L4_STATS" | sed 's/L4_STATS=\([0-9]*\)\/\([0-9]*\)/\2/')
+          # V7.2: bash ${VAR:-0} 防御空字符串（避免 --l4-passed "" 被 shell 解释为无参）
+          L4_PASSED="${L4_PASSED:-0}"
+          L4_TOTAL="${L4_TOTAL:-0}"
+          echo "V7.2 L4 stats: passed=$L4_PASSED total=$L4_TOTAL"
+          python docs/templates/devguard/html-report-template/render.py \
+            --meta conventions/_meta.yaml \
+            --status STATUS.md \
+            --out dashboard.html \
+            --l4-passed "$L4_PASSED" \
+            --l4-total "$L4_TOTAL"
+
+      - name: Dashboard drift check（V3.2 漂移即 fail）
+        run: git diff --exit-code dashboard.html

@@ -20,12 +20,6 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=10000']
 
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.16.0
-    hooks:
-      - id: commitlint
-        stages: [commit-msg]
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.0
     hooks:
@@ -45,8 +39,48 @@ repos:
         name: markdownlint
         entry: python scripts/lint_markdown.py
         language: system
+      - id: commitlint
+        name: commit message must follow Conventional Commits
+        stages: [commit-msg]
+        entry: npx --no -- commitlint --edit
+        language: system
       - id: commit-msg-worklog-ref
         name: commit-msg must reference worklog file
         stages: [commit-msg]
         entry: python scripts/check_worklog_ref.py
         language: python
+      - id: commit-msg-status-updated
+        name: worklog and STATUS must stay synchronized
+        stages: [commit-msg]
+        entry: python scripts/check_status_updated.py
+        language: system
+      - id: commit-msg-worklog-structure
+        name: staged worklogs must contain evidence sections
+        stages: [commit-msg]
+        entry: python scripts/check_worklog_structure.py
+        language: system
+      - id: commit-msg-file-placement
+        name: new files must follow FILE_GRAPH
+        stages: [commit-msg]
+        entry: python scripts/check_file_placement.py
+        language: system
+      - id: commit-msg-exemption-log
+        name: skip markers must be registered and auditable
+        stages: [commit-msg]
+        entry: python scripts/check_exemption_log.py
+        language: system
+      - id: commit-msg-updated-tag
+        name: managed documents must refresh update tags
+        stages: [commit-msg]
+        entry: python scripts/check_updated_tag.py
+        language: system
+      - id: commit-msg-doc-sync
+        name: STATUS plan and AI context must stay structurally synchronized
+        stages: [commit-msg]
+        entry: python scripts/check_doc_sync.py
+        language: system
+      - id: commit-msg-convergence-gate
+        name: delivery cannot cross an unconverged node
+        stages: [commit-msg]
+        entry: python scripts/check_convergence_gate.py
+        language: system

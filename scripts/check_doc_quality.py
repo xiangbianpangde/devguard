@@ -15,11 +15,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORTS_DIR = REPO_ROOT / "docs" / "reports"
+REPORT_NAME = re.compile(r"^收束报告-v(?P<major>\d+)\.(?P<minor>\d+)\.md$")
 
 
 def version_key(name: str) -> tuple[int, ...]:
-    m = re.search(r"v(\d+\.\d+)", name)
-    return tuple(int(x) for x in m.group(1).split(".")) if m else (0, 0)
+    match = REPORT_NAME.fullmatch(name)
+    return (int(match.group("major")), int(match.group("minor"))) if match else (0, 0)
 
 
 def check_doc(path: Path) -> list[str]:
@@ -47,7 +48,14 @@ def check_doc(path: Path) -> list[str]:
 
 
 def main() -> int:
-    docs = [p for p in REPORTS_DIR.glob("*.md") if version_key(p.name) >= (2, 0)]
+    candidates = list(REPORTS_DIR.glob("收束报告-*.md"))
+    invalid_names = sorted(
+        path.name for path in candidates if not REPORT_NAME.fullmatch(path.name)
+    )
+    if invalid_names:
+        print(f"FAIL 收束报告文件名不符合 收束报告-vN.N.md: {invalid_names}")
+        return 1
+    docs = [p for p in candidates if version_key(p.name) >= (2, 0)]
     if not docs:
         print("OK 无 v2.0+ 报告（首次收束前）")
         return 0

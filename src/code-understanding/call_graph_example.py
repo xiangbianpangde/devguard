@@ -186,12 +186,12 @@ def print_report(graph: CodeGraph) -> None:
     classes = [e for e in graph.entities.values() if e.type == "CLASS"]
     calls = [r for r in graph.relations if r.rel_type == "CALLS"]
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"  代码知识图谱 — 构建报告")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"  实体: {len(graph.entities)} 个（函数: {len(funcs)}, 类: {len(classes)}）")
     print(f"  关系: {len(graph.relations)} 条（调用: {len(calls)}）")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
 
     # 孤儿节点检测
     orphans = graph.detect_orphans()

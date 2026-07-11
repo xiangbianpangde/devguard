@@ -1,0 +1,18 @@
+# {{PROJECT_NAME}} — AI project context
+
+> Updated: {{DATE}}
+
+## Required workflow
+
+1. Read `README.md`, `STATUS.md`, and `docs/plan/开发清单.md` before changing code.
+2. Keep changes within the user-approved scope.
+3. Add or update tests before implementation when behavior changes.
+4. Run `python scripts/devguard.py verify`, focused tests, and relevant hooks.
+5. Record factual evidence in `STATUS.md` and `worklogs/`; do not claim more than was run.
+
+## Hard rules
+
+- Never commit secrets, generated caches, `.bak`, or `.tmp` files.
+- Do not bypass a failed gate without an explicit, documented owner decision.
+- A local hook is not proof of branch protection; CI and hosting rules are separate evidence.
+- Do not replace a real end-to-end check with a smoke test when deployment behavior changed.

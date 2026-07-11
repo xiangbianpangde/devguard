@@ -19,6 +19,7 @@
 ---
 # Git 协作规范
 
+> 更新: 2026-07-11
 > **本规范是 [ai-workflow 04-长程开发·Git 提交](ai-workflow_AI协作开发流程/04-长程开发.md) 的细化**，展开提交格式、分支策略与 Review 流程；也支撑 §2.3/§2.4 的审查与确认在 Git 层面落地。
 >
 > **档位即分支模型**：轻量（1-3 人）用 Trunk-Based；标准（4-10 人）用 GitHub Flow；团队（10+ 人）用 Git Flow。
@@ -33,7 +34,7 @@
 | 2 | 提交符合 Conventional Commits（`type(scope): desc`） | `commitlint` + commit-msg hook |
 | 3 | 一个 commit 只做一件事，禁止 `WIP`/`fix`/`update` 等模糊提交 | 审查 + commitlint |
 | 4 | 禁止 `git push --force` 到共享分支（main/develop） | 平台分支保护 |
-| 5 | 合入需至少 1 人 Approve（团队档；单人项目以自审 + DeepSeek 审查替代） | 平台分支保护 |
+| 5 | 团队项目合入需至少 1 人 Approve；单人项目也必须走 PR + 必需 CI，并留下结构化自审记录 | 平台分支保护 + PR 审计记录 |
 
 ---
 
@@ -47,9 +48,13 @@ module.exports = { extends: ['@commitlint/config-conventional'] };
 
 ```yaml
 # .pre-commit-config.yaml 追加
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.16.0
-    hooks: [{ id: commitlint, stages: [commit-msg] }]
+  - repo: local
+    hooks:
+      - id: commitlint
+        name: commit message must follow Conventional Commits
+        entry: npx --no -- commitlint --edit
+        language: system
+        stages: [commit-msg]
 ```
 
 **`.gitmessage` 提交模板**（`git config commit.template .gitmessage`）：
@@ -70,7 +75,7 @@ module.exports = { extends: ['@commitlint/config-conventional'] };
 ## 怎么验证（命令 + 可观测证据，对应 ai-workflow §2.2）
 ```
 
-**分支保护设置**（GitHub Settings → Branches，或 `gh api`）：勾选 Require PR、Require 1 approval、Require status checks、Restrict force push。一次配好，红线 1/4/5 由平台强制。
+**分支保护设置**（GitHub Settings → Branches，或 GitHub API）：所有项目勾选 Require PR、Require status checks、Require conversation resolution，并禁止 force push / 删除分支。团队项目把 required approvals 设为至少 1；单人项目设为 0，避免 Owner 无法批准自己的 PR，但仍由 PR、必需 CI 与自审记录形成可追溯硬闸门。配置后必须通过 API 回读或设置页复核，不能只写在文档里。
 
 ---
 
@@ -148,5 +153,6 @@ module.exports = { extends: ['@commitlint/config-conventional'] };
 
 | 日期 | 版本 | 变更说明 |
 |------|------|---------|
+| 2026-07-10 | v2.1 | 单人项目改为 PR + 必需 CI + 自审记录；分支保护要求真实回读 |
 | 2026-05-27 | v2.0 | 重构为 §2.6 的细化；档位绑定分支模型；红线配 commitlint/分支保护；新增 .gitmessage、PR 模板、保护设置等可复制物料 |
 | 2026-05-26 | v1.0 | 按统一模板改造 |
