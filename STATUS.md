@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-07-11（#50 分支收敛进行中：本地 V2.3、依赖版本与工作流闸门历史已合入）
+> 更新: 2026-07-11（#50 分支内容已全部合入；待最终分支与远程引用收敛）
 <!-- devguard-progress: completed=49 total=52 -->
 <!-- convergence-gate: nodes=31,35,46,49,52 last_converged_fp=49 -->
 
