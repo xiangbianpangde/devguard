@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Create a self-contained DevGuard baseline in a fresh project.
 
-The manifest is deliberately explicit.  A missing source aborts before the first
-write, and a non-empty target is rejected unless the caller opts in with
-``--force``.  ``--install`` is the one-command path: it also creates a local
-virtual environment, initializes Git, installs dependencies, installs both hook
-types, and performs a fail-closed verification.
+The manifest is deliberately explicit. A missing source aborts before the first
+write, ``--dry-run`` validates without mutation, and a non-empty target is
+rejected unless the caller opts in with ``--force``. Managed writes are atomic
+and roll back as one transaction. ``--install`` is the one-command path: it also
+creates a local virtual environment, initializes Git, installs dependencies,
+installs both hook types, and performs a fail-closed verification.
 """
 
 from __future__ import annotations
@@ -13,9 +14,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import venv
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -62,6 +65,17 @@ CORE_MANIFEST: tuple[ManifestEntry, ...] = (
     ManifestEntry("core/README.md.tmpl", "README.md", render=True),
     ManifestEntry("core/STATUS.md.tmpl", "STATUS.md", render=True),
     ManifestEntry("core/CLAUDE.md.tmpl", "CLAUDE.md", render=True),
+    ManifestEntry("core/AGENTS.md.tmpl", "AGENTS.md", render=True),
+    ManifestEntry(
+        "core/.agents/skills/devguard/SKILL.md.tmpl",
+        ".agents/skills/devguard/SKILL.md",
+        render=True,
+    ),
+    ManifestEntry(
+        "core/.agents/skills/devguard/agents/openai.yaml",
+        ".agents/skills/devguard/agents/openai.yaml",
+    ),
+    ManifestEntry("core/.codex/config.toml", ".codex/config.toml"),
     ManifestEntry("core/CONTRIBUTING.md", "CONTRIBUTING.md"),
     ManifestEntry("core/SECURITY.md", "SECURITY.md"),
     ManifestEntry("core/requirements-dev.txt", "requirements-dev.txt"),
@@ -145,20 +159,86 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _write_receipt(target: Path, result: SetupResult) -> None:
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _receipt_payload(result: SetupResult, payloads: dict[str, bytes]) -> bytes:
     receipt = {
         "schema": 1,
         "profile": result.profile,
         "files": [
-            {"path": relative_path, "sha256": _sha256(target / relative_path)}
+            {"path": relative_path, "sha256": _sha256_bytes(payloads[relative_path])}
             for relative_path in result.written
         ],
     }
-    (target / ".devguard-receipt.json").write_text(
-        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
+    return (json.dumps(receipt, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def _atomic_write(path: Path, payload: bytes) -> None:
+    """Replace one file atomically without exposing a partially written payload."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".devguard.tmp",
+            delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _rollback_writes(
+    target: Path,
+    previous: dict[str, bytes | None],
+    written: Sequence[str],
+) -> None:
+    """Restore prior bytes and remove files created by a failed transaction."""
+    for relative in reversed(written):
+        path = target / relative
+        original = previous[relative]
+        if original is None:
+            path.unlink(missing_ok=True)
+        else:
+            _atomic_write(path, original)
+
+    directories = sorted(
+        {parent for relative in written for parent in (target / relative).parents},
+        key=lambda path: len(path.parts),
+        reverse=True,
     )
+    for directory in directories:
+        if directory == target.parent or target not in (directory, *directory.parents):
+            continue
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
+
+
+def _build_payloads(
+    entries: Sequence[ManifestEntry], project_name: str, profile: str
+) -> dict[str, bytes]:
+    payloads: dict[str, bytes] = {}
+    for entry in entries:
+        source = TEMPLATE_ROOT / entry.source
+        if entry.render:
+            content = _render_text(
+                source.read_text(encoding="utf-8"), project_name, profile
+            )
+            payloads[entry.destination] = content.encode("utf-8")
+        else:
+            payloads[entry.destination] = source.read_bytes()
+    return payloads
 
 
 def _validate_receipt(
@@ -245,32 +325,43 @@ def setup(
     if target.exists() and any(target.iterdir()) and not force:
         raise ScaffoldError(f"目标目录非空：{target}；确认覆盖时显式传 --force")
 
-    payloads: list[tuple[ManifestEntry, bytes]] = []
-    for entry in entries:
-        source = TEMPLATE_ROOT / entry.source
-        if entry.render:
-            content = _render_text(
-                source.read_text(encoding="utf-8"), project_name, profile
-            )
-            payloads.append((entry, content.encode("utf-8")))
-        else:
-            payloads.append((entry, source.read_bytes()))
+    payloads = _build_payloads(entries, project_name, profile)
+    result = SetupResult(
+        target=target,
+        profile=profile,
+        written=tuple(entry.destination for entry in entries),
+    )
+    payloads[".devguard-receipt.json"] = _receipt_payload(result, payloads)
+
+    previous: dict[str, bytes | None] = {}
+    for relative in payloads:
+        destination = target / relative
+        if destination.exists() and not destination.is_file():
+            raise ScaffoldError(f"manifest 目标不是普通文件：{destination}")
+        previous[relative] = destination.read_bytes() if destination.is_file() else None
 
     written: list[str] = []
-    for entry, payload in payloads:
-        destination = target / entry.destination
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(payload)
-        written.append(entry.destination)
+    try:
+        for relative, payload in payloads.items():
+            _atomic_write(target / relative, payload)
+            written.append(relative)
 
-    result = SetupResult(target=target, profile=profile, written=tuple(written))
-    _write_receipt(target, result)
-    receipt_errors = _validate_receipt(target, profile=profile, check_hashes=True)
-    if receipt_errors:
-        raise ScaffoldError("初始化回执校验失败：\n- " + "\n- ".join(receipt_errors))
-    errors = verify(target, profile=profile, require_hooks=False)
-    if errors:
-        raise ScaffoldError("初始化后校验失败：\n- " + "\n- ".join(errors))
+        receipt_errors = _validate_receipt(target, profile=profile, check_hashes=True)
+        if receipt_errors:
+            raise ScaffoldError(
+                "初始化回执校验失败：\n- " + "\n- ".join(receipt_errors)
+            )
+        errors = verify(target, profile=profile, require_hooks=False)
+        if errors:
+            raise ScaffoldError("初始化后校验失败：\n- " + "\n- ".join(errors))
+    except Exception as error:
+        try:
+            _rollback_writes(target, previous, written)
+        except Exception as rollback_error:
+            raise ScaffoldError(
+                f"初始化事务失败，回滚也失败：{error}; rollback={rollback_error}"
+            ) from error
+        raise ScaffoldError(f"初始化事务失败，已回滚：{error}") from error
     return result
 
 
@@ -384,6 +475,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="创建 .venv、git init、安装依赖和双阶段 hooks",
     )
     parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="只验证并列出将写入的 manifest，不创建或修改目标",
+    )
+    parser.add_argument(
         "--verify", action="store_true", help="不写文件，只校验既有目标"
     )
     parser.add_argument(
@@ -399,6 +495,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     target = args.target.resolve()
     profile = args.profile or (None if args.verify else "core")
     try:
+        if args.dry_run:
+            if args.verify or args.install:
+                raise ScaffoldError("--dry-run 不能与 --verify/--install 同时使用")
+            if profile is None:
+                raise ScaffoldError("dry-run 模式缺 profile")
+            entries = entries_for(profile)
+            _validate_sources(entries)
+            _build_payloads(entries, args.project_name or target.name, profile)
+            print(f"PLAN OK: {target} ({profile}, {len(entries)} files)")
+            for entry in entries:
+                print(f"- {entry.destination}")
+            return 0
         if args.verify:
             errors = verify(
                 target,

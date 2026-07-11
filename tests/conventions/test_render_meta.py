@@ -49,6 +49,27 @@ def test_rendered_pre_commit_is_canonical_lf_with_one_terminal_newline():
     assert not rendered.endswith("\n\n")
 
 
+def test_rendered_local_hook_can_disable_filename_arguments():
+    render_meta = _load_render_meta()
+
+    rendered = render_meta.render_pre_commit_config(
+        {
+            "pre_commit": [
+                {
+                    "id": "alignment",
+                    "name": "alignment",
+                    "source": "local",
+                    "entry": "python scripts/check.py",
+                    "language": "system",
+                    "pass_filenames": False,
+                }
+            ]
+        }
+    )
+
+    assert "pass_filenames: false" in rendered
+
+
 def test_convention_grade_renders_only_markdown_and_writes_canonical_text(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):

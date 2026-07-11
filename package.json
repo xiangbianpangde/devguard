@@ -1,8 +1,8 @@
 {
   "name": "devguard",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
-  "description": "通用开发规范 V2.1.0：可测治理与一键初始化",
+  "description": "通用开发规范 V2.2.0：ECC 全项目对标与事务化一键初始化",
   "scripts": {
     "render": "python scripts/render_meta.py --render all",
     "render:check": "python scripts/render_meta.py --check",

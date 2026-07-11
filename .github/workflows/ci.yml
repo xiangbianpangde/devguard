@@ -67,6 +67,7 @@ jobs:
           python scripts/check_report.py
           python scripts/check_doc_quality.py
           python scripts/check_consistency.py
+          python scripts/check_ecc_alignment.py --threshold 80
 
   # -------------------------------------------------------------
   # 阶段 2：test（文档规范仓库的 Python/契约测试）

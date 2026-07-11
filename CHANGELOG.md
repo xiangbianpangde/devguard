@@ -21,6 +21,20 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [V2.2.0] - 2026-07-11
+
+### Added
+
+- **ECC 十域对标闸门**——skills-first、规则真源、跨 Harness、profiles、hooks、安全、CI/TDD、事务部署、回执与量化治理均绑定可执行事实，门槛 80%
+- **Codex/Claude 双入口**——core scaffold 生成 `AGENTS.md`、`CLAUDE.md`、canonical DevGuard skill、OpenAI 元数据与 credential-free 项目 Codex 配置
+- **安装预演与事务回滚**——`--dry-run` 零写入列出完整载荷；逐文件唯一临时文件 + fsync + 原子替换，任一步失败恢复旧字节
+- **生成项目 gitleaks**——密钥扫描进入 core pre-commit，不再依赖用户是否安装 ECC 全局 Hook
+
+### Changed
+
+- 合入所有本地/远程功能分支历史，冲突以 24 项一致性事实矩阵、10 项故障注入和跨平台 Python 实现为准
+- 全量测试增至 163 项；仓外真实 E2E 生成 22 个 manifest 文件并通过 9 个 pre-commit 检查
+
 ## [V2.1.0] - 2026-07-11
 
 ### Added

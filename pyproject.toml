@@ -11,7 +11,7 @@
 # ============================================================
 [project]
 name = "devguard"
-version = "2.1.0"
+version = "2.2.0"
 description = "通用开发规范 — 可复制到新项目的规范 + AI 协作流程模板"
 readme = "README.md"
 license = { text = "MIT" }

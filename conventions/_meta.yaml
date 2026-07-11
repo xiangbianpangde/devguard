@@ -124,6 +124,7 @@ conventions:
         - scripts/check_doc_quality.py
         - scripts/check_consistency.py
         - scripts/check_enforcement.py
+        - scripts/check_ecc_alignment.py
         - scripts/check_worklog_ref.py
         - scripts/check_status_updated.py
         - scripts/check_worklog_structure.py
@@ -344,6 +345,16 @@ pre_commit:
     description: "06 文档规范 L1 检测：markdown 格式检查（Python 预过滤 .md 文件，绕开 cli glob 不被尊重问题）"
     entry: python scripts/lint_markdown.py
     language: system
+
+  - id: ecc-alignment
+    name: ECC capability alignment must stay above 80 percent
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "ECC 全项目对标能力面必须具备可执行证据，得分不得低于 80%"
+    entry: python scripts/check_ecc_alignment.py --threshold 80
+    language: system
+    pass_filenames: false
 
   - id: commitlint
     name: commit message must follow Conventional Commits

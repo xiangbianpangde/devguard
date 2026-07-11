@@ -3,7 +3,6 @@
 > 更新: 2026-07-11
 > 对应规划中各个基础设施文件的创建与验证标准。
 > 本文档泛化适用于 STATUS.md / CLAUDE.md / dashboard.html / plan / worklog 等文件的创建检查。
-> 更新: 2026-05-30
 
 ---
 
@@ -65,3 +64,27 @@
   2. 在目标目录运行其自带的验证脚本和测试
 - 预期结果：目标不依赖源仓库中的脚本或相对路径，验证和测试均通过
   - `--require-hooks` 必须验证本地 `core.hooksPath` 确实指向项目 `.git/hooks`，不能把“Hook 文件存在但 Git 实际忽略”计为通过
+
+### 场景 8：写入前 dry-run 可审计
+
+- 前置条件：目标路径尚不存在或 Owner 尚未批准写入
+- 操作步骤：运行 `python scripts/setup_scaffold.py <目标目录> --profile core --dry-run`
+- 预期结果：
+  - 完整预检 manifest、模板变量与源文件
+  - 输出所有目标路径，包含 `AGENTS.md`、canonical skill 与项目 `.codex/config.toml`
+  - 不创建或修改目标目录
+
+### 场景 9：强制覆盖具备事务回滚
+
+- 前置条件：非空目标含 Owner 文件，使用 `--force`
+- 操作步骤：在第三次原子写入时注入失败
+- 预期结果：已覆盖文件恢复原字节、新建文件删除、无临时文件残留，命令非零退出并明确报告已回滚
+
+### 场景 10：Codex 与 Claude 共享单一规范真源
+
+- 前置条件：core profile 初始化成功
+- 操作步骤：检查 `AGENTS.md`、`CLAUDE.md`、`.agents/skills/devguard/SKILL.md` 与 `.codex/config.toml`
+- 预期结果：
+  - skill 是 canonical workflow surface，入口文件只做路由
+  - `conventions/README.md` 是规则真源，不生成重复 commands/rules 文案
+  - Codex 配置为项目本地、无凭据、无默认 MCP 服务，且多代理保持显式 opt-in

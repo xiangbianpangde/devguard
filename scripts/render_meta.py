@@ -44,6 +44,10 @@ HOOK_SORT_PRIORITY = {
 }
 
 
+def _yaml_bool(value: object) -> str:
+    return "true" if value else "false"
+
+
 def _normalize_lf(content: str) -> str:
     """Normalize CRLF and CR to LF without changing EOF count."""
     normalized = content.replace("\r\n", "\n")
@@ -111,7 +115,15 @@ def render_pre_commit_config(meta: dict) -> str:
                 repo_entry["rev"] = hook["rev"]
             repos[repo_key] = repo_entry
         hook_def: dict = {"id": hook["id"]}
-        for k in ("args", "stages", "config", "entry", "language", "name"):
+        for k in (
+            "args",
+            "stages",
+            "config",
+            "entry",
+            "language",
+            "name",
+            "pass_filenames",
+        ):
             if k in hook:
                 hook_def[k] = hook[k]
         repos[repo_key]["hooks"].append(hook_def)
@@ -164,6 +176,10 @@ def render_pre_commit_config(meta: dict) -> str:
                 lines.append(f"        entry: {hook['entry']}")
             if "language" in hook:
                 lines.append(f"        language: {hook['language']}")
+            if "pass_filenames" in hook:
+                lines.append(
+                    f"        pass_filenames: {_yaml_bool(hook['pass_filenames'])}"
+                )
         lines.append("")
 
     rendered = "\n".join(lines)

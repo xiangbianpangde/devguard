@@ -20,11 +20,17 @@ REPORTS_DIR = REPO_ROOT / "docs" / "reports"
 
 REQUIRED_SECTIONS = ["一、整理", "二、测试", "三、审计", "四、效果验证", "五、技术债"]
 REPORT_NAME = re.compile(r"^收束报告-v(?P<major>\d+)\.(?P<minor>\d+)\.md$")
+TABLE_SEPARATOR = re.compile(r"(?m)^\s*\|(?:\s*:?-{3,}:?\s*\|){2,}\s*$")
 
 
 def version_key(name: str) -> tuple[int, ...]:
     match = REPORT_NAME.fullmatch(name)
     return (int(match.group("major")), int(match.group("minor"))) if match else (0, 0)
+
+
+def count_tables(text: str) -> int:
+    """Count Markdown tables by their separator row, independent of width."""
+    return len(TABLE_SEPARATOR.findall(text))
 
 
 def check_report(path: Path) -> list[str]:
@@ -36,7 +42,7 @@ def check_report(path: Path) -> list[str]:
             errors.append(f"缺章节: {sec}")
 
     mermaid_count = text.count("```mermaid")
-    table_count = text.count("|---|")
+    table_count = count_tables(text)
     if mermaid_count < 1 and table_count < 2:
         errors.append(
             f"图表不足: mermaid {mermaid_count}, 表格 {table_count}"

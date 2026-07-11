@@ -13,6 +13,8 @@ import re
 import sys
 from pathlib import Path
 
+from check_report import count_tables
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORTS_DIR = REPO_ROOT / "docs" / "reports"
 REPORT_NAME = re.compile(r"^收束报告-v(?P<major>\d+)\.(?P<minor>\d+)\.md$")
@@ -28,7 +30,7 @@ def check_doc(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
 
     mermaid = text.count("```mermaid")
-    tables = text.count("|---|")
+    tables = count_tables(text)
     if mermaid < 1 and tables < 2:
         errors.append(
             f"图表不足: mermaid {mermaid}, 表格 {tables}（需 ≥1 mermaid 或 ≥2 表格）"

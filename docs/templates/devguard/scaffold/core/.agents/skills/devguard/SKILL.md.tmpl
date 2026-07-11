@@ -1,0 +1,25 @@
+---
+name: devguard
+description: Apply this project's executable development standards, tests, security gates, and evidence workflow.
+---
+
+# DevGuard workflow
+
+Use this skill for implementation, review, refactoring, CI, release, or project
+initialization work in {{PROJECT_NAME}}.
+
+## How it works
+
+1. Read `conventions/README.md`; it is the single rules authority.
+2. Read `STATUS.md` and `docs/plan/开发清单.md` for current scope.
+3. Add or update tests first when behavior changes.
+4. Implement the smallest owner-approved change.
+5. Run `python scripts/devguard.py verify`, focused tests, and relevant hooks.
+6. Record reproducible evidence in `worklogs/` and keep `STATUS.md` synchronized.
+
+## Boundaries
+
+- Never hardcode secrets or silently bypass a failed gate.
+- Treat local hooks, CI, and hosting branch protection as separate evidence.
+- Keep workflow guidance here; do not create a duplicate command surface unless
+  migration or cross-harness compatibility requires a thin shim.

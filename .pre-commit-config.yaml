@@ -39,6 +39,11 @@ repos:
         name: markdownlint
         entry: python scripts/lint_markdown.py
         language: system
+      - id: ecc-alignment
+        name: ECC capability alignment must stay above 80 percent
+        entry: python scripts/check_ecc_alignment.py --threshold 80
+        language: system
+        pass_filenames: false
       - id: commitlint
         name: commit message must follow Conventional Commits
         stages: [commit-msg]

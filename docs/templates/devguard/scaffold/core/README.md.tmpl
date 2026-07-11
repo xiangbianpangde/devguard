@@ -5,6 +5,11 @@
 This repository starts with a minimal, self-contained governance baseline. The
 same checks run locally and in `.github/workflows/devguard.yml`.
 
+Codex starts from `AGENTS.md` and the canonical `.agents/skills/devguard/`
+skill; Claude starts from `CLAUDE.md`. Both route to `conventions/README.md` as
+the single rules authority. The project-local `.codex/config.toml` contains no
+MCP credentials and keeps delegation opt-in.
+
 ## PowerShell quick start
 
 Run these commands from the project root:
@@ -37,6 +42,8 @@ hook returns a non-zero exit.
 - Current state: `STATUS.md`
 - Work plan: `docs/plan/开发清单.md`
 - Decisions and constraints: `CLAUDE.md`
+- Codex workflow entry: `AGENTS.md`
+- Canonical workflow skill: `.agents/skills/devguard/SKILL.md`
 - Per-change evidence: `worklogs/`
 
 Keep documentation and implementation in the same pull request. Protect the

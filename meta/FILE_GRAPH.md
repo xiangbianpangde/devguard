@@ -62,6 +62,9 @@
 │       ├── 规范文档模板.md
 │       └── devguard/                   #     devguard 项目专属资产（新项目只走 scaffold manifest）
 │           ├── scaffold/               #       一键初始化权威载荷（core/optional 显式 manifest）
+│           │   ├── core/AGENTS.md.tmpl #       Codex 项目入口（skills-first 路由）
+│           │   ├── core/.agents/skills/devguard/ # canonical workflow skill + OpenAI 元数据
+│           │   ├── core/.codex/config.toml #    credential-free 项目本地安全基线
 │           │   └── core/scripts/install_hooks.py # ECC/全局 Hook 与项目 Hook 的可重入组合安装器
 │           ├── html-report-template/   #       自动 dashboard 渲染（_meta.yaml + STATUS.md）
 │           └── final-report-template/  #       高密度学术风 HTML 报告（Mermaid+Tab+交互，V1.x 收尾定型）
@@ -84,6 +87,7 @@
 │   ├── render_dashboard.py           #   Windows/POSIX 共用 dashboard 渲染入口
 │   ├── check_consistency.py          #   一致性事实矩阵（阈值 >=80%）
 │   ├── check_enforcement.py          #   隔离 Git 故障注入矩阵（阈值 >=90%）
+│   ├── check_ecc_alignment.py        #   ECC 十域能力对标矩阵（阈值 >=80%）
 │   ├── check_*_*.py                  #   worklog/STATUS/放置/豁免/日期/同步/收束闸门
 │   ├── start_server.py               #   本地预览服务器（dashboard 入口）
 │   └── 打开仪表盘.bat                 #   双击启动 dashboard

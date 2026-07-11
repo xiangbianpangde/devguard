@@ -21,6 +21,10 @@ CORE_FILES = (
     "README.md",
     "STATUS.md",
     "CLAUDE.md",
+    "AGENTS.md",
+    ".agents/skills/devguard/SKILL.md",
+    ".agents/skills/devguard/agents/openai.yaml",
+    ".codex/config.toml",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "requirements-dev.txt",
@@ -102,6 +106,8 @@ def verify(root: Path, *, require_hooks: bool = False) -> list[str]:
         "README.md",
         "STATUS.md",
         "CLAUDE.md",
+        "AGENTS.md",
+        ".agents/skills/devguard/SKILL.md",
         "docs/plan/背景.md",
         "docs/plan/开发清单.md",
     ):
@@ -117,6 +123,7 @@ def verify(root: Path, *, require_hooks: bool = False) -> list[str]:
             "id: devguard-verify",
             "stages: [commit-msg]",
             "id: ruff",
+            "id: gitleaks",
         ):
             if required_text not in text:
                 errors.append(f"pre-commit closure missing: {required_text}")

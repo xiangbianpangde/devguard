@@ -69,6 +69,14 @@ def test_core_setup_instantiates_required_docs_and_verifies(tmp_path):
     assert "Fresh Project" in (target / "README.md").read_text(encoding="utf-8")
     assert "{{" not in (target / "README.md").read_text(encoding="utf-8")
     assert not (target / "docs" / "templates" / "README模板.md").exists()
+    assert (target / "AGENTS.md").is_file()
+    assert (target / ".agents/skills/devguard/SKILL.md").is_file()
+    assert (target / ".agents/skills/devguard/agents/openai.yaml").is_file()
+    assert (target / ".codex/config.toml").is_file()
+    assert "skills-first" in (target / "AGENTS.md").read_text(encoding="utf-8")
+    assert "conventions/README.md" in (
+        target / ".agents/skills/devguard/SKILL.md"
+    ).read_text(encoding="utf-8")
     assert module.verify(target, profile="core", require_hooks=False) == []
 
 
@@ -99,6 +107,38 @@ def test_non_empty_target_is_refused_without_force_and_preserved_with_force(tmp_
 
     module.setup(target, profile="core", project_name="Allowed", force=True)
     assert unrelated.read_text(encoding="utf-8") == "owner data"
+
+
+def test_setup_rolls_back_every_managed_write_when_atomic_replace_fails(
+    tmp_path, monkeypatch
+):
+    module = load_scaffold()
+    target = tmp_path / "occupied"
+    target.mkdir()
+    readme = target / "README.md"
+    readme.write_text("owner README\n", encoding="utf-8")
+    unrelated = target / "keep.txt"
+    unrelated.write_text("owner data\n", encoding="utf-8")
+    real_atomic_write = module._atomic_write
+    calls = 0
+
+    def fail_after_two_writes(path, payload):
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise OSError("injected atomic write failure")
+        real_atomic_write(path, payload)
+
+    monkeypatch.setattr(module, "_atomic_write", fail_after_two_writes)
+
+    with pytest.raises(module.ScaffoldError, match="已回滚"):
+        module.setup(target, profile="core", project_name="Rollback", force=True)
+
+    assert readme.read_text(encoding="utf-8") == "owner README\n"
+    assert unrelated.read_text(encoding="utf-8") == "owner data\n"
+    assert not (target / ".devguard.json").exists()
+    assert not (target / ".devguard-receipt.json").exists()
+    assert list(target.rglob("*.devguard.tmp")) == []
 
 
 def test_verify_fails_closed_when_payload_is_damaged(tmp_path):
@@ -198,6 +238,33 @@ def test_cli_e2e_initializes_and_verify_only_checks_same_target(tmp_path):
     assert create.returncode == 0, create.stdout + create.stderr
     assert verify.returncode == 0, verify.stdout + verify.stderr
     assert "VERIFY OK" in verify.stdout
+
+
+def test_cli_dry_run_validates_and_lists_payload_without_writing(tmp_path):
+    target = tmp_path / "planned-project"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCAFFOLD_PATH),
+            str(target),
+            "--profile",
+            "core",
+            "--project-name",
+            "Planned Project",
+            "--dry-run",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "PLAN OK" in result.stdout
+    assert "AGENTS.md" in result.stdout
+    assert not target.exists()
 
 
 def test_isolated_git_config_environment_preserves_parent_and_hides_global_hooks(

@@ -1,0 +1,12 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# Safe project-local baseline. User/global MCP servers and credentials are not
+# copied or overwritten by DevGuard.
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+persistent_instructions = "Follow AGENTS.md and the canonical DevGuard skill."
+
+[features]
+# Keep delegation opt-in; project owners can enable and define roles explicitly.
+multi_agent = false

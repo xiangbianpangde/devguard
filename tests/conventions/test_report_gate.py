@@ -26,3 +26,13 @@ def test_report_name_requires_explicit_numeric_version():
     assert module.REPORT_NAME.fullmatch("收束报告-v2.1.md")
     assert not module.REPORT_NAME.fullmatch("收束报告-current.md")
     assert not module.REPORT_NAME.fullmatch("收束报告-v2.md")
+
+
+def test_report_table_counter_accepts_normal_markdown_separator_widths():
+    module = _load()
+    text = """| check | result | note |
+|------|--------|------|
+| test | pass | real |
+"""
+
+    assert module.count_tables(text) == 1

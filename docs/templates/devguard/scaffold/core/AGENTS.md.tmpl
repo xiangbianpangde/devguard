@@ -1,0 +1,20 @@
+# {{PROJECT_NAME}} — Codex project instructions
+
+> Updated: {{DATE}}
+
+## Canonical workflow surface
+
+This project is skills-first. Read `.agents/skills/devguard/SKILL.md` before
+changing code or governance files. `CLAUDE.md` is the Claude-compatible context
+projection; `conventions/README.md` is the single rule authority.
+
+## Required workflow
+
+1. Inspect `STATUS.md` and `docs/plan/开发清单.md` before implementation.
+2. Write or update tests before behavior changes.
+3. Run `python scripts/devguard.py verify` and focused tests.
+4. Keep secrets out of code, logs, fixtures, and commit messages.
+5. Record only commands and evidence that actually ran.
+
+Do not create a second rules or commands authority. Add a canonical skill first;
+legacy command shims are allowed only when a real harness requires them.
