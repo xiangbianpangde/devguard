@@ -70,18 +70,52 @@ def test_progress_projection_mismatch_is_reported(tmp_path):
 
 def test_ci_template_and_formatter_drift_are_scored(tmp_path):
     mod = _load()
+    _write(tmp_path, "conventions/_meta.yaml", "toolchain:\n  ruff: 0.15.20\n")
     _write(tmp_path, ".github/workflows/ci.yml", "pip install ruff\n")
     _write(
         tmp_path,
         "docs/templates/devguard/.github/workflows/ci.yml",
         "different\n",
     )
-    _write(tmp_path, ".pre-commit-config.yaml", "rev: v0.6.0\n")
+    _write(tmp_path, ".pre-commit-config.yaml", "rev: v0.15.20\n")
 
     dimension = mod.evaluate_ci_projection(tmp_path)
 
     assert dimension.total == 2
     assert dimension.passed == 0
+
+
+def test_ci_projection_passes_when_pins_match_toolchain_source(tmp_path):
+    """CI/pre-commit 钉版与 _meta.yaml toolchain 真源一致时，formatter 事实必须通过"""
+    mod = _load()
+    _write(tmp_path, "conventions/_meta.yaml", "toolchain:\n  ruff: 0.15.20\n")
+    workflow = (
+        "pip install ruff==0.15.20 pyyaml\n"
+        "ruff format --check . --config src/coding/ruff.toml\n"
+        "pip install pytest pyyaml ruff==0.15.20\n"
+    )
+    _write(tmp_path, ".github/workflows/ci.yml", workflow)
+    _write(tmp_path, "docs/templates/devguard/.github/workflows/ci.yml", workflow)
+    _write(tmp_path, ".pre-commit-config.yaml", "rev: v0.15.20\n")
+
+    dimension = mod.evaluate_ci_projection(tmp_path)
+
+    assert dimension.passed == 2
+
+
+def test_missing_toolchain_source_fails_closed(tmp_path):
+    """真源缺失时不得退化为"不校验版本"——必须判不一致"""
+    mod = _load()
+    workflow = (
+        "pip install ruff==0.15.20 pyyaml\nruff format --check . --config src/coding/ruff.toml\n"
+    )
+    _write(tmp_path, ".github/workflows/ci.yml", workflow)
+    _write(tmp_path, "docs/templates/devguard/.github/workflows/ci.yml", workflow)
+    _write(tmp_path, ".pre-commit-config.yaml", "rev: v0.15.20\n")
+
+    dimension = mod.evaluate_ci_projection(tmp_path)
+
+    assert not dimension.facts[1].passed
 
 
 def test_default_runner_forces_utf8_for_windows_subprocesses(

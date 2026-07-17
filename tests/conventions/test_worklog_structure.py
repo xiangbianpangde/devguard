@@ -27,7 +27,7 @@ def test_narrative_only_worklog_is_rejected():
 def test_template_shaped_worklog_passes():
     mod = _load()
     content = (
-        "# log\n## 做了什么\n- [x] fixed\n" "## 验证结果\n- command: exit 0\n## 下一步\n- handoff\n"
+        "# log\n## 做了什么\n- [x] fixed\n## 验证结果\n- command: exit 0\n## 下一步\n- handoff\n"
     )
     errors, _warnings = mod.check_content("worklogs/2026-07-10_x.md", content)
     assert not errors

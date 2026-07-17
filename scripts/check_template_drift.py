@@ -59,6 +59,29 @@ DASHBOARD_STRUCT_CHECKS = {
     "Content-Security-Policy": "Content-Security-Policy",
 }
 
+# 脚本镜像：docs/templates/devguard/scripts/ 是 scripts/ 的模板副本，
+# 逐字节一致才算无漂移（V2.4 审查发现 render_meta.py 曾长期漂移且无人察觉）
+SCRIPT_MIRROR_TEMPLATE = "docs/templates/devguard/scripts"
+
+
+def check_script_mirrors(root: Path) -> list[str]:
+    """对比 scripts/ 与模板副本中共有的 .py，返回漂移描述列表"""
+    template_dir = root / SCRIPT_MIRROR_TEMPLATE
+    errors: list[str] = []
+    if not template_dir.is_dir():
+        return [f"脚本模板目录不存在: {SCRIPT_MIRROR_TEMPLATE}"]
+    for template_script in sorted(template_dir.glob("*.py")):
+        live_script = root / "scripts" / template_script.name
+        if not live_script.is_file():
+            errors.append(f"脚本漂移: scripts/{template_script.name} 缺失（模板副本存在）")
+            continue
+        if live_script.read_bytes() != template_script.read_bytes():
+            errors.append(
+                f"脚本漂移: scripts/{template_script.name} 与 "
+                f"{SCRIPT_MIRROR_TEMPLATE}/{template_script.name} 内容不一致"
+            )
+    return errors
+
 
 def check_sections(path: Path, expected: dict[str, list[str]]) -> list[str]:
     """检查单个文件的章节存在性，返回缺失列表"""
@@ -89,14 +112,17 @@ def main() -> int:
     else:
         errors.append("dashboard.html 不存在")
 
+    # 脚本镜像：scripts/ ↔ docs/templates/devguard/scripts/ 逐字节对比
+    errors.extend(check_script_mirrors(REPO_ROOT))
+
     if errors:
-        print("FAIL 模板漂移检测不通过（章节存在性）：", file=sys.stderr)
+        print("FAIL 模板漂移检测不通过：", file=sys.stderr)
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         return 1
 
     n_files = len(ENTRY_CHECKS) + 1  # + dashboard
-    print(f"OK 模板漂移检测通过（{n_files} 类入口文件，章节存在性一致）")
+    print(f"OK 模板漂移检测通过（{n_files} 类入口文件 + 脚本镜像，一致）")
     return 0
 
 

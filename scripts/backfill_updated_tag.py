@@ -133,7 +133,7 @@ def main() -> int:
     mode = sys.argv[1] if len(sys.argv) == 2 else ""
     if mode not in ("--dry-run", "--apply", "--refresh-staged"):
         print(
-            "用法: python scripts/backfill_updated_tag.py " "--dry-run|--apply|--refresh-staged",
+            "用法: python scripts/backfill_updated_tag.py --dry-run|--apply|--refresh-staged",
             file=sys.stderr,
         )
         return 1

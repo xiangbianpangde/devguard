@@ -3,13 +3,23 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+
+
+def _expected_ruff_version() -> str:
+    """ruff 版本的单一真源：conventions/_meta.yaml 的 toolchain 节"""
+    meta = yaml.safe_load((REPO_ROOT / "conventions" / "_meta.yaml").read_text(encoding="utf-8"))
+    version = meta["toolchain"]["ruff"]
+    assert isinstance(version, str) and version, "toolchain.ruff 必须是非空字符串"
+    return version
 
 
 def _load_l4_collector():
@@ -40,11 +50,25 @@ def test_ci_test_and_l4_collection_fail_closed():
 def test_ci_pins_and_enforces_the_same_ruff_formatter_as_precommit():
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     pre_commit = (REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    version = _expected_ruff_version()
 
-    assert "pip install ruff==0.6.0 pyyaml" in workflow
+    assert f"pip install ruff=={version} pyyaml" in workflow
     assert "ruff format --check . --config src/coding/ruff.toml" in workflow
-    assert "rev: v0.6.0" in pre_commit
+    assert f"rev: v{version}" in pre_commit
     assert "id: ruff-format\n        args: ['--config=src/coding/ruff.toml']" in pre_commit
+
+
+def test_toolchain_ruff_version_is_single_source_for_all_dependency_files():
+    """_meta.yaml toolchain.ruff 必须与 requirements-dev / pyproject / 全 CI 钉版一致"""
+    version = _expected_ruff_version()
+    requirements = (REPO_ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+    pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert f"ruff=={version}" in requirements, "requirements-dev.txt 与 toolchain 真源不一致"
+    assert f'"ruff=={version}"' in pyproject, "pyproject.toml dev extras 与 toolchain 真源不一致"
+    pins = set(re.findall(r"ruff==([0-9][0-9a-z.]*)", workflow))
+    assert pins == {version}, f"CI 中 ruff 钉版不统一：{pins}，期望 {{{version}}}"
 
 
 def test_ci_build_installs_pytest_before_collecting_l4_stats():
@@ -54,7 +78,7 @@ def test_ci_build_installs_pytest_before_collecting_l4_stats():
     install_index = build.index("pip install")
     collect_index = build.index("python scripts/collect_l4_stats.py")
     assert "pytest" in build[install_index:collect_index]
-    assert "ruff==0.6.0" in build[install_index:collect_index]
+    assert f"ruff=={_expected_ruff_version()}" in build[install_index:collect_index]
 
 
 def test_l4_collector_propagates_pytest_failure(

@@ -31,7 +31,7 @@ jobs:
           cache: 'pip'
 
       - name: Install lint and governance dependencies
-        run: pip install ruff==0.6.0 pyyaml
+        run: pip install ruff==0.15.20 pyyaml
 
       - name: ruff check
         run: ruff check . --config src/coding/ruff.toml
@@ -84,7 +84,7 @@ jobs:
           cache: 'pip'
 
       - name: Install pytest + pyyaml + pinned ruff
-        run: pip install pytest pyyaml ruff==0.6.0
+        run: pip install pytest pyyaml ruff==0.15.20
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
@@ -108,7 +108,7 @@ jobs:
           cache: 'pip'
 
       - name: Install deps
-        run: pip install pytest pyyaml ruff==0.6.0
+        run: pip install pytest pyyaml ruff==0.15.20
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
@@ -184,7 +184,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install build verification dependencies
-        run: pip install pytest pyyaml ruff==0.6.0
+        run: pip install pytest pyyaml ruff==0.15.20
 
       - name: Python compile check
         run: python -m compileall src/ -q

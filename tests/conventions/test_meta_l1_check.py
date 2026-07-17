@@ -47,9 +47,9 @@ class TestMetaL1Check:
         meta = self._load()
         assert "conventions" in meta, "_meta.yaml 缺 conventions 字段"
         assert isinstance(meta["conventions"], list)
-        assert (
-            len(meta["conventions"]) >= 8
-        ), f"conventions 数量 < 8（实际 {len(meta['conventions'])}）"
+        assert len(meta["conventions"]) >= 8, (
+            f"conventions 数量 < 8（实际 {len(meta['conventions'])}）"
+        )
 
     def test_every_convention_has_l1_check(self):
         """红线：每篇规范必须有 l1_check 字段（V4.1 强制）"""
@@ -75,9 +75,9 @@ class TestMetaL1Check:
         for c in meta["conventions"]:
             cid = c.get("id", "?")
             value = c.get("l1_check", "").strip().lower()
-            assert (
-                value not in placeholders
-            ), f"规范 {cid} l1_check 是占位符 {value!r}（V4.1 强制：必须有真实 tool）"
+            assert value not in placeholders, (
+                f"规范 {cid} l1_check 是占位符 {value!r}（V4.1 强制：必须有真实 tool）"
+            )
 
     def test_l1_check_doc_url_format(self):
         """V8.1 增强：l1_check_doc 是 URL（https:// 开头）—— V8.1 增强可发现性"""
@@ -107,9 +107,9 @@ class TestMetaL1Check:
         c = next((x for x in meta["conventions"] if x.get("id") == conv_id), None)
         assert c is not None, f"规范 {conv_id} 不在 _meta.yaml"
         value = c.get("l1_check", "")
-        assert (
-            expected_tool_substr in value
-        ), f"规范 {conv_id} l1_check={value!r} 不含 {expected_tool_substr!r}"
+        assert expected_tool_substr in value, (
+            f"规范 {conv_id} l1_check={value!r} 不含 {expected_tool_substr!r}"
+        )
 
     def test_l1_check_path_is_optional(self):
         """V5.1 增强：grade.l1_check_path 是可选字段（V5.1 推广中），缺失不报错"""

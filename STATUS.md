@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-07-11（#50-#52 全部交付；修复 CI 全 job 的 ruff 配置/依赖闭包后完成收束）
+> 更新: 2026-07-17（审查加固：markdownlint POSIX 门禁修复、render_meta 防截断、ruff 版本真源、脚本镜像漂移防护）
 <!-- devguard-progress: completed=52 total=52 -->
 <!-- convergence-gate: nodes=31,35,46,49,52 last_converged_fp=52 -->
 
@@ -26,7 +26,7 @@
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **19 个 pre-commit / commit-msg 钩子**（含 ECC 十域对标硬闸门）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **163 tests passed**（tests/conventions/）
+- **179 tests passed**（tests/conventions/）
 - **17 个收束节点**（V0.1-V2.2 全部落盘；本轮机器收束通过）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **8 ADR 决策**（worklogs/decisions/）

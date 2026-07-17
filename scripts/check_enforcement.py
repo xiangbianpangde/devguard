@@ -120,8 +120,7 @@ def _seed_repository(root: Path) -> None:
     _write(
         root,
         "docs/plan/开发清单.md",
-        f"> 更新: {today}\n{progress}\n"
-        "| 1 | seed | ✅ |\n| 2 | node | ⏳ |\n| 3 | next | ⏳ |\n",
+        f"> 更新: {today}\n{progress}\n| 1 | seed | ✅ |\n| 2 | node | ⏳ |\n| 3 | next | ⏳ |\n",
     )
     _write(root, "CLAUDE.md", f"> 更新: {today}\n{progress}\n")
     _write(root, "docs/specs/seed.md", f"> 更新: {today}\n# seed\n")
@@ -135,8 +134,7 @@ def _seed_repository(root: Path) -> None:
 
 def _valid_worklog() -> str:
     return (
-        "# log\n## 做了什么\n- [x] completed\n"
-        "## 验证结果\n- command exit 0\n## 下一步\n- handoff\n"
+        "# log\n## 做了什么\n- [x] completed\n## 验证结果\n- command exit 0\n## 下一步\n- handoff\n"
     )
 
 

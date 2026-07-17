@@ -25,6 +25,7 @@ render_meta.py — 把 conventions/_meta.yaml 投射到下游产物
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -77,6 +78,14 @@ def _write_canonical_text(path: Path, content: str) -> None:
 def _is_markdown(path: Path) -> bool:
     """Return whether grade metadata may be rendered into this file."""
     return path.suffix.lower() == ".md"
+
+
+class GradeSectionError(ValueError):
+    """分级标签小节结构畸形（缺分隔符等），拒绝渲染以防截断正文。"""
+
+
+# 行级精确匹配：避免「### 分级标签说明」之类含子串的标题被误判为小节起点
+GRADE_MARKER_RE = re.compile(r"^## 分级标签[ \t]*$", re.MULTILINE)
 
 
 def load_meta() -> dict:
@@ -219,17 +228,23 @@ def render_convention_grade_section(conv: dict) -> str:
 
 
 def _strip_existing_grade_section(content: str) -> tuple[str, bool]:
-    """如果原文件已有 ## 分级标签 小节，先剥离（幂等渲染）"""
-    marker = "## 分级标签"
-    if marker not in content:
+    """如果原文件已有 ## 分级标签 小节，先剥离（幂等渲染）
+
+    失败闭合：小节存在但缺结尾 `---` 分隔符时抛 GradeSectionError，
+    绝不截断标记之后的正文（历史 bug：直接 content[:idx] 会毁文）。
+    """
+    match = GRADE_MARKER_RE.search(content)
+    if match is None:
         return content, False
-    # 找到 marker 位置
-    idx = content.index(marker)
+    idx = match.start()
     # 找到 marker 之后第一个 `---` 分隔符
     after_marker = content[idx:]
     sep_idx = after_marker.find("\n---\n")
     if sep_idx == -1:
-        return content[:idx], True
+        raise GradeSectionError(
+            "## 分级标签 小节后缺 \\n---\\n 分隔符，拒绝剥离以防截断正文；"
+            "请补回分隔符或整节删除后重跑"
+        )
     # 剥离从 marker 到 --- 结束的部分（包含 --- 之后的一个空行）
     end = idx + sep_idx + len("\n---\n")
     return content[:idx] + content[end:], True
@@ -238,9 +253,10 @@ def _strip_existing_grade_section(content: str) -> tuple[str, bool]:
 def render_convention_grade(meta: dict) -> list[Path]:
     """对每篇规范渲染 ## 分级标签 小节，in-place 写回
 
-    返回写入的文件路径列表
+    先在内存中算完全部新内容（任一篇畸形则整体中止、不写任何文件），
+    再统一落盘。返回写入的文件路径列表。
     """
-    written: list[Path] = []
+    planned: list[tuple[Path, str]] = []
     for conv in meta.get("conventions", []):
         file_rel = conv.get("file", "")
         if not file_rel:
@@ -258,8 +274,11 @@ def render_convention_grade(meta: dict) -> list[Path]:
             continue
         source_content = _read_text_preserving_newlines(path)
         content = _normalize_lf(source_content)
-        # 幂等：先剥离已有的
-        content, _ = _strip_existing_grade_section(content)
+        try:
+            # 幂等：先剥离已有的
+            content, _ = _strip_existing_grade_section(content)
+        except GradeSectionError as error:
+            raise GradeSectionError(f"{file_rel}: {error}") from error
         # 找到第一个 # 标题（顶级标题）位置
         lines = content.splitlines()
         insert_idx = 0
@@ -270,9 +289,10 @@ def render_convention_grade(meta: dict) -> list[Path]:
         # 生成新小节
         new_section = render_convention_grade_section(conv)
         new_lines = lines[:insert_idx] + new_section.splitlines() + lines[insert_idx:]
-        _write_canonical_text(path, "\n".join(new_lines))
-        written.append(path)
-    return written
+        planned.append((path, "\n".join(new_lines)))
+    for path, new_content in planned:
+        _write_canonical_text(path, new_content)
+    return [path for path, _ in planned]
 
 
 def render_target(target: str, meta: dict) -> list[Path] | None:
@@ -318,7 +338,11 @@ def check_target(target: str, meta: dict) -> tuple[bool, str]:
                 continue
             content = _read_text_preserving_newlines(path)
             normalized_content = _normalize_lf(content)
-            content_stripped, _ = _strip_existing_grade_section(normalized_content)
+            try:
+                content_stripped, _ = _strip_existing_grade_section(normalized_content)
+            except GradeSectionError as error:
+                mismatches.append(f"{file_rel}: {error}")
+                continue
             expected_section = render_convention_grade_section(conv)
             lines = content_stripped.splitlines()
             insert_idx = 0

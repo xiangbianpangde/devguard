@@ -45,7 +45,7 @@ def check_report(path: Path) -> list[str]:
     table_count = count_tables(text)
     if mermaid_count < 1 and table_count < 2:
         errors.append(
-            f"图表不足: mermaid {mermaid_count}, 表格 {table_count}" "（需 ≥1 mermaid 或 ≥2 表格）"
+            f"图表不足: mermaid {mermaid_count}, 表格 {table_count}（需 ≥1 mermaid 或 ≥2 表格）"
         )
 
     if "收束结论" not in text:

@@ -38,25 +38,25 @@ class TestApiContracts:
     def test_spectral_rule_no_verb(self):
         """红线 1：spectral 必须含 no-verb-in-path 规则（URL 无动词）"""
         content = SPECTRAL.read_text(encoding="utf-8")
-        assert (
-            "no-verb-in-path" in content
-        ), ".spectral.yaml 缺 no-verb-in-path 规则（红线 1：URL 不含动词）"
+        assert "no-verb-in-path" in content, (
+            ".spectral.yaml 缺 no-verb-in-path 规则（红线 1：URL 不含动词）"
+        )
 
     def test_spectral_rule_response_data(self):
         """红线 2：spectral 必须有响应必含 data 字段的规则（统一响应结构）"""
         content = SPECTRAL.read_text(encoding="utf-8")
-        assert (
-            "data" in content
-        ), ".spectral.yaml 缺 data 字段强制（红线 2：统一响应 code/message/data）"
+        assert "data" in content, (
+            ".spectral.yaml 缺 data 字段强制（红线 2：统一响应 code/message/data）"
+        )
 
     @pytest.mark.skipif(not API_MAIN.exists(), reason="src/api/main.py 不存在")
     def test_unified_response_shape_in_code(self):
         """红线 2：src/api/main.py 必须演示统一响应结构（code/message/data）"""
         content = API_MAIN.read_text(encoding="utf-8")
         # 检查 ApiResponse 模型含 code/message/data
-        assert (
-            "code" in content and "message" in content and "data" in content
-        ), "src/api/main.py 缺统一响应结构演示（红线 2：code/message/data）"
+        assert "code" in content and "message" in content and "data" in content, (
+            "src/api/main.py 缺统一响应结构演示（红线 2：code/message/data）"
+        )
         # 检查 pydantic BaseModel
         assert "BaseModel" in content, "src/api/main.py 应使用 pydantic BaseModel 演示响应结构"
 
@@ -70,6 +70,6 @@ class TestApiContracts:
     def test_backward_compat_in_spec(self):
         """红线 7：04 §二 落地必须提到向后兼容（spectral diff + 审查）"""
         content = CONV_04.read_text(encoding="utf-8")
-        assert (
-            "向后兼容" in content or "不删" in content or "不重命名" in content
-        ), "04 §二 落地缺向后兼容指引（红线 7）"
+        assert "向后兼容" in content or "不删" in content or "不重命名" in content, (
+            "04 §二 落地缺向后兼容指引（红线 7）"
+        )

@@ -82,9 +82,9 @@ class TestAiWorkflowContracts:
     def test_doc_07_contains_three_level_acceptance(self):
         """07-验收交付：必须含三级验收"""
         content = (WF_DIR / "07-验收交付.md").read_text(encoding="utf-8")
-        assert "三级验收" in content or (
-            "功能点级" in content and "收束节点级" in content
-        ), "07 缺三级验收"
+        assert "三级验收" in content or ("功能点级" in content and "收束节点级" in content), (
+            "07 缺三级验收"
+        )
 
     def test_doc_08_contains_reporting_and_convergence(self):
         """08-汇报收束：必须含汇报 + 收束"""
