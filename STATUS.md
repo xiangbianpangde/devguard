@@ -1,7 +1,7 @@
 # 项目状态
 
-> 更新: 2026-07-17（审查加固：markdownlint POSIX 门禁修复、render_meta 防截断、ruff 版本真源、脚本镜像漂移防护）
-<!-- devguard-progress: completed=52 total=52 -->
+> 更新: 2026-07-17（审查加固：markdownlint POSIX 门禁修复、render_meta 防截断、ruff 版本真源、脚本镜像漂移防护；#53 final-report 报告格式纳入模板族硬契约）
+<!-- devguard-progress: completed=53 total=53 -->
 <!-- convergence-gate: nodes=31,35,46,49,52 last_converged_fp=52 -->
 
 ## 当前进度
@@ -19,6 +19,7 @@
 | V1.5 收尾 | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML + STATUS 滞后修复 + worklog 断档补登 | ✅ | 2026-06-08 |
 | P0/P1 强化 | #47 渲染/CI、#48 可测闸门、#49 一键初始化 | ✅ | 2026-07-11 |
 | ECC 全项目对标 | #50 分支收敛、#51 能力矩阵与治理对齐、#52 一键初始化 2.0 | ✅ | 2026-07-11 |
+| V2.4 增强 | #53 报告格式入族（final-report 契约 + 规范路由澄清） | ✅ | 2026-07-17 |
 | **V2.0.1 启动** | **devguard dogfood (V1.x 范式在自身闭环 8 次拦截 / 全部修复)** | **✅** | **2026-06-08** |
 
 ## 累计数据
@@ -26,7 +27,7 @@
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **19 个 pre-commit / commit-msg 钩子**（含 ECC 十域对标硬闸门）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **179 tests passed**（tests/conventions/）
+- **188 tests passed**（tests/conventions/）
 - **17 个收束节点**（V0.1-V2.2 全部落盘；本轮机器收束通过）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **8 ADR 决策**（worklogs/decisions/）
@@ -137,3 +138,4 @@
 | 50 | 分支历史与独有能力收敛 | specs/03-git.md | ✅ 已完成 | 2026-07-11 |
 | 51 | ECC 全项目能力矩阵与治理对齐 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-07-11 |
 | 52 | ECC 对标的一键初始化 2.0 与最终收束 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-11 |
+| 53 | 报告格式入族（final-report 契约 + 规范路由澄清） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-07-17 |

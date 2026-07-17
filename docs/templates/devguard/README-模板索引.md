@@ -1,6 +1,19 @@
 # DevGuard 模板索引
 
-> 更新: 2026-07-11
+> 更新: 2026-07-17
+
+## HTML 模板族类型契约（V2.4 #53）
+
+`scripts/check_html_artifact.py` 对 `docs/reports/`、`docs/plan/design/`、`docs/templates/` 下的
+HTML 按头部 `<meta name="doc-template">` 声明做结构硬校验；未声明的存量仅 WARN（迁移见 #54）。
+
+| 类型 | 模板 | 契约锚点 | 场景 |
+|------|------|---------|------|
+| `report` | `docs/templates/汇报模板.html` | 04 §五 8 要素 7 个章节锚点 | 轻量验收报告（单功能点留档） |
+| `plan` | `docs/templates/计划模板.html` | 五段式 + Owner 决策 6 锚点 | 设计提案 |
+| `impl-design` | `docs/templates/实施设计模板.html` | 实现计划 8 节 5 结构块 | 实施设计 |
+| `asset-library` | `docs/templates/绘图素材库模板.html` | 图型/组件/令牌/用法 4 区 | 绘图素材 |
+| `final-report` | `docs/templates/devguard/final-report-template/` | hero + kpi-row + TOC + ≥2 mermaid + verdict | 收束报告 / 阶段汇报 / 高密度留档（默认版式） |
 
 ## 可部署入口（权威）
 

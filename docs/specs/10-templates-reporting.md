@@ -1,7 +1,7 @@
 # BDD 规格: 统一模板规约 + 汇报模板 + AI 模板
 
 > 对应 `docs/templates/README-模板索引.md`、`docs/templates/汇报模板.md`、`docs/templates/AI协作提示词模板.md`、`docs/templates/AI会话启动模板.md`、`docs/templates/AI审计报告模板.md`、`docs/templates/人审计签核模板.md`、`docs/templates/收束报告模板.md`
-> 更新: 2026-07-11
+> 更新: 2026-07-17
 
 ---
 
@@ -45,7 +45,17 @@
   - 三个模板均可从 `docs/templates/README-模板索引.md` 索引入口定位
   - 不再需要通读 `08-汇报收束.md` 全文来找到模板
 
-### 场景 5：模板与实例分离
+### 场景 5：final-report 纳入模板族硬契约（V2.4 #53）
+- 前置条件：产出收束报告 / 阶段汇报 / 人要求留档的高密度报告
+- 操作步骤：
+  1. 复制 `docs/templates/devguard/final-report-template/template.html` 到 `docs/reports/YYYY-MM-DD_{主题}.html`
+  2. 保留头部 `<meta name="doc-template" content="final-report">`，填充内容后提交
+- 预期结果：
+  - `scripts/check_html_artifact.py` 对 `final-report` 类型硬校验，锚点 = `hero` + `kpi-row` + TOC 锚点导航（`class="toc"` 且通用 `<nav>` 必查）+ ≥2 个 mermaid 图块 + `verdict`，缺任一 FAIL
+  - 8 要素是**内容要素**（04-长程开发 §5.2），final-report 是**版式标准**；`docs/templates/汇报模板.html`（`doc-template: report`）仅用于轻量场景
+  - canonical 四份（template / demo / merged_report / 2026-07-17 验收报告）全部满足锚点；未声明类型的存量仅 WARN，迁移见 #54
+
+### 场景 6：模板与实例分离
 - 前置条件：使用模板生成实例
 - 操作步骤：
   1. 复制模板，按落点放置实例
