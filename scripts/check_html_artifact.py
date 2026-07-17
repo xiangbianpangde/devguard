@@ -12,6 +12,8 @@ check_html_artifact.py — commit-msg 钩子：HTML 产出物章节/结构校验
   plan          计划模板      ：五段式设计提案（背景/目标/方案/影响/风险）+ Owner 决策
   impl-design   实施设计模板  ：03-设计规范 §四 实现计划 8 节（5 个结构块锚点）
   asset-library 绘图素材库    ：图型 / 组件 / 样式令牌 / 使用说明
+  final-report  高密度学术风  ：hero + kpi-row + TOC 锚点导航 + ≥2 mermaid + verdict
+                              （V2.4 #53，版式标准见 final-report-template/README.md）
 
 判定逻辑（commit-msg 钩子，argv[1] = commit_msg_file）：
   1. commit message 含 [skip-html] → 放行（豁免须登记 meta/豁免清单.md）
@@ -82,6 +84,35 @@ TYPE_CONTRACTS: dict[str, list[str]] = {
     ],
 }
 
+# class 锚点型契约（final-report，V2.4 #53）：高密度学术风没有 <section id> 体系，
+# 锚点是 hero / kpi-row / toc / verdict 四个 class + mermaid 图块计数。
+# 判定与 section 契约同享 DOCTYPE / <title> / <nav> 通用硬校验。
+MERMAID_BLOCK = 'class="mermaid"'
+FINAL_REPORT_MIN_MERMAID = 2
+FINAL_REPORT_CLASS_ANCHORS = ("hero", "kpi-row", "toc", "verdict")
+
+CLASS_CONTRACTS: dict[str, dict] = {
+    "final-report": {
+        "classes": FINAL_REPORT_CLASS_ANCHORS,
+        "min_mermaid": FINAL_REPORT_MIN_MERMAID,
+    },
+}
+
+
+def final_report_anchor_errors(content: str) -> list[str]:
+    """final-report 契约锚点检查，返回缺失描述列表（空 = 通过）。
+
+    供 check_content 调用；也直接暴露给 L4 测试验证 canonical 文件。
+    """
+    missing: list[str] = []
+    for cls in FINAL_REPORT_CLASS_ANCHORS:
+        if f'class="{cls}"' not in content:
+            missing.append(f'class="{cls}"')
+    mermaid_count = content.count(MERMAID_BLOCK)
+    if mermaid_count < FINAL_REPORT_MIN_MERMAID:
+        missing.append(f"mermaid 图块 {mermaid_count} 个（要求 ≥{FINAL_REPORT_MIN_MERMAID}）")
+    return missing
+
 
 def in_scope(rel: str) -> bool:
     rel = rel.replace("\\", "/")
@@ -106,10 +137,11 @@ def check_content(rel: str, content: str) -> tuple[list[str], list[str]]:
 
     doc_type = m.group(1)
     contract = TYPE_CONTRACTS.get(doc_type)
-    if contract is None:
+    class_contract = CLASS_CONTRACTS.get(doc_type)
+    if contract is None and class_contract is None:
         errors.append(
             f"{rel}: doc-template 类型「{doc_type}」未知"
-            f"（合法：{'/'.join(sorted(TYPE_CONTRACTS))}）"
+            f"（合法：{'/'.join(sorted([*TYPE_CONTRACTS, *CLASS_CONTRACTS]))}）"
         )
         return errors, warnings
 
@@ -119,6 +151,12 @@ def check_content(rel: str, content: str) -> tuple[list[str], list[str]]:
         errors.append(f"{rel}: 缺 <title>")
     if "<nav" not in content.lower():
         errors.append(f"{rel}: 缺 <nav> 锚点导航（03-设计规范 §八 HTML 渲染规范）")
+
+    if class_contract is not None:
+        missing_anchors = final_report_anchor_errors(content)
+        if missing_anchors:
+            errors.append(f"{rel}: 类型 {doc_type} 缺必备锚点 {missing_anchors}")
+        return errors, warnings
 
     present = set(SECTION_ID.findall(content))
     missing = [s for s in contract if s not in present]
@@ -219,7 +257,8 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         print("", file=sys.stderr)
         print(
-            "  契约: docs/templates/ HTML 模板族（汇报8要素/计划五段/实施设计8节/素材库4区）",
+            "  契约: docs/templates/ HTML 模板族"
+            "（汇报8要素/计划五段/实施设计8节/素材库4区/final-report锚点）",
             file=sys.stderr,
         )
         print("  豁免: 末尾加 [skip-html]（须登记 meta/豁免清单.md）", file=sys.stderr)

@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **final-report 报告格式纳入模板族硬契约（#53）**——`check_html_artifact.py` 新增 final-report 类锚点契约（`class="hero"` / `kpi-row` / `toc` / `verdict` + ≥2 个 mermaid 块），带 `doc-template="final-report"` 的 HTML 缺锚点即 FAIL；template/demo/2026-07-17 验收报告三份 canonical 已打标，规范文档澄清「内容要素 vs 版式标准」路由（merged_report 存量迁移留 #54）
+
 ### Fixed
 
 - **markdownlint 门禁在 POSIX 空转**——`lint_markdown.py` 仅在 win32 使用 `shell=True`（.cmd shim 需要），POSIX 改为列表参数直跑；此前 `shell=True` + 列表参数在 POSIX 只执行裸 `npx`，markdownlint 从未运行却返回 0。npx 缺失时现在明确非零退出

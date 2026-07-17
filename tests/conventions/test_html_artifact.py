@@ -8,6 +8,8 @@ from __future__ import annotations
 import importlib.util
 import os
 import subprocess
+
+import pytest
 import sys
 from pathlib import Path
 
@@ -102,3 +104,76 @@ class TestHook:
             env={**os.environ, "PYTHONUTF8": "1"},
         )
         assert r.returncode == 0, f"--all 审计失败：\n{r.stdout}\n{r.stderr}"
+
+
+FINAL_REPORT_CANONICAL = [
+    "docs/templates/devguard/final-report-template/template.html",
+    "docs/templates/devguard/final-report-template/demo.html",
+    "docs/reports/2026-06-08_devguard_V1.5_V2.0_merged_report.html",
+    "docs/reports/2026-07-17_devguard_审查修复_验收报告.html",
+]
+
+
+def _final_report_html(*, mermaid: int = 2, drop: tuple[str, ...] = ()) -> str:
+    anchors = {
+        "hero": '<section class="hero"></section>',
+        "kpi-row": '<div class="kpi-row"></div>',
+        "toc": '<div class="toc"></div>',
+        "verdict": '<div class="verdict"></div>',
+    }
+    body = [
+        '<!DOCTYPE html><html><head><meta name="doc-template" content="final-report">',
+        "<title>t</title></head><body><nav></nav>",
+    ]
+    body.extend(html for name, html in anchors.items() if name not in drop)
+    body.extend(['<div class="mermaid"></div>'] * mermaid)
+    body.append("</body></html>")
+    return "".join(body)
+
+
+class TestFinalReportContract:
+    """V2.4 #53：final-report 类型契约（hero / kpi-row / TOC / ≥2 mermaid / verdict）"""
+
+    def test_contract_registered(self):
+        mod = _load()
+        assert "final-report" in mod.CLASS_CONTRACTS
+
+    @pytest.mark.parametrize("rel", FINAL_REPORT_CANONICAL)
+    def test_canonical_files_satisfy_anchors(self, rel):
+        """4 份 canonical（模板/demo/merged_report/2026-07-17 验收报告）必须全部满足锚点"""
+        mod = _load()
+        content = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        assert mod.final_report_anchor_errors(content) == [], f"{rel} 锚点缺失"
+
+    def test_typed_files_pass_whole_check(self):
+        """打标后的 template/demo/验收报告通过完整校验（untyped merged_report 留给 #54）"""
+        mod = _load()
+        for rel in FINAL_REPORT_CANONICAL:
+            if "merged_report" in rel:
+                continue
+            errors, _ = mod.check_content(rel, (REPO_ROOT / rel).read_text(encoding="utf-8"))
+            assert errors == [], f"{rel} 完整校验失败: {errors}"
+
+    def test_missing_class_anchor_fails(self):
+        mod = _load()
+        for drop in (("verdict",), ("kpi-row",), ("hero",), ("toc",)):
+            errors, _ = mod.check_content("docs/reports/x.html", _final_report_html(drop=drop))
+            assert any("缺必备锚点" in e for e in errors), f"缺 {drop} 应 FAIL: {errors}"
+
+    def test_single_mermaid_fails_two_passes(self):
+        """mermaid 计数边界：1 个 fail，2 个 pass"""
+        mod = _load()
+        errors, _ = mod.check_content("docs/reports/x.html", _final_report_html(mermaid=1))
+        assert any("mermaid" in e for e in errors), f"1 个 mermaid 应 FAIL: {errors}"
+        errors, _ = mod.check_content("docs/reports/x.html", _final_report_html(mermaid=2))
+        assert errors == [], f"2 个 mermaid 应通过: {errors}"
+
+    def test_untyped_final_report_style_still_warn_only(self):
+        """高密度风但未声明类型的存量（如 merged_report）：仅 WARN 不拦"""
+        mod = _load()
+        content = _final_report_html().replace(
+            '<meta name="doc-template" content="final-report">', ""
+        )
+        errors, warnings = mod.check_content("docs/reports/legacy.html", content)
+        assert errors == []
+        assert any("doc-template" in w for w in warnings)
