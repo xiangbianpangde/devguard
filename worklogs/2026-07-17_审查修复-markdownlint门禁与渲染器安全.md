@@ -49,3 +49,9 @@
 ## 给下一位的交接
 
 > 下一轮可做审查报告 🟡5-7：`src/coding/ruff.toml` per-file-ignores 改配置相对路径（IDE 裸跑 ruff 不再报 15 个教学反例）、CI test/l4 job 去重、gitleaks 版本对齐+哈希钉版。push 与 PR 由 owner 确认后执行。
+
+## 验收报告落盘（2026-07-17 续）
+
+- [x] Owner 要求留档 → 按 final-report-template 高密度学术风（对齐 `docs/reports/2026-06-08_devguard_V1.5_V2.0_merged_report.html` 格式：KPI 卡 + 健康度仪表 + Mermaid + Tab + 多节骨架）撰写 `docs/reports/2026-07-17_devguard_审查修复_验收报告.html`（首版 8 要素契约 report 已按 Owner 反馈推翻重写）
+- [x] `check_html_artifact.py --all` 通过（本报告无 doc-template 声明 → untyped，仅 WARN，与 merged_report 同等地位）；全量 pytest 179 passed 零回退
+- 门禁实录：`check_worklog_ref` 要求被引用 worklog 必须出现在本次暂存变更 → 本节补记后随报告同提交，链路成立
