@@ -55,3 +55,9 @@
 - [x] Owner 要求留档 → 按 final-report-template 高密度学术风（对齐 `docs/reports/2026-06-08_devguard_V1.5_V2.0_merged_report.html` 格式：KPI 卡 + 健康度仪表 + Mermaid + Tab + 多节骨架）撰写 `docs/reports/2026-07-17_devguard_审查修复_验收报告.html`（首版 8 要素契约 report 已按 Owner 反馈推翻重写）
 - [x] `check_html_artifact.py --all` 通过（本报告无 doc-template 声明 → untyped，仅 WARN，与 merged_report 同等地位）；全量 pytest 179 passed 零回退
 - 门禁实录：`check_worklog_ref` 要求被引用 worklog 必须出现在本次暂存变更 → 本节补记后随报告同提交，链路成立
+
+## 设计提案落盘（2026-07-17 续二）
+
+- [x] Owner 拍板方向：报告格式一致性 + 一键部署性（一键部署 + 人手动触发，不做 ECC 式全局自动触发）
+- [x] 新增 `docs/plan/design/设计提案-报告格式入族与一键部署性提升.md`（五段式：背景/目标/方案/影响/风险）
+- [x] Owner 2026-07-17 全部拍板：#53-#57 编号且 #53 先行 / 契约锚点按建议 / 存量逐个迁移 / curl-irm 引导脚本 / CLI 纳入 core manifest
