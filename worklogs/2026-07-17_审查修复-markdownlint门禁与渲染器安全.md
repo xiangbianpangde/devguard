@@ -49,3 +49,8 @@
 ## 给下一位的交接
 
 > 下一轮可做审查报告 🟡5-7：`src/coding/ruff.toml` per-file-ignores 改配置相对路径（IDE 裸跑 ruff 不再报 15 个教学反例）、CI test/l4 job 去重、gitleaks 版本对齐+哈希钉版。push 与 PR 由 owner 确认后执行。
+
+## 设计提案落盘（2026-07-17 续二）
+
+- [x] Owner 拍板方向：报告格式一致性 + 一键部署性（一键部署 + 人手动触发，不做 ECC 式全局自动触发）
+- [x] 新增 `docs/plan/design/设计提案-报告格式入族与一键部署性提升.md`（五段式：背景/目标/方案/影响/风险 + Owner 决策 5 项待拍板），建议功能点 #53-#57 待 Owner 确认编号
