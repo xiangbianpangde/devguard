@@ -78,9 +78,7 @@ def _isolated_git_config_environment(root: Path) -> dict[str, str]:
 
 def _write_hook_wrapper(path: Path, commands: Sequence[str]) -> None:
     content = (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        f"{COMPOSED_MARKER}\n" + "\n".join(commands) + "\n"
+        f"#!/usr/bin/env bash\nset -euo pipefail\n{COMPOSED_MARKER}\n" + "\n".join(commands) + "\n"
     )
     path.write_text(content, encoding="utf-8", newline="\n")
     path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)

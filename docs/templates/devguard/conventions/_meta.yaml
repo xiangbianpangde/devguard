@@ -25,6 +25,12 @@ version: 1.0.0          # _meta.yaml schema 版本（不是项目版本）
 project: {项目名}        # <!-- 必填：新项目名 -->
 
 # ============================================================
+# 0. 工具链版本（单一真源 / single source of truth）
+# ============================================================
+toolchain:
+  ruff: 0.15.20
+
+# ============================================================
 # 1. 规范分级（每篇的红线/警告/推荐 数量 + 描述）
 # ============================================================
 # 编号规则: NN-<name>，与 conventions/NN-*.md 文件名对齐
@@ -90,7 +96,7 @@ pre_commit:
 
   - id: ruff
     source: astral-sh/ruff-pre-commit
-    rev: v0.6.0
+    rev: v0.15.20
     grade: red_line
     maps_to: 02-coding
     description: "02 红线 1/4/5：print / 裸 except / 调试断点等"
@@ -98,7 +104,7 @@ pre_commit:
 
   - id: ruff-format
     source: astral-sh/ruff-pre-commit
-    rev: v0.6.0
+    rev: v0.15.20
     grade: red_line
     maps_to: 02-coding
     description: 格式化

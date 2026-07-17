@@ -21,6 +21,15 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **markdownlint 门禁在 POSIX 空转**——`lint_markdown.py` 仅在 win32 使用 `shell=True`（.cmd shim 需要），POSIX 改为列表参数直跑；此前 `shell=True` + 列表参数在 POSIX 只执行裸 `npx`，markdownlint 从未运行却返回 0。npx 缺失时现在明确非零退出
+- **render_meta.py 防截断**——`_strip_existing_grade_section` 改用 `^## 分级标签$` 行级正则（修 `### 分级标签说明` 子串误判）；小节缺 `---` 分隔符时抛 `GradeSectionError` 失败闭合，不再截断正文；render 改为全量预演后统一落盘
+- **ruff 版本四方漂移**——统一收敛到 0.15.20，以 `conventions/_meta.yaml` 新增 `toolchain.ruff` 为单一真源；`check_consistency.py` 与 CI 契约测试改为从真源读期望值，不再硬编码版本字符串
+- **脚本模板漂移盲区**——`check_template_drift.py` 新增 `scripts/` ↔ `docs/templates/devguard/scripts/` 逐字节镜像对比；同步了已漂移的 render_meta.py、lint_markdown.py、collect_l4_stats.py 模板副本（后者还带有 `L4_STATS=0/0` 假通过旧 bug）
+
 ## [V2.2.0] - 2026-07-11
 
 ### Added

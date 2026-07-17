@@ -224,18 +224,35 @@ def evaluate_gate_bindings(root: Path) -> Dimension:
     return Dimension("强制闸门绑定", tuple(facts))
 
 
+def _expected_ruff_version(root: Path) -> str | None:
+    """ruff 钉版的单一真源：conventions/_meta.yaml 的 toolchain.ruff"""
+    text = _read(root, "conventions/_meta.yaml")
+    if text is None:
+        return None
+    try:
+        meta = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+    toolchain = meta.get("toolchain") if isinstance(meta, dict) else None
+    version = toolchain.get("ruff") if isinstance(toolchain, dict) else None
+    return version if isinstance(version, str) and version else None
+
+
 def evaluate_ci_projection(root: Path) -> Dimension:
     """Require the runnable workflow, template, and formatter pin to agree."""
     workflow = _read(root, ".github/workflows/ci.yml")
     template = _read(root, "docs/templates/devguard/.github/workflows/ci.yml")
     pre_commit = _read(root, ".pre-commit-config.yaml")
     template_matches = workflow is not None and workflow == template
+    version = _expected_ruff_version(root)
+    pins = set(re.findall(r"ruff==([0-9][0-9a-z.]*)", workflow or ""))
     formatter_matches = bool(
-        workflow
+        version
+        and workflow
         and pre_commit
-        and "pip install ruff==0.6.0 pyyaml" in workflow
+        and pins == {version}
+        and f"rev: v{version}" in pre_commit
         and "ruff format --check . --config src/coding/ruff.toml" in workflow
-        and "rev: v0.6.0" in pre_commit
     )
     return Dimension(
         "CI模板投影",
@@ -250,9 +267,11 @@ def evaluate_ci_projection(root: Path) -> Dimension:
             Fact(
                 "ruff formatter version parity",
                 formatter_matches,
-                "CI 与 pre-commit 均使用 ruff 0.6.0 且 CI 执行 format --check"
+                f"CI 与 pre-commit 均按 toolchain 真源使用 ruff {version} 且 CI 执行 format --check"
                 if formatter_matches
-                else "CI/pre-commit 的 ruff 版本或格式闸门不一致",
+                else (
+                    f"CI/pre-commit 的 ruff 钉版与 toolchain 真源（{version}）不一致或格式闸门缺失"
+                ),
             ),
         ),
     )
@@ -323,7 +342,7 @@ def format_report(report: ConsistencyReport, threshold: float = DEFAULT_THRESHOL
             state = "PASS" if fact.passed else "FAIL"
             lines.append(f"  [{state}] {fact.name}: {fact.detail}")
     lines.append(
-        f"总计: {report.passed}/{report.total} = {report.score:.1f}% " f"(阈值 {threshold:.1f}%)"
+        f"总计: {report.passed}/{report.total} = {report.score:.1f}% (阈值 {threshold:.1f}%)"
     )
     lines.append("OK 一致性达标" if report.score >= threshold else "FAIL 一致性未达标")
     return "\n".join(lines)

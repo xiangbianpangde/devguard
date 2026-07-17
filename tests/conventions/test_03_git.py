@@ -28,9 +28,9 @@ class TestGitContracts:
 
     def test_commitlint_config_exists(self):
         """红线 2/3：commitlint.config.js 必须存在"""
-        assert (
-            COMMITLINT_CONFIG.exists()
-        ), f"commitlint.config.js 缺失（{COMMITLINT_CONFIG}）—— 提交格式无自动校验"
+        assert COMMITLINT_CONFIG.exists(), (
+            f"commitlint.config.js 缺失（{COMMITLINT_CONFIG}）—— 提交格式无自动校验"
+        )
 
     def test_commitlint_in_precommit(self):
         """红线 2：commitlint v0.1 暂不启用（V2 加 package.json 后启用）
@@ -39,25 +39,25 @@ class TestGitContracts:
         L4 测试只验证"配置就位 + 钩子或 worklog 引用存在"
         """
         content = PRE_COMMIT_YAML.read_text(encoding="utf-8")
-        assert (
-            "worklog" in content or "commitlint" in content
-        ), "pre-commit-config.yaml 应该含 worklog 引用钩子（红线 6）或 commitlint（红线 2）"
+        assert "worklog" in content or "commitlint" in content, (
+            "pre-commit-config.yaml 应该含 worklog 引用钩子（红线 6）或 commitlint（红线 2）"
+        )
 
     def test_commitlint_extends_conventional(self):
         """红线 2：commitlint.config.js 必须 extends @commitlint/config-conventional（配置就位）"""
         content = COMMITLINT_CONFIG.read_text(encoding="utf-8")
-        assert (
-            "config-conventional" in content
-        ), "commitlint.config.js 必须 extends @commitlint/config-conventional"
+        assert "config-conventional" in content, (
+            "commitlint.config.js 必须 extends @commitlint/config-conventional"
+        )
 
     def test_commitlint_includes_recommended_types(self):
         """红线 3：commitlint 必须包含 03 §三 推荐 type（feat/fix/refactor/docs/test/perf/style/chore）"""  # noqa: E501
         content = COMMITLINT_CONFIG.read_text(encoding="utf-8")
         # 检查 type-enum 包含至少 5 个标准 type
         for t in ["feat", "fix", "refactor", "docs", "test", "chore"]:
-            assert (
-                f"'{t}'" in content or f'"{t}"' in content
-            ), f"commitlint type-enum 缺 {t}（03 §三 推荐 type 列表）"
+            assert f"'{t}'" in content or f'"{t}"' in content, (
+                f"commitlint type-enum 缺 {t}（03 §三 推荐 type 列表）"
+            )
 
     def test_gitmessage_template_exists(self):
         """03 §二：.gitmessage 提交模板应存在（指导 commit 写法）"""

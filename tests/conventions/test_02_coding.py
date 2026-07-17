@@ -61,37 +61,37 @@ class TestCodingContracts:
             text=True,
             cwd=REPO_ROOT,
         )
-        assert (
-            result.returncode == 0
-        ), f"ruff check src/coding/ 失败（红线 1-5 检测）：\n{result.stdout}\n{result.stderr}"
+        assert result.returncode == 0, (
+            f"ruff check src/coding/ 失败（红线 1-5 检测）：\n{result.stdout}\n{result.stderr}"
+        )
 
     def test_gitleaks_in_precommit(self):
         """红线 3：gitleaks 必须在 .pre-commit-config.yaml 中（密钥扫描）"""
         assert PRE_COMMIT_YAML.exists()
         content = PRE_COMMIT_YAML.read_text(encoding="utf-8")
-        assert (
-            "gitleaks" in content
-        ), "pre-commit-config.yaml 缺 gitleaks 钩子（红线 3 密钥扫描无自动检测）"
+        assert "gitleaks" in content, (
+            "pre-commit-config.yaml 缺 gitleaks 钩子（红线 3 密钥扫描无自动检测）"
+        )
 
     def test_redline_6_in_checklist(self):
         """红线 6（日志脱敏）是审查项，必须在 02 §六 检查清单里有对应项"""
         assert CONV_02.exists()
         content = CONV_02.read_text(encoding="utf-8")
         # §六 检查清单应该提到 "日志不含敏感"
-        assert (
-            "日志" in content and "敏感" in content
-        ), "02 §六 检查清单缺日志脱敏项（红线 6：日志禁输出敏感信息）"
+        assert "日志" in content and "敏感" in content, (
+            "02 §六 检查清单缺日志脱敏项（红线 6：日志禁输出敏感信息）"
+        )
 
     def test_redline_7_in_checklist(self):
         """红线 7（外部输入校验）是审查项，必须在 02 §六 检查清单里有对应项"""
         content = CONV_02.read_text(encoding="utf-8")
-        assert (
-            "外部输入" in content and "校验" in content
-        ), "02 §六 检查清单缺输入校验项（红线 7：所有外部输入必须校验）"
+        assert "外部输入" in content and "校验" in content, (
+            "02 §六 检查清单缺输入校验项（红线 7：所有外部输入必须校验）"
+        )
 
     def test_demo_files_excluded(self):
         """教学反例豁免规则存在（确认 02 红线对教学反例的合理豁免）"""
         content = RUFF_TOML.read_text(encoding="utf-8")
-        assert (
-            "src/**/*.py" in content
-        ), "ruff.toml 缺 src/ 整体豁免规则（教学代码需合理豁免 print 等红线）"
+        assert "src/**/*.py" in content, (
+            "ruff.toml 缺 src/ 整体豁免规则（教学代码需合理豁免 print 等红线）"
+        )

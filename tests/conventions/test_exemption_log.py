@@ -59,8 +59,7 @@ def test_new_usage_row_allows_registered_marker(tmp_path):
     path = root / "meta" / "豁免清单.md"
     path.write_text(
         _registry(
-            "| 2026-07-10 | hotfix | check_worklog_ref.py | "
-            "`[skip-worklog]` | owner | outage |\n"
+            "| 2026-07-10 | hotfix | check_worklog_ref.py | `[skip-worklog]` | owner | outage |\n"
         ),
         encoding="utf-8",
     )

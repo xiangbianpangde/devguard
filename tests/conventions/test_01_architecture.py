@@ -54,9 +54,9 @@ class TestArchitectureContracts:
 
     def test_importlinter_config_exists(self):
         """L1 检测工具 importlinter.ini 必须存在（红线 1/2/3 的载体）"""
-        assert (
-            IMPORTLINTER_INI.exists()
-        ), f"importlinter.ini 缺失（{IMPORTLINTER_INI}）—— 架构分层契约无法自动验证"
+        assert IMPORTLINTER_INI.exists(), (
+            f"importlinter.ini 缺失（{IMPORTLINTER_INI}）—— 架构分层契约无法自动验证"
+        )
 
     def test_importlinter_layers_contract_defined(self):
         """红线 3：分层单向依赖契约（type=layers）必须定义"""
@@ -80,9 +80,9 @@ class TestArchitectureContracts:
             if section.startswith("importlinter:contract:")
             and config.get(section, "type", fallback="") == "forbidden"
         ]
-        assert (
-            forbidden_contracts
-        ), "importlinter.ini 缺 forbidden 契约（红线 2 领域纯净无自动检测）"
+        assert forbidden_contracts, (
+            "importlinter.ini 缺 forbidden 契约（红线 2 领域纯净无自动检测）"
+        )
 
     @pytest.mark.skipif(not ARCH_ROOT.exists(), reason="src/architecture/ 不存在，跳过")
     def test_domain_layer_pure_in_source(self):

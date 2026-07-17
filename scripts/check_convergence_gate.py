@@ -62,8 +62,7 @@ def evaluate_gate(status_text: str, head_plan: str, staged_plan: str) -> list[st
     after = max_done_fp(staged_plan)
     if after > next_node and after > before:
         return [
-            f"交付功能点 #{after} 越过未收束节点 #{next_node} "
-            f"(last_converged_fp={last_converged})"
+            f"交付功能点 #{after} 越过未收束节点 #{next_node} (last_converged_fp={last_converged})"
         ]
     return []
 

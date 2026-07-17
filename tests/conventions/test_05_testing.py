@@ -50,15 +50,15 @@ class TestTestingContracts:
             text=True,
             cwd=REPO_ROOT,
         )
-        assert (
-            result1.returncode == 0 and result2.returncode == 0
-        ), f"pytest --collect-only 失败：\n{result1.stderr}\n{result2.stderr}"
+        assert result1.returncode == 0 and result2.returncode == 0, (
+            f"pytest --collect-only 失败：\n{result1.stderr}\n{result2.stderr}"
+        )
         # 两次收集到的测试数应该相同
         n1 = result1.stdout.count("::")
         n2 = result2.stdout.count("::")
-        assert (
-            n1 == n2 and n1 > 0
-        ), f"pytest 收集不稳定（第一次 {n1}，第二次 {n2}）—— 红线 1：测试可能依赖执行顺序"
+        assert n1 == n2 and n1 > 0, (
+            f"pytest 收集不稳定（第一次 {n1}，第二次 {n2}）—— 红线 1：测试可能依赖执行顺序"
+        )
 
     def test_l4_tests_for_every_convention(self):
         """红线 5（BDD+TDD）：每篇规范必须至少有 1 个 L4 test。
@@ -95,22 +95,22 @@ class TestTestingContracts:
         )
         missing = set(expected) - set(existing)
         assert not missing, (
-            f"L4 核心测试缺失（实际 {len(existing)}，" f"核心期望 {len(expected)}）：{missing}"
+            f"L4 核心测试缺失（实际 {len(existing)}，核心期望 {len(expected)}）：{missing}"
         )
 
     def test_redline_2_mock_boundary_documented(self):
         """红线 2（只 Mock 外部边界）必须在 05 §三 决策表有文档化"""
         content = CONV_05.read_text(encoding="utf-8")
-        assert (
-            "外部" in content and "Mock" in content
-        ), "05 §三 决策表缺 Mock 边界指引（红线 2：只 Mock 外部边界）"
+        assert "外部" in content and "Mock" in content, (
+            "05 §三 决策表缺 Mock 边界指引（红线 2：只 Mock 外部边界）"
+        )
 
     def test_redline_3_coverage_paths_documented(self):
         """红线 3（正常 + 边界 + 异常路径）必须在 05 §三 决策表有文档化"""
         content = CONV_05.read_text(encoding="utf-8")
-        assert (
-            "边界" in content and "异常" in content
-        ), "05 §三 决策表缺三路径覆盖指引（红线 3：正常+边界+异常）"
+        assert "边界" in content and "异常" in content, (
+            "05 §三 决策表缺三路径覆盖指引（红线 3：正常+边界+异常）"
+        )
 
     def test_redline_5_bdd_specs_exist(self):
         """红线 5（BDD+TDD）：docs/specs/ 至少有 BDD 规格"""

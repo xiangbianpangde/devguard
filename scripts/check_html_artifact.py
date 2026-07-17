@@ -219,7 +219,7 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         print("", file=sys.stderr)
         print(
-            "  契约: docs/templates/ HTML 模板族" "（汇报8要素/计划五段/实施设计8节/素材库4区）",
+            "  契约: docs/templates/ HTML 模板族（汇报8要素/计划五段/实施设计8节/素材库4区）",
             file=sys.stderr,
         )
         print("  豁免: 末尾加 [skip-html]（须登记 meta/豁免清单.md）", file=sys.stderr)

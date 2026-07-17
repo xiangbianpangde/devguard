@@ -116,3 +116,59 @@ def test_native_repository_files_do_not_contain_markdown_grade(relative_path: st
     content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
 
     assert "## 分级标签" not in content
+
+
+def test_strip_missing_separator_raises_instead_of_truncating():
+    """分级标签小节后缺 --- 分隔符时必须报错，绝不允许截断正文"""
+    render_meta = _load_render_meta()
+    content = "# 标题\n\n## 分级标签\n\n| 级别 | 数量 |\n\n## 正文\n大量真实内容\n"
+
+    with pytest.raises(render_meta.GradeSectionError):
+        render_meta._strip_existing_grade_section(content)
+
+
+def test_third_level_heading_is_not_treated_as_grade_marker():
+    """### 分级标签说明 含子串「## 分级标签」，不得被误判为分级小节"""
+    render_meta = _load_render_meta()
+    content = "# 标题\n\n### 分级标签说明\n\n正文\n"
+
+    stripped, found = render_meta._strip_existing_grade_section(content)
+
+    assert found is False
+    assert stripped == content
+
+
+def test_render_aborts_before_any_write_on_malformed_section(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """任一篇规范小节畸形时，render 必须在首次写入前中止（不产生半成品）"""
+    render_meta = _load_render_meta()
+    good = tmp_path / "good.md"
+    bad = tmp_path / "bad.md"
+    good_original = "# Good\n\n正文\n"
+    good.write_text(good_original, encoding="utf-8")
+    bad.write_text("# Bad\n\n## 分级标签\n\n无分隔符正文\n", encoding="utf-8")
+    monkeypatch.setattr(render_meta, "REPO_ROOT", tmp_path)
+    meta = {"conventions": [_markdown_convention(good.name), _markdown_convention(bad.name)]}
+
+    with pytest.raises(render_meta.GradeSectionError):
+        render_meta.render_convention_grade(meta)
+
+    assert good.read_text(encoding="utf-8") == good_original
+
+
+def test_check_reports_malformed_grade_section_without_crashing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """--check 遇到畸形小节应记为不一致（给出修复指引），而不是抛栈退出"""
+    render_meta = _load_render_meta()
+    markdown = tmp_path / "rule.md"
+    markdown.write_text("# R\n\n## 分级标签\n\n正文无分隔符\n", encoding="utf-8")
+    monkeypatch.setattr(render_meta, "REPO_ROOT", tmp_path)
+
+    ok, message = render_meta.check_target(
+        "convention-grade", {"conventions": [_markdown_convention(markdown.name)]}
+    )
+
+    assert not ok
+    assert "分隔符" in message

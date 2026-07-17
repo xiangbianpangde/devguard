@@ -34,9 +34,9 @@ class TestDocumentationContracts:
     def test_readme_has_quickstart(self):
         """红线 1：README 必须含「快速开始」段（≤5 条命令跑起来）"""
         content = README.read_text(encoding="utf-8")
-        assert (
-            "快速开始" in content or "Quick Start" in content or "Quickstart" in content
-        ), "README 缺「快速开始」段（红线 1：新人按 README 能独立启动）"
+        assert "快速开始" in content or "Quick Start" in content or "Quickstart" in content, (
+            "README 缺「快速开始」段（红线 1：新人按 README 能独立启动）"
+        )
 
     def test_changelog_exists(self):
         """红线 2：CHANGELOG.md 必须存在"""
@@ -77,16 +77,16 @@ class TestDocumentationContracts:
         sync_public = [node for node in public_funcs if not isinstance(node, ast.AsyncFunctionDef)]
         for func in sync_public:
             docstring = ast.get_docstring(func)
-            assert (
-                docstring
-            ), f"公共函数 {func.name} 缺 docstring（红线 4：公共 API 必须有 docstring）"
+            assert docstring, (
+                f"公共函数 {func.name} 缺 docstring（红线 4：公共 API 必须有 docstring）"
+            )
 
     def test_redline_5_anti_pattern_in_doc(self):
         """红线 5：06 §四 反模式必须提到「注释与代码不符」"""
         content = CONV_06.read_text(encoding="utf-8")
-        assert (
-            "注释与代码" in content or "过时注释" in content
-        ), "06 §四 反模式缺「注释与代码不符」案例（红线 5）"
+        assert "注释与代码" in content or "过时注释" in content, (
+            "06 §四 反模式缺「注释与代码不符」案例（红线 5）"
+        )
 
     def test_markdownlint_config_exists(self):
         """L1 检测：.markdownlint.json 必须存在（markdown 格式 L1 配置就位）"""
@@ -100,6 +100,96 @@ class TestDocumentationContracts:
         """
         content = PRE_COMMIT_YAML.read_text(encoding="utf-8")
         assert "markdownlint" in content, (
-            "pre-commit-config.yaml 缺 markdownlint 钩子"
-            "（红线 1：markdown 格式 L1 自动检测缺失）"
+            "pre-commit-config.yaml 缺 markdownlint 钩子（红线 1：markdown 格式 L1 自动检测缺失）"
         )
+
+
+def _load_lint_markdown():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "lint_markdown_under_test", REPO_ROOT / "scripts" / "lint_markdown.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class _RecordingRunner:
+    """记录调用参数的外部边界替身（subprocess 是唯一 mock 点）"""
+
+    def __init__(self, returncode: int = 0, error: Exception | None = None):
+        self.returncode = returncode
+        self.error = error
+        self.calls: list[dict] = []
+
+    def __call__(self, cmd, **kwargs):
+        import subprocess
+
+        self.calls.append({"cmd": cmd, **kwargs})
+        if self.error is not None:
+            raise self.error
+        return subprocess.CompletedProcess(cmd, self.returncode, "", "")
+
+
+class TestMarkdownlintGate:
+    """markdownlint 包装脚本必须在 POSIX 真正执行，且 npx 缺失时失败闭合"""
+
+    def test_posix_runs_markdownlint_without_shell(self):
+        """POSIX 下 shell=True + 列表参数只会裸跑 npx（门禁空转），必须 shell=False"""
+        mod = _load_lint_markdown()
+        runner = _RecordingRunner()
+
+        code = mod._run_batches(
+            ["a.md"], platform="linux", runner=runner, which=lambda _name: "/usr/bin/npx"
+        )
+
+        assert code == 0
+        assert runner.calls, "markdownlint 未被执行"
+        assert runner.calls[0]["shell"] is False
+        assert runner.calls[0]["cmd"][:2] == ["npx", "--no"]
+        assert "a.md" in runner.calls[0]["cmd"]
+
+    def test_win32_uses_shell_for_cmd_shim(self):
+        """Windows 的 npx 是 .cmd shim，仅该平台允许 shell=True"""
+        mod = _load_lint_markdown()
+        runner = _RecordingRunner()
+
+        code = mod._run_batches(
+            ["a.md"], platform="win32", runner=runner, which=lambda _name: "C:/npx.cmd"
+        )
+
+        assert code == 0
+        assert runner.calls[0]["shell"] is True
+
+    def test_missing_npx_fails_closed(self):
+        """npx 不存在时必须非零退出并说明原因，绝不假通过"""
+        mod = _load_lint_markdown()
+        runner = _RecordingRunner()
+
+        code = mod._run_batches(["a.md"], platform="linux", runner=runner, which=lambda _name: None)
+
+        assert code == 1
+        assert not runner.calls, "npx 缺失时不应尝试执行"
+
+    def test_runner_file_not_found_fails_closed(self):
+        """race：which 通过后 npx 仍不可执行，同样失败闭合"""
+        mod = _load_lint_markdown()
+        runner = _RecordingRunner(error=FileNotFoundError("npx"))
+
+        code = mod._run_batches(
+            ["a.md"], platform="linux", runner=runner, which=lambda _name: "/usr/bin/npx"
+        )
+
+        assert code == 1
+
+    def test_markdownlint_failure_propagates_exit_code(self):
+        runner = _RecordingRunner(returncode=1)
+        mod = _load_lint_markdown()
+
+        code = mod._run_batches(
+            ["a.md"], platform="linux", runner=runner, which=lambda _name: "/usr/bin/npx"
+        )
+
+        assert code == 1
