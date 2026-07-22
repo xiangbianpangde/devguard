@@ -16,14 +16,13 @@
 ---
 # 通用开发规范 — 使用指南
 
-> 更新: 2026-07-11
+> 更新: 2026-07-22
 > **👤 本文件供人类阅读**。AI Agent 请阅读 `CLAUDE.md`。
-> 约 3 分钟读完。本文件夹是一套通用开发规范的**项目模板**，可直接复制到新项目中使用。
-> 更新: 2026-07-11
+> 约 3 分钟读完。本文件夹是一套通用开发规范的**项目模板**，通过一键初始化器装配到新项目。
 
 ## 当前状态
 
-- **版本**：V2.2.0（2026-07-11）—— ECC 十域对标、跨 Harness skills-first 与事务化一键初始化
+- **版本**：V2.4.0（2026-07-22）—— 单命令跨平台安装器 + 审查治理修复（V2.3.0 报告格式入族）
 - **治理门槛**：一致性事实矩阵 ≥80%，隔离 Git 故障注入拦截率 ≥90%
 - **本仓强制链**：19 个 pre-commit/commit-msg hooks + 5 阶段 CI
 - **GitHub 标准 4 件套齐**：README + CHANGELOG + SECURITY + SUPPORT
@@ -45,29 +44,66 @@
 
 ## 一键初始化新项目
 
+macOS / Linux（bash，经引导脚本自动探测 Python ≥3.10）：
+
+```bash
+cd ~/dev/devguard   # 本仓路径，按实际克隆位置调整
+bash scripts/install.sh ~/dev/my-project --profile core --project-name 'My Project' --install
+```
+
+Windows（PowerShell，等价引导脚本）：
+
 ```powershell
 Set-Location -LiteralPath 'C:\Users\yhn\Desktop\开发规范'
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 'C:\dev\my-project' --profile core --project-name 'My Project' --install
+```
+
+也可绕过引导脚本直接调用 Python（Windows 示例；macOS / Linux 将 `py -3.11` 换成 `python3`、路径换成 POSIX 形式即可）：
+
+```powershell
 py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --profile core --project-name 'My Project' --install
 ```
+
+```bash
+python3 scripts/setup_scaffold.py ~/dev/my-project --profile core --project-name 'My Project' --install
+```
+
+远程引导（`curl | bash` / `irm | iex`）：脚本执行时需能定位本仓（当前目录即仓、或 `--repo` / `DEVGUARD_REPO` 指定），否则 fail-closed 提示先 `git clone`：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scripts/install.sh | bash -s -- ~/dev/my-project --install
+```
+
+```powershell
+irm https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scripts/install.ps1 | iex
+```
+
+引导脚本只做三件事：探测 Python ≥3.10（缺失则给出分平台安装指引并退出，不自动安装、不静默降级）→ 定位 devguard 仓 → 将参数原样透传给 `scripts/setup_scaffold.py`。
 
 该命令在目标目录生成 Codex/Claude 双入口、canonical DevGuard skill、credential-free 项目 `.codex/config.toml`、根文档、计划、固定依赖、最小 CI 和自检测试，初始化 Git 与隔离 `.venv`，并同时安装 `pre-commit`、`commit-msg` 两类 hook。若机器已配置 ECC/其他全局 `core.hooksPath`，安装器会保留并串联既有 `pre-commit` / `pre-push`；不会修改用户全局 Git 配置。目标非空时默认拒绝；显式 `--force` 也使用逐文件原子替换，任何中途失败都会回滚已写文件。
 
 写入前预演（不创建目标目录）：
 
+```bash
+bash scripts/install.sh ~/dev/my-project --profile core --dry-run
+```
+
 ```powershell
 py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --profile core --dry-run
+# macOS / Linux: python3 scripts/setup_scaffold.py ~/dev/my-project --profile core --dry-run
 ```
 
 复验既有目标：
 
 ```powershell
 py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --verify --require-hooks
+# macOS / Linux: python3 scripts/setup_scaffold.py ~/dev/my-project --verify --require-hooks
 ```
 
 ## 详细使用
 
-- [CHANGELOG.md](CHANGELOG.md) — V0.1 → V2.2.0 完整升级日志
-- [conventions/_meta.yaml](conventions/_meta.yaml) — 16 规范元数据（l1_check + l1_check_path + l1_check_doc）
+- [CHANGELOG.md](CHANGELOG.md) — V0.1 → V2.4.0 完整升级日志
+- [conventions/_meta.yaml](conventions/_meta.yaml) — 17 规范元数据（l1_check + l1_check_path + l1_check_doc）
 - [docs/templates/devguard/README-模板索引.md](docs/templates/devguard/README-模板索引.md) — 模板使用流程
 - [docs/reports/INDEX.md](docs/reports/INDEX.md) — 全部 V0.x 收束报告索引
 - [SECURITY.md](SECURITY.md) — 安全策略
@@ -103,21 +139,17 @@ py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --verify --require-hook
 
 ---
 
-**维护者**：袁 (xiangbianpangde)  **版本**：V2.0.1  **许可**：MIT License
+**维护者**：袁 (xiangbianpangde)  **版本**：V2.4.0  **许可**：MIT License
 
 ## 快速开始（新项目）
 
-### 1. 复制模板
+### 1. 一键初始化（唯一推荐方式）
+
+新项目**不要**手动 `cp -r` 本仓——会夹带 `node_modules/`、`.venv/`、`worklogs/`、`docs/reports/` 等 devguard 自身资产。统一走显式 manifest 脚手架（见上文「一键初始化新项目」）：
 
 ```bash
-# 方式一：复制整个文件夹
-cp -r 开发规范/ my-new-project/
-
-# 方式二：只复制核心文件
-cp -r 开发规范/conventions/ my-new-project/
-cp 开发规范/CLAUDE.md 开发规范/STATUS.md 开发规范/dashboard.html my-new-project/
-cp -r 开发规范/docs/templates/ 开发规范/docs/plan/ my-new-project/
-mkdir my-new-project/worklogs my-new-project/src
+bash scripts/install.sh ~/dev/my-project --profile core --project-name 'My Project' --install
+# 预演（零写入）：bash scripts/install.sh ~/dev/my-project --profile core --dry-run
 ```
 
 ### 2. 初始化为你的项目

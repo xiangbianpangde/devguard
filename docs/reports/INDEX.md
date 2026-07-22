@@ -1,8 +1,8 @@
 # 收束报告索引
 
-> 更新: 2026-07-11
+> 更新: 2026-07-22
 > V0.x 共 9 个节点，V1.0-V1.5 共 6 个节点，V2.1-V2.2 共 2 个节点；合计 17 个收束节点的统一索引
-> 维护者: 袁 (xiangbianpangde) | 创建: 2026-06-07 | 更新: 2026-07-11
+> 维护者: 袁 (xiangbianpangde) | 创建: 2026-06-07 | 更新: 2026-07-22
 
 ## V0.x 收束报告清单
 
@@ -25,6 +25,8 @@
 | [V1.5](./收束报告-v1.5.md) | V1.5 1 件任务（V1.5.1） | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML | 2026-06-08 |
 | [V2.1](./收束报告-v2.1.md) | #47-#49 P0/P1 强化 | 一致性 100% + 拦截率 100% + 一键初始化 E2E + GitHub 平台保护回读 | 2026-07-11 |
 | [V2.2](./收束报告-v2.2.md) | #50-#52 ECC 全项目对标 | ECC 10/10 + skills-first + 原子回滚 + 22 文件仓外 E2E | 2026-07-11 |
+| [模板演示](./2026-07-21_devguard_template_full_trigger_demo.html) | final-report-template 占位符全替换 + 13 节 + 11 Mermaid + 3 Tab + 5 进度条 + 1 模拟器 + 数字滚动 + Verdict | 非收束节点；template 能力自检；`check_html_artifact.py` EXIT=0 | 2026-07-21 |
+| [从零演示·AI 四支柱](./2026-07-21_AI_four_pillars_from_scratch.html) | AI 工程四支柱（提示词/上下文/Loop/Harness）从零撰写的高密度报告 | 11 Mermaid + 5 anim-bar + 3 Tab + 1 模拟器 + 5 数字滚动 + Verdict · README 全目标达成；`check_html_artifact.py` EXIT=0 | 2026-07-21 |
 
 ## 累计统计
 

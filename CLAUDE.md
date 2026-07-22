@@ -1,6 +1,6 @@
 # 通用开发规范 — AI 项目上下文
 
-> 更新: 2026-07-17
+> 更新: 2026-07-22
 > **⚠️ 仅供 AI Agent 读取**，新会话自动加载。人类请读 `README.md`。
 > 每次功能点完成后更新本文件。新增文件前先查 `meta/FILE_GRAPH.md`。
 
@@ -8,8 +8,8 @@
 
 ## 项目概述
 
-纯文档项目（Markdown 规范 + Python 示例），Git 管理。本身是一套可一键初始化到新项目的开发规范模板。53 个功能点全部交付；ECC 十域对标、跨 Harness skills-first 与事务化初始化已完成，final-report 报告格式已纳入模板族硬契约（#53）。
-<!-- devguard-progress: completed=53 total=53 -->
+纯文档项目（Markdown 规范 + Python 示例），Git 管理。本身是一套可一键初始化到新项目的开发规范模板。54 个功能点已交付，#54（merged_report 存量迁移）已立项待启动；ECC 十域对标、跨 Harness skills-first 与事务化初始化已完成，final-report 报告格式已纳入模板族硬契约（#53），curl/irm 单命令跨平台安装器已交付（#55）。
+<!-- devguard-progress: completed=54 total=55 -->
 
 **本项目的核心设计**：`conventions/` 里的 6+1 份规范不是孤立文档，而是 `conventions/ai-workflow_AI协作开发流程/` 协作流程各步骤的**细化**——流程讲"什么时候做什么"，规范讲"那一步具体怎么做、红线是什么、配置怎么落地"。
 
@@ -30,7 +30,7 @@
 │   └── research/                 # 调研
 ├── worklogs/                     # 工作日志 + decisions/（ADR，仅收束节点产出）
 ├── src/                          # 示例代码（按规范维度分目录）→ README-示例代码总览.md
-├── scripts/                      # start_server.py / 打开仪表盘.bat
+├── scripts/                      # 治理脚本：check_*（19 个 commit-msg/CI 闸门）+ render_meta.py（真源渲染）+ setup_scaffold.py / install.sh / install.ps1（一键初始化）+ start_server.py / 打开仪表盘.bat
 ├── meta/FILE_GRAPH.md            # 文件归类权威（"新文件放哪"决策树）
 ├── CLAUDE.md                     # 本文件（AI 上下文）
 ├── README.md                     # 人类使用指南
@@ -43,7 +43,7 @@
 ## 引用关系（改一处要同步哪些）
 
 ```
-conventions/ (01-08)  ←互检→  docs/specs/ (01-08)
+conventions/ (01-06,08)  ←互检→  docs/specs/ (00-10；08-examples 为示例代码规格，与 08 规范双编号系既定例外)
         │ 细化自                       ↑ 验收
         ↓                              │
 conventions/ai-workflow/ (流程)   src/<维度>/（规范 §二落地配置的可运行版）
@@ -126,8 +126,8 @@ worklogs/ ──收束节点──→ worklogs/decisions/（ADR）
 
 ## 当前状态
 
-- **进度**：53/53 ✅（#50-#52 ECC 全项目对标与一键初始化 2.0 已收束；#53 报告格式入族已交付）
-- **规范版本**：01-06 为 **v2.0**，08 为 **v3.1**；治理基线为 **V2.2.0**，`src/<维度>/` 配有对应可运行配置
+- **进度**：54/55（#50-#52 ECC 全项目对标与一键初始化 2.0 已收束；#53 报告格式入族、#55 单命令跨平台安装器已交付；#54 merged_report 存量迁移立项待启动，启动前须完成 v2.3 收束）
+- **规范版本**：01-06 为 **v2.0**，08 为 **v3.1**；治理基线为 **V2.4.0**，`src/<维度>/` 配有对应可运行配置
 - **ADR**：8 个（`worklogs/decisions/0001-0008`）
 - **收束节点**：v0.1–v2.2 共 17 个节点已执行；其中 **v0.1 已人审计签核**，v0.2–v2.2（16 个）人审计仍 ⏳ 待签核；本轮机器收束通过（见 `STATUS.md`）
 

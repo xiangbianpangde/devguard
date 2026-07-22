@@ -1,8 +1,8 @@
 # 项目状态
 
-> 更新: 2026-07-17（审查加固：markdownlint POSIX 门禁修复、render_meta 防截断、ruff 版本真源、脚本镜像漂移防护；#53 final-report 报告格式纳入模板族硬契约）
-<!-- devguard-progress: completed=53 total=53 -->
-<!-- convergence-gate: nodes=31,35,46,49,52 last_converged_fp=52 -->
+> 更新: 2026-07-22（#53 final-report 报告格式纳入模板族硬契约；#55 单命令跨平台安装器 install.sh / install.ps1 交付并本机 E2E 通过；07-22 审查机械修复 A 包同步口径）
+<!-- devguard-progress: completed=54 total=55 -->
+<!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=52 -->
 
 ## 当前进度
 
@@ -20,6 +20,8 @@
 | P0/P1 强化 | #47 渲染/CI、#48 可测闸门、#49 一键初始化 | ✅ | 2026-07-11 |
 | ECC 全项目对标 | #50 分支收敛、#51 能力矩阵与治理对齐、#52 一键初始化 2.0 | ✅ | 2026-07-11 |
 | V2.4 增强 | #53 报告格式入族（final-report 契约 + 规范路由澄清） | ✅ | 2026-07-17 |
+| V2.4 增强 | #55 单命令跨平台安装器（install.sh / install.ps1 + README 三平台示例） | ✅ | 2026-07-17 |
+| V2.4 增强 | #54 merged_report 存量迁移（final-report 契约全覆盖） | ⏳ 立项待启动 | - |
 | **V2.0.1 启动** | **devguard dogfood (V1.x 范式在自身闭环 8 次拦截 / 全部修复)** | **✅** | **2026-06-08** |
 
 ## 累计数据
@@ -27,7 +29,7 @@
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **19 个 pre-commit / commit-msg 钩子**（含 ECC 十域对标硬闸门）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **188 tests passed**（tests/conventions/）
+- **205 tests passed**（tests/conventions/）
 - **17 个收束节点**（V0.1-V2.2 全部落盘；本轮机器收束通过）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **8 ADR 决策**（worklogs/decisions/）
@@ -35,7 +37,11 @@
 
 ## 阻塞项
 
-（无）
+| 项目 | 等谁 / 等什么 |
+|------|--------------|
+| v2.3 收束（覆盖 #53/#55 四阶段） | 等 Owner 触发；未收束前 #54/#56 的交付提交将被收束闸门拦截（nodes 已续写 55,58） |
+| v0.2–v2.2 人审计签核（16 节点） | 等 Owner 批量签核（2026-06-30 目标已逾期，不计完成） |
+| 豁免账 append-only 硬闸门 | 待立项（决策登记 D5：`docs/reports/2026-07-22_一致性强制性规范性审查/决策登记.md`） |
 
 ## 图例
 
@@ -74,11 +80,13 @@
 
 | # | 项目 | 收束节点 | 备注 |
 |---|------|----------|------|
-| 1 | `docs/重构笔记-使用开发规范重构项目指南.md` | 待用户决定 | V0 遗留 untracked |
+| 1 | `docs/历史文件/重构笔记-使用开发规范重构项目指南.md` | 待用户决定 | V0 遗留；已移至 `docs/历史文件/` 且已 tracked，去留仍待人拍板 |
 | 2 | commitlint "config" 警告噪音 | V2.0+ | 钩子不阻断但污染输出 |
 | 3 | 18-章外规范入 _meta.yaml | V2.0+ | 已无明显遗漏 |
 | 4 | devguard 自身 dogfood | V2.0+ | 用 V1.x 约束开发规范项目本身 |
 | 5 | CI 跨平台测试 | V2.0+ | PowerShell vs bash 兼容 |
+| 6 | 脚手架载荷 ruff 钉版漂移 | 待立项 | `docs/templates/devguard/scaffold/core/requirements-dev.txt` 钉 0.11.7，与 toolchain 真源 0.15.20 不一致（2026-07-22 E2E 发现） |
+| 7 | install.sh 健壮性 | 待评估 | 缺 ensurepip 可用性预检（损坏时 fail-closed 但报错滞后）；安装失败时目标目录残留已写入载荷（2026-07-22 E2E 发现） |
 
 ---
 
@@ -139,3 +147,5 @@
 | 51 | ECC 全项目能力矩阵与治理对齐 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-07-11 |
 | 52 | ECC 对标的一键初始化 2.0 与最终收束 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-11 |
 | 53 | 报告格式入族（final-report 契约 + 规范路由澄清） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-07-17 |
+| 54 | merged_report 存量迁移（final-report 契约全覆盖） | specs/10-templates-reporting.md | ⏳ 待开始 | - |
+| 55 | 单命令跨平台安装器（install.sh / install.ps1 引导脚本） | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-17 |
