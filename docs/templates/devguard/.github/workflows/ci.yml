@@ -6,6 +6,9 @@
 # 同步纪律：改 _meta.yaml ci 节 → 必须同步本文件
 # 模板版本：docs/templates/devguard/.github/workflows/ci.yml
 # ============================================================
+# 编号说明：本文件注释中的 "V2.x 子计划 #NN" 为历史子计划（流程强制化 / 模板族等）
+# 内部编号，与 STATUS.md 主表功能点编号不对应（如子计划 #48=HTML 模板族，主表 #48=可测闸门）。
+# ============================================================
 name: CI
 
 on:
@@ -39,6 +42,7 @@ jobs:
       - name: ruff format check
         run: ruff format --check . --config src/coding/ruff.toml
 
+      # gitleaks 版本真源：conventions/_meta.yaml toolchain.gitleaks（改真源后须同步此处与 pre-commit rev）
       - name: gitleaks manual run V3.3
         run: |
           curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
@@ -123,18 +127,18 @@ jobs:
       - name: check_code_understanding.py（V6.1 08 章节级 L1）
         run: python scripts/check_code_understanding.py
 
-      # V2.1 #40-#42：入口文件章节级 L1（STATUS / CLAUDE / 开发清单）
-      - name: check_status.py（V2.1 #40 STATUS 格式 L1）
+      # V2.1 子计划 #40-#42：入口文件章节级 L1（STATUS / CLAUDE / 开发清单）
+      - name: check_status.py（V2.1 子计划 #40 STATUS 格式 L1）
         run: python scripts/check_status.py
 
-      - name: check_claude.py（V2.1 #41 CLAUDE 结构 L1）
+      - name: check_claude.py（V2.1 子计划 #41 CLAUDE 结构 L1）
         run: python scripts/check_claude.py
 
-      - name: check_plan.py（V2.1 #42 开发清单格式 L1 + 交叉校验）
+      - name: check_plan.py（V2.1 子计划 #42 开发清单格式 L1 + 交叉校验）
         run: python scripts/check_plan.py
 
-      # V2.1 #46: 收束节点产物检查（ADR + 收束报告）
-      - name: check_convergence_artifacts.py（V2.1 #46 收束产物检查）
+      # V2.1 子计划 #46: 收束节点产物检查（ADR + 收束报告）
+      - name: check_convergence_artifacts.py（V2.1 子计划 #46 收束产物检查）
         run: python scripts/check_convergence_artifacts.py
 
   # -------------------------------------------------------------
@@ -157,16 +161,16 @@ jobs:
       - name: Run compliance scan
         run: python scripts/check_compliance.py
 
-      # V2.1 #44: 模板漂移检测（5 类入口文件章节存在性对比）
-      - name: check_template_drift.py（V2.1 #44 模板漂移检测）
+      # V2.1 子计划 #44: 模板漂移检测（5 类入口文件章节存在性对比）
+      - name: check_template_drift.py（V2.1 子计划 #44 模板漂移检测）
         run: python scripts/check_template_drift.py
 
-      # V2.3 #48: HTML 产出物结构审计（模板族契约；typed 违规 fail，untyped 仅提示）
-      - name: check_html_artifact.py --all（V2.3 #48 HTML 模板族结构审计）
+      # V2.3 子计划 #48: HTML 产出物结构审计（模板族契约；typed 违规 fail，untyped 仅提示）
+      - name: check_html_artifact.py --all（V2.3 子计划 #48 HTML 模板族结构审计）
         run: python scripts/check_html_artifact.py --all
 
-      # V2.3 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
-      - name: check_decision_alignment.py --all（V2.3 #50 决策对齐审计）
+      # V2.3 子计划 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
+      - name: check_decision_alignment.py --all（V2.3 子计划 #50 决策对齐审计）
         run: python scripts/check_decision_alignment.py --all
 
   # -------------------------------------------------------------

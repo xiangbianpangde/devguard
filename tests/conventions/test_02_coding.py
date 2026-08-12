@@ -13,7 +13,9 @@
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -21,6 +23,22 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 RUFF_TOML = REPO_ROOT / "src" / "coding" / "ruff.toml"
 PRE_COMMIT_YAML = REPO_ROOT / ".pre-commit-config.yaml"
 CONV_02 = REPO_ROOT / "conventions" / "02-coding_代码编写规范.md"
+
+
+def _ruff_executable() -> str:
+    """解析 ruff 可执行文件：优先与当前解释器同目录（venv 内），退回 PATH。
+
+    裸命令 "ruff" 依赖调用方 PATH——未激活 venv 直跑 `.venv/bin/python -m pytest`
+    会假失败（2026-07-22 审查 F17）；此处改为确定性解析，仍 fail-closed。
+    """
+    for name in ("ruff", "ruff.exe"):
+        sibling = Path(sys.executable).parent / name
+        if sibling.is_file():
+            return str(sibling)
+    found = shutil.which("ruff")
+    if found:
+        return found
+    raise AssertionError("未找到 ruff 可执行文件（当前解释器环境未安装且 PATH 无 ruff）")
 
 
 def _read_toml_select(path: Path) -> list[str]:
@@ -51,7 +69,7 @@ class TestCodingContracts:
         """红线 1-5 的 ruff 检查在 src/coding/ 跑通（含教学反例豁免）"""
         result = subprocess.run(
             [
-                "ruff",
+                _ruff_executable(),
                 "check",
                 "src/coding/",
                 "--config",

@@ -23,6 +23,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+（无）
+
+## [V2.4.0] - 2026-07-22
+
+### Added
+
+- **单命令跨平台安装器（#55）**——`scripts/install.sh` / `install.ps1` 引导脚本：探测 Python ≥3.10（缺失则分平台指引并退出，不静默降级）→ 定位本仓（当前目录 / `--repo` / `DEVGUARD_REPO`，否则 fail-closed 提示先 clone）→ 参数原样透传 `setup_scaffold.py`；支持 `curl | bash` / `irm | iex` 远程引导；`tests/conventions/test_installer.py` 新增 16 项测试；2026-07-22 仓外真机复验（dry-run + 全量安装 + `--verify --require-hooks`）
+
+### Fixed
+
+- **2026-07-22 审查修复包（一致性 / 强制性 / 规范性，19 项发现）**——机械包：README 规范计数（16→17）、CLAUDE 目录索引与进度口径、模板索引补登 4 个 HTML 模板（v1.4）、FILE_GRAPH 补登 `docs/历史文件/`、gitleaks 统一 8.24.3（`_meta.yaml` 新增 `toolchain.gitleaks` 真源）、ci.yml 历史子计划编号标注、`test_02_coding` 的 ruff 改为解释器同级解析、`test_perf_baseline` 补 smoke 测试
+- **#54 跳号致连续性 FAIL**——主表补 `#54 merged_report 存量迁移`（⏳ 待开始），check_consistency 两项 continuity FAIL 消除（24/24）
+- **收束闸门断供**——STATUS 闸门标记续写节点 `55,58`，恢复「默认每 3 功能点」拦截能力；v2.3 收束与 16 节点人审计签核登记阻塞项
+- **豁免使用记录被抹除**——按 `0860261` 恢复 §三 2 条记录（2026-06-11 的 `[skip-updated]` / `[skip-gate]`），append-only 硬闸门立项待办
+- **README 快速开始与 manifest 初始化矛盾**——删除 `cp -r 开发规范/` 教学，改为 install.sh / setup_scaffold 一键初始化
+
+### Security
+
+- **本机 commit-msg 闸门旁路修复**——本仓 local `core.hooksPath` 指向仅含 pre-commit 的 ECC 目录，导致 19 个本仓钩子（含 8 个 commit-msg 治理闸门）本机空转；已 `git config --unset core.hooksPath` 恢复 `.git/hooks/` 生效
+
+## [V2.3.0] - 2026-07-17
+
 ### Added
 
 - **final-report 报告格式纳入模板族硬契约（#53）**——`check_html_artifact.py` 新增 final-report 类锚点契约（`class="hero"` / `kpi-row` / `toc` / `verdict` + ≥2 个 mermaid 块），带 `doc-template="final-report"` 的 HTML 缺锚点即 FAIL；template/demo/2026-07-17 验收报告三份 canonical 已打标，规范文档澄清「内容要素 vs 版式标准」路由（merged_report 存量迁移留 #54）

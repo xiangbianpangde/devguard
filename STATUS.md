@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-07-22（#53 final-report 报告格式纳入模板族硬契约；#55 单命令跨平台安装器 install.sh / install.ps1 交付并本机 E2E 通过；07-22 审查机械修复 A 包同步口径）
+> 更新: 2026-08-12（红蓝对抗启动：蓝队优化执行中，PRD 不变量 22 条为验收基准）（#53 final-report 报告格式纳入模板族硬契约；#55 单命令跨平台安装器 install.sh / install.ps1 交付并本机 E2E 通过；07-22 审查机械修复 A 包同步口径）
 <!-- devguard-progress: completed=54 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=52 -->
 

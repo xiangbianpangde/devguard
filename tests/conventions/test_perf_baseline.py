@@ -14,8 +14,16 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Baseline (V2.5 first measurement): 53 tests in 2.69s
+# 注：V2.5 首测口径为当时 53 个 L4 测试；当前套件 200+，本基线仅作数量级参考，
+# 超阈值只 WARN 不 FAIL（见 main()），避免性能噪音阻塞提交。
 BASELINE_SECONDS = 2.69
 TOLERANCE = 1.5
+
+
+def test_perf_baseline_script_loadable() -> None:
+    """基线脚本可被 pytest 收集加载，且基线常量取值合理（V2.5 起仅 warn 不 fail）。"""
+    assert BASELINE_SECONDS > 0, "BASELINE_SECONDS 必须为正"
+    assert TOLERANCE >= 1.0, "TOLERANCE 必须 >= 1.0"
 
 
 def main() -> int:

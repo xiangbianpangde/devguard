@@ -30,7 +30,7 @@ repos:
         args: ['--config=src/coding/ruff.toml']
 
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.0
+    rev: v8.24.3
     hooks:
       - id: gitleaks
 
