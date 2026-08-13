@@ -22,7 +22,7 @@
 
 ## 当前状态
 
-- **版本**：开发中（Unreleased；V2.4.0 + 红蓝对抗强化周期 2026-08-13）—— 55/55 功能点完成、对抗 21/21 闭环、CI 跨平台全绿
+- **版本**：V2.5.0（2026-08-13）—— 55/55 功能点完成、红蓝对抗 21/21 闭环、CI 跨平台全绿、对抗式验证固化（ADR 0009）
 - **治理门槛**：一致性事实矩阵 ≥80%，隔离 Git 故障注入拦截率 ≥90%
 - **本仓强制链**：19 个 pre-commit/commit-msg hooks + 5 阶段 CI
 - **GitHub 标准 4 件套齐**：README + CHANGELOG + SECURITY + SUPPORT
@@ -146,7 +146,7 @@ py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --verify --require-hook
 
 ---
 
-**维护者**：袁 (xiangbianpangde)  **版本**：V2.4.0  **许可**：MIT License
+**维护者**：袁 (xiangbianpangde)  **版本**：V2.5.0  **许可**：MIT License
 
 ## 快速开始（新项目）
 
