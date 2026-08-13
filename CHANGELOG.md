@@ -23,7 +23,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-（无）
+### Added
+
+- **红蓝对抗整理周期（蓝队，2026-08-13）**——六大类整理交付：PRD 不变量 24 条（docs/plan/项目介绍-PRD.md）、架构总览 architecture.md、约束覆盖率矩阵 meta/约束覆盖率矩阵.md、6 份大类设计提案、selfcheck.sh（三阶段 E2E 自检）、bootstrap.sh（环境重建+版本指纹）、CI test-cross-platform（macOS+windows）
+
+### Changed
+
+- **一致性门槛 80%→95%**（check_consistency DEFAULT_THRESHOLD + _meta.yaml + ci.yml + ECC 判定同步）
+- **check_template_drift 扩展脚手架镜像**（requirements-dev.txt / _meta.yaml / ci.yml 逐字节；故障注入验证）
+- **install.sh / install.ps1 / setup_scaffold**：ensurepip 预检 fail-closed + install() 失败清理（技术债 #7）
+- **FILE_GRAPH 三规约**：命名规约 §四 / 归档纪律 §五 / 入口扩展规则 §六
+
+### Fixed
+
+- **技术债 #2/#5/#6/#7 销账**（commitlint 噪音消失 / 跨平台 CI 落地 / scaffold ruff 漂移根治 / install 健壮性）
+- **本机 19 钩子旁路**（core.hooksPath 指向 ECC 目录致闸门空转）+ .venv 空壳（测试不可运行）
+- **PRD 不变量计数口径** 22→24 条（蓝队独立复核 P1）
+- **test_installer S108** 不安全临时目录 ×9（首次修复被 pre-commit restore 丢失，复核后重做）
 
 ## [V2.4.0] - 2026-07-22
 

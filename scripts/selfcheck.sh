@@ -65,13 +65,14 @@ fi
 pass "dry-run 零写入验证"
 
 if [[ "$FULL" -eq 1 ]]; then
-    section "Phase 3/3 全链路 --install（venv + pip + hooks）"
-    ( cd "$REPO_ROOT" && "$PY" scripts/setup_scaffold.py "$TARGET" --install ) \
+    section "Phase 3/3 全链路 --install（新目录一条命令：setup + venv + pip + hooks）"
+    FULL_TARGET="$TMP_ROOT/fresh-full"
+    ( cd "$REPO_ROOT" && "$PY" scripts/setup_scaffold.py "$FULL_TARGET" --profile core --project-name "SelfCheck Full" --install ) \
         || fail "--install 全链路失败"
-    ( cd "$REPO_ROOT" && "$PY" scripts/setup_scaffold.py "$TARGET" --verify --require-hooks ) \
+    ( cd "$REPO_ROOT" && "$PY" scripts/setup_scaffold.py "$FULL_TARGET" --verify --require-hooks ) \
         || fail "--verify --require-hooks 未通过"
     pass "--install 全链路 + --verify --require-hooks 通过"
-    "$TARGET/.venv/bin/python" -m pytest "$TARGET/tests/governance" -q --no-header \
+    "$FULL_TARGET/.venv/bin/python" -m pytest "$FULL_TARGET/tests/governance" -q --no-header \
         || fail "目标项目自检测试失败"
     pass "目标项目自检测试通过"
 else
