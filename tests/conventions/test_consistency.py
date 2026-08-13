@@ -38,7 +38,7 @@ def test_empty_evidence_files_cannot_manufacture_a_high_score(tmp_path):
         tmp_path, command_runner=lambda _command: (1, "injected failure")
     )
 
-    assert report.score < 80
+    assert report.score < 95
     assert report.total > 0
     assert any(d.passed < d.total for d in report.dimensions)
 

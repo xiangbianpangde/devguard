@@ -70,12 +70,37 @@ jobs:
         run: |
           python scripts/check_report.py
           python scripts/check_doc_quality.py
-          python scripts/check_consistency.py
+          python scripts/check_consistency.py --threshold 95
           python scripts/check_ecc_alignment.py --threshold 80
 
   # -------------------------------------------------------------
   # 阶段 2：test（文档规范仓库的 Python/契约测试）
   # -------------------------------------------------------------
+  # -------------------------------------------------------------
+  # 阶段 2.5：跨平台契约测试（2026-08-13 蓝队大类五，技术债 #5 关闭）
+  # 排除：test_installer（引导脚本 bash/ps1 依赖）、test_dashboard_entry（.bat 依赖）
+  # -------------------------------------------------------------
+  test-cross-platform:
+    name: Cross-platform contract tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install pytest + pyyaml + pinned ruff
+        run: pip install pytest pyyaml ruff==0.15.20
+
+      - name: Cross-platform subset tests
+        run: pytest tests/conventions/ --ignore=tests/conventions/test_installer.py --ignore=tests/conventions/test_dashboard_entry.py -q --no-header
+
   test:
     name: Repository pytest suite
     runs-on: ubuntu-latest

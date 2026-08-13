@@ -106,7 +106,7 @@ STATUS.md 的 `convergence-gate` 标记声明预设节点；开发清单中 ✅ 
 
 | 检查 | 脚本 | 阈值 |
 |------|------|------|
-| 一致性事实矩阵 | check_consistency.py | ≥80% |
+| 一致性事实矩阵 | check_consistency.py | ≥95% |
 | 故障注入拦截率 | check_enforcement.py | ≥90% |
 | ECC 十域对标 | check_ecc_alignment.py | ≥80% |
 | 模板漂移（含 scaffold 镜像） | check_template_drift.py | 0 漂移 |

@@ -148,7 +148,7 @@ conventions:
         - scripts/check_updated_tag.py
         - scripts/check_doc_sync.py
         - scripts/check_convergence_gate.py
-    l1_check: 工作流契约 + 一致性事实矩阵 >=80% + 故障注入拦截率 >=90% + 8 个 commit-msg 治理闸门
+    l1_check: 工作流契约 + 一致性事实矩阵 >=95% + 故障注入拦截率 >=90% + 8 个 commit-msg 治理闸门
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
@@ -512,7 +512,7 @@ ci:
       runner: ubuntu-latest
       needs: []
       conditional: "test -f scripts/check_compliance.py"
-      cmd: python scripts/check_compliance.py && python scripts/check_consistency.py --threshold 80
+      cmd: python scripts/check_compliance.py && python scripts/check_consistency.py --threshold 95
 
     - id: build
       name: 构建验证

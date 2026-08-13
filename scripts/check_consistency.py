@@ -21,7 +21,7 @@ from typing import NamedTuple
 import yaml
 
 
-DEFAULT_THRESHOLD = 80.0
+DEFAULT_THRESHOLD = 95.0
 PROGRESS_MARKER = re.compile(r"<!--\s*devguard-progress:\s*completed=(\d+)\s+total=(\d+)\s*-->")
 CONVENTION_IDS = (
     "01-architecture",

@@ -1,7 +1,7 @@
 # 项目介绍 · devguard（PRD 不变量）
 
 > **本文档是本项目的 PRD 与整理工作的验收基准（不变量契约）。**
-> 更新: 2026-08-12
+> 更新: 2026-08-13
 >
 > - 本文档描述 devguard **应当是什么样**（目标态），不是现状快照。现状数据以 `STATUS.md` 为真源。
 > - **任何整理、重构、优化工作，不得破坏第五节「不变量清单」中的任何一条**；与不变量冲突的改动需先修订本文档并经 Owner 拍板。
@@ -213,7 +213,7 @@ devguard/
 
 | ID | 不变量 | 验证方式 |
 |----|--------|---------|
-| S1 | 工具链版本单一真源：`_meta.yaml` 与 CI、pre-commit、requirements、pyproject、脚手架载荷**全部一致**，零漂移 | `check_consistency.py`（一致性事实矩阵 ≥80%） |
+| S1 | 工具链版本单一真源：`_meta.yaml` 与 CI、pre-commit、requirements、pyproject、脚手架载荷**全部一致**，零漂移 | `check_consistency.py`（一致性事实矩阵 ≥95%） |
 | S2 | 测试基线可复现：全新 `.venv` 按固定依赖安装后 205 tests 全绿 | 自举重建脚本 + `pytest tests/` |
 | S3 | 强制力有量化的故障注入证明：隔离 Git 故障注入拦截率 ≥90% | `check_enforcement.py` |
 | S4 | 渲染产物禁止手改：分级标签/README 分级表/pre-commit 配置漂移即 CI fail | `render_meta.py --check` 入 CI |

@@ -89,7 +89,7 @@
 │   ├── install.ps1                   #   Windows PowerShell 一键引导（同 install.sh）
 │   ├── setup_scaffold.py             #   自包含治理基线一键初始化/复验
 │   ├── render_dashboard.py           #   Windows/POSIX 共用 dashboard 渲染入口
-│   ├── check_consistency.py          #   一致性事实矩阵（阈值 >=80%）
+│   ├── check_consistency.py          #   一致性事实矩阵（阈值 >=95%）
 │   ├── check_enforcement.py          #   隔离 Git 故障注入矩阵（阈值 >=90%）
 │   ├── check_ecc_alignment.py        #   ECC 十域能力对标矩阵（阈值 >=80%）
 │   ├── check_*_*.py                  #   worklog/STATUS/放置/豁免/日期/同步/收束闸门
