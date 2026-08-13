@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **#54 merged_report 存量迁移**——3 份 06-08 存量报告打标 final-report 契约（55/55 收官）
+- **v2.3 收束**——机器四阶段通过：210 测试 / 一致性 26-26 / 对抗 21-21 闭环；ADR 0009 对抗式验证固化
 - **红蓝对抗整理周期（蓝队，2026-08-13）**——六大类整理交付：PRD 不变量 24 条（docs/plan/项目介绍-PRD.md）、架构总览 architecture.md、约束覆盖率矩阵 meta/约束覆盖率矩阵.md、6 份大类设计提案、selfcheck.sh（三阶段 E2E 自检）、bootstrap.sh（环境重建+版本指纹）、CI test-cross-platform（macOS+windows）
 
 ### Changed

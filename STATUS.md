@@ -151,5 +151,5 @@
 | 51 | ECC 全项目能力矩阵与治理对齐 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-07-11 |
 | 52 | ECC 对标的一键初始化 2.0 与最终收束 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-11 |
 | 53 | 报告格式入族（final-report 契约 + 规范路由澄清） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-07-17 |
-| 54 | merged_report 存量迁移（final-report 契约全覆盖） | specs/10-templates-reporting.md | ⏳ 待开始 | - |
+| 54 | merged_report 存量迁移（3 份 06-08 报告打标 final-report，契约全覆盖） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-08-13 |
 | 55 | 单命令跨平台安装器（install.sh / install.ps1 引导脚本） | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-17 |
