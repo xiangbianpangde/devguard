@@ -29,6 +29,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Windows 中文 stdout 兼容（cp1252 下打印中文会 UnicodeEncodeError）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 UPDATE_TAG = re.compile(r"^>\s*更新[:：]\s*\d{4}-\d{2}-\d{2}", re.MULTILINE)
 H1 = re.compile(r"^#\s")

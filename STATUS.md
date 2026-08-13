@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-13（红蓝对抗 21/21 闭环 + v2.3 收束 + #54 收官：55/55；#9 销账；PR #10 CI 验证中；人审计 17 节点待 Owner）
+> 更新: 2026-08-13（红蓝对抗 21/21 闭环 + v2.3 收束 + #54 收官 55/55 + Windows 编码修复；PR #10 CI 重跑中；人审计 17 节点待 Owner）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
