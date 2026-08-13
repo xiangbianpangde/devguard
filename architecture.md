@@ -16,7 +16,7 @@
 | 渲染器 | `scripts/render_meta.py` / `render_dashboard.py` | 真源 → 渲染产物（分级标签/pre-commit 配置/README 表/dashboard） | _meta.yaml、STATUS.md |
 | 安装器 | `scripts/install.sh` / `install.ps1` / `setup_scaffold.py` | 引导 + 事务化初始化新项目 | 模板族 |
 | 治理脚本 | `scripts/check_*.py`（23 个） | 一致性/强制力/收束/豁免等闸门 | 真源 + 渲染产物 |
-| 测试 | `tests/conventions/`（208 测试） | 治理脚本与契约的自动化证明 | 治理脚本 |
+| 测试 | `tests/conventions/`（209 测试） | 治理脚本与契约的自动化证明 | 治理脚本 |
 | 钩子配置 | `.pre-commit-config.yaml`（渲染产物） | 19 个 pre-commit/commit-msg 钩子 | render_meta |
 | CI | `.github/workflows/ci.yml` | 5 阶段（lint/test/l4-conventions/compliance/build） | 治理脚本 |
 | 示例代码 | `src/<维度>/` | 规范 §二落地配置的可运行版 | 规范正文 |
@@ -110,7 +110,7 @@ STATUS.md 的 `convergence-gate` 标记声明预设节点；开发清单中 ✅ 
 | 故障注入拦截率 | check_enforcement.py | ≥90% |
 | ECC 十域对标 | check_ecc_alignment.py | ≥80% |
 | 模板漂移（含 scaffold 镜像） | check_template_drift.py | 0 漂移 |
-| 测试基线 | tests/conventions/ | 208/208 |
+| 测试基线 | tests/conventions/ | 209/209 |
 
 工具链真源：`_meta.yaml toolchain`（ruff 0.15.20 / gitleaks 8.24.3）；依赖钉版：`requirements-dev.txt`。
 
