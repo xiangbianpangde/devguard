@@ -243,6 +243,34 @@ def _expected_ruff_version(root: Path) -> str | None:
     return _toolchain_field(root, "ruff")
 
 
+def _precommit_projection_fact(root: Path) -> "Fact":
+    """toolchain.pre-commit 全投影：requirements / pyproject / scaffold 三处一致。
+
+    红队第三轮 R-02 终修：pre-commit 字段此前完全未被投影（变异仍 25/25 假绿）。
+    """
+    version = _toolchain_field(root, "pre-commit")
+    if version is None:
+        return Fact("pre-commit pin projection", False, "toolchain.pre-commit 真源缺失")
+    requirements = _read(root, "requirements-dev.txt") or ""
+    pyproject = _read(root, "pyproject.toml") or ""
+    scaffold_req = _read(root, "docs/templates/devguard/scaffold/core/requirements-dev.txt") or ""
+    ok = bool(
+        re.search(rf"^pre-commit=={re.escape(version)}$", requirements, re.M)
+        and re.search(rf"pre-commit=={re.escape(version)}", pyproject)
+        and re.search(rf"^pre-commit=={re.escape(version)}$", scaffold_req, re.M)
+    )
+    return Fact(
+        "pre-commit pin projection",
+        ok,
+        f"requirements/pyproject/scaffold 均按 toolchain 真源钉版 pre-commit {version}"
+        if ok
+        else (
+            f"pre-commit 钉版投影缺失：toolchain 真源（{version}）与 "
+            "requirements / pyproject / scaffold 不一致"
+        ),
+    )
+
+
 def evaluate_ci_projection(root: Path) -> Dimension:
     """Require the runnable workflow, template, and formatter pin to agree."""
     workflow = _read(root, ".github/workflows/ci.yml")
@@ -299,6 +327,7 @@ def evaluate_ci_projection(root: Path) -> Dimension:
                     f"CI 钉版 {sorted(pytest_pins)} / requirements / pyproject 不一致"
                 ),
             ),
+            _precommit_projection_fact(root),
         ),
     )
 
@@ -381,6 +410,21 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     report = evaluate_repository(args.repo_root)
     print(format_report(report, args.threshold))
+    # 红队第三轮 R-02 终修：关键真源投影（CI 模板一致性 / ruff / pytest /
+    # pre-commit）任一不一致必须硬失败，不受聚合阈值豁免（杜绝 96%≥95 假绿）。
+    critical_failures = [
+        fact.name
+        for dimension in report.dimensions
+        if dimension.name == "CI模板投影"
+        for fact in dimension.facts
+        if not fact.passed
+    ]
+    if critical_failures:
+        print(
+            f"FAIL 关键真源投影不一致（硬失败，不受阈值豁免）: {critical_failures}",
+            file=sys.stderr,
+        )
+        return 1
     return 0 if report.score >= args.threshold else 1
 
 

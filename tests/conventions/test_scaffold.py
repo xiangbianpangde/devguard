@@ -427,3 +427,32 @@ def test_install_failure_rolls_back_setup_payloads_too(tmp_path, monkeypatch):
     assert not (target / ".git").exists()
     assert owner_file.read_text(encoding="utf-8") == "owner README\n"
     assert sorted(p.name for p in target.iterdir()) == ["README.md"]
+
+
+def test_final_verify_failure_after_install_rolls_back_too(tmp_path, monkeypatch):
+    """2026-08-13 红队第三轮 R-03 终修：install 成功后 final verify 失败 → 全量回滚归零。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    owner_file = target / "README.md"
+    owner_file.write_text("owner README\n", encoding="utf-8")
+
+    def fake_verify(target_path, *, profile, require_hooks):
+        # install() 内部的 verify 通过（profile=None）；main 的 final verify 失败
+        if profile is None:
+            return []
+        return ["injected final verify failure"]
+
+    monkeypatch.setattr(module, "verify", fake_verify)
+
+    returncode = module.main([str(target), "--profile", "core", "--install", "--force"])
+    assert returncode == 1
+
+    # payload（含 receipt）全部回滚 + owner 文件恢复 + venv/git 清理 → target 归零
+    assert not (target / ".devguard.json").exists()
+    assert not (target / ".devguard-receipt.json").exists()
+    assert not (target / "STATUS.md").exists()
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+    assert owner_file.read_text(encoding="utf-8") == "owner README\n"
+    assert sorted(p.name for p in target.iterdir()) == ["README.md"]

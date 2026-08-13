@@ -572,17 +572,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.install:
             try:
                 install(target)
+                # R-03（第三轮终修）：final verify 纳入同一跨阶段回滚 try——
+                # install 成功但末段校验失败（状态化注入场景）也必须回滚归零
+                errors = verify(target, profile=profile, require_hooks=True)
+                if errors:
+                    raise ScaffoldError("安装后校验失败：\n- " + "\n- ".join(errors))
             except ScaffoldError:
-                # R-03：install 失败必须回滚 setup 写下的全部 payload
+                # R-03：install/末段校验失败必须回滚 setup 写下的全部 payload
                 # （恢复被覆盖的 owner 文件），不留半成品
                 try:
                     _rollback_writes(target, result.previous, list(result.written))
                 except Exception as rollback_error:
                     raise ScaffoldError(f"安装失败且跨阶段回滚失败：{rollback_error}") from None
                 raise
-            errors = verify(target, profile=profile, require_hooks=True)
-            if errors:
-                raise ScaffoldError("安装后校验失败：\n- " + "\n- ".join(errors))
         print(f"INIT OK: {target} ({result.profile}, {len(result.written)} files)")
         if not args.install:
             print("完整一键安装：在同一命令追加 --install（会创建 .venv 并访问依赖源）")
