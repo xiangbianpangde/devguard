@@ -120,3 +120,4 @@ STATUS.md 的 `convergence-gate` 标记声明预设节点；开发清单中 ✅ 
 2. 变更真源 → 同步镜像对（§三.3 表全部）。
 3. 变更 FILE_GRAPH（文件放置）→ 同步本文档组件清单。
 4. 违反纪律 → check_doc_sync / check_template_drift 拦截（自动）或红蓝对抗审查（人工）。
+5. 对抗式验证（ADR 0009）：关键闸门的验证声称必须附可复现命令 + 真源侧反向变异（变异 `_meta.yaml` toolchain 字段须 rc=1），禁止仅变异下游引用。

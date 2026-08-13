@@ -24,6 +24,8 @@
 | [V1.4](./收束报告-v1.4.md) | V1.4 2 件任务（V1.4.1/V1.4.2） | 17-contributing + CONTRIBUTING.md | 2026-06-07 |
 | [V1.5](./收束报告-v1.5.md) | V1.5 1 件任务（V1.5.1） | final-report-template 沉淀 + 2 份 V1.x 汇报 HTML | 2026-06-08 |
 | [V2.1](./收束报告-v2.1.md) | #47-#49 P0/P1 强化 | 一致性 100% + 拦截率 100% + 一键初始化 E2E + GitHub 平台保护回读 | 2026-07-11 |
+| [V2.3](./收束报告-v2.3.md) | #53/#55 + 红蓝对抗整理周期 | 210 测试 / 一致性 100% / 对抗 21-21 闭环（ADR 0009 固化） | 2026-08-13 |
+| [AI 审计 v2.3](./AI审计-v2.3.md) | 0 红线 + 6 项对抗变异全通过 | 模式化扫描 + 变异验证 | 2026-08-13 |
 | [V2.2](./收束报告-v2.2.md) | #50-#52 ECC 全项目对标 | ECC 10/10 + skills-first + 原子回滚 + 22 文件仓外 E2E | 2026-07-11 |
 | [模板演示](./2026-07-21_devguard_template_full_trigger_demo.html) | final-report-template 占位符全替换 + 13 节 + 11 Mermaid + 3 Tab + 5 进度条 + 1 模拟器 + 数字滚动 + Verdict | 非收束节点；template 能力自检；`check_html_artifact.py` EXIT=0 | 2026-07-21 |
 | [从零演示·AI 四支柱](./2026-07-21_AI_four_pillars_from_scratch.html) | AI 工程四支柱（提示词/上下文/Loop/Harness）从零撰写的高密度报告 | 11 Mermaid + 5 anim-bar + 3 Tab + 1 模拟器 + 5 数字滚动 + Verdict · README 全目标达成；`check_html_artifact.py` EXIT=0 | 2026-07-21 |
