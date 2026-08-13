@@ -100,6 +100,7 @@
 │   ├── FILE_GRAPH.md                 #   本文件：文件归类权威
 │   └── 豁免清单.md                    #   [skip-*] 合法目录与逐次使用账
 │
+├── architecture.md                   # 顶层：★当前架构总览（组件/依赖/数据流/机制；架构变更必须回写）
 ├── CLAUDE.md                         # 顶层：AI 项目上下文（仅供 AI 读取，新会话自动加载）
 ├── README.md                         # 顶层：人类使用指南（仅供人类阅读）
 ├── STATUS.md                         # 顶层：进度仪表盘数据源（dashboard 解析它）
@@ -151,6 +152,9 @@ docs/templates/ ──复制为──→ 新项目的 CLAUDE/STATUS/README/plan/
 │
 ├─ 某规范/功能点的验收标准（BDD）？
 │     → docs/specs/NN-<name>.md（编号与功能点对齐）
+│
+├─ 架构总览 / 组件关系 / 依赖方向（持续维护的“当前架构是什么”）？
+│     → docs/architecture.md（架构变更必须回写，与实现同 PR）
 │
 ├─ 架构/技术选型决策（为什么选 A 不选 B）？
 │     → worklogs/decisions/NNNN-<标题>.md（ADR，仅收束节点产出，见 ADR 0006）

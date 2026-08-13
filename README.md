@@ -16,7 +16,7 @@
 ---
 # 通用开发规范 — 使用指南
 
-> 更新: 2026-07-22
+> 更新: 2026-08-13
 > **👤 本文件供人类阅读**。AI Agent 请阅读 `CLAUDE.md`。
 > 约 3 分钟读完。本文件夹是一套通用开发规范的**项目模板**，通过一键初始化器装配到新项目。
 
@@ -103,6 +103,7 @@ py -3.11 .\scripts\setup_scaffold.py 'C:\dev\my-project' --verify --require-hook
 ## 详细使用
 
 - [CHANGELOG.md](CHANGELOG.md) — V0.1 → V2.4.0 完整升级日志
+- [architecture.md](architecture.md) — 当前架构总览（组件/依赖/数据流/关键机制）
 - [conventions/_meta.yaml](conventions/_meta.yaml) — 17 规范元数据（l1_check + l1_check_path + l1_check_doc）
 - [docs/templates/devguard/README-模板索引.md](docs/templates/devguard/README-模板索引.md) — 模板使用流程
 - [docs/reports/INDEX.md](docs/reports/INDEX.md) — 全部 V0.x 收束报告索引

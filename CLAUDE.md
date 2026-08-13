@@ -1,6 +1,6 @@
 # 通用开发规范 — AI 项目上下文
 
-> 更新: 2026-07-22
+> 更新: 2026-08-13
 > **⚠️ 仅供 AI Agent 读取**，新会话自动加载。人类请读 `README.md`。
 > 每次功能点完成后更新本文件。新增文件前先查 `meta/FILE_GRAPH.md`。
 
@@ -28,6 +28,7 @@
 │   ├── plan/                     # 背景 + 开发清单 + design/
 │   ├── reports/                  # 汇报产出
 │   └── research/                 # 调研
+├── architecture.md               # ★当前架构总览（组件/依赖/数据流/机制，架构变更必须回写）
 ├── worklogs/                     # 工作日志 + decisions/（ADR，仅收束节点产出）
 ├── src/                          # 示例代码（按规范维度分目录）→ README-示例代码总览.md
 ├── scripts/                      # 治理脚本：check_*（19 个 commit-msg/CI 闸门）+ render_meta.py（真源渲染）+ setup_scaffold.py / install.sh / install.ps1（一键初始化）+ start_server.py / 打开仪表盘.bat
