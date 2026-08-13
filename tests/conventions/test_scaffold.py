@@ -327,3 +327,68 @@ def test_verify_rejects_hooks_that_git_will_ignore_without_local_hook_path(tmp_p
         check=True,
     )
     assert module.verify(target, profile="core", require_hooks=True) == []
+
+
+def test_install_prechecks_ensurepip_before_creating_venv(tmp_path, monkeypatch):
+    """2026-08-13 方案③：ensurepip 预检 fail-closed——预检失败时不创建任何产物。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    real_run = module.subprocess.run
+
+    def fake_run(command, **kwargs):
+        if command[1:3] == ["-m", "ensurepip"]:
+            return module.subprocess.CompletedProcess(command, returncode=1)
+        return real_run(command, **kwargs)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    with pytest.raises(module.ScaffoldError, match="ensurepip 不可用"):
+        module.install(target)
+
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+
+
+def test_install_cleans_partial_venv_and_git_on_failure(tmp_path, monkeypatch):
+    """2026-08-13 方案③：安装事务失败时清理本次创建的 .venv 与 .git。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    real_run = module._run
+    calls = 0
+
+    def fail_at_pip(command, *, cwd):
+        nonlocal calls
+        calls += 1
+        if calls == 3:  # git init / venv 之后，pip install 时
+            raise module.ScaffoldError("injected pip failure")
+        real_run(command, cwd=cwd)
+
+    monkeypatch.setattr(module, "_run", fail_at_pip)
+
+    with pytest.raises(module.ScaffoldError, match="已清理本次产物"):
+        module.install(target)
+
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+
+
+def test_manifest_covers_all_payload_files():
+    """2026-08-13 方案③：manifest 反向校验——载荷目录每个物理文件都被显式声明。"""
+    module = load_scaffold()
+    declared = {entry.source for entry in (*module.CORE_MANIFEST, *module.OPTIONAL_MANIFEST)}
+    payload_roots = (
+        module.TEMPLATE_ROOT / "scaffold" / "core",
+        module.TEMPLATE_ROOT / "scaffold" / "optional",
+    )
+    physical = {
+        path.relative_to(module.TEMPLATE_ROOT).as_posix()
+        for root in payload_roots
+        for path in root.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts
+    }
+    undeclared = sorted(physical - declared)
+    assert undeclared == [], (
+        f"载荷目录存在未在 manifest 声明的文件: {undeclared}（新增模板必须登记 manifest）"
+    )

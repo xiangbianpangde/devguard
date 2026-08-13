@@ -112,6 +112,17 @@ else
     fi
 fi
 
+# 1.5) ensurepip 预检（2026-08-13 蓝队方案③：fail-closed，提前报错而非 venv 创建后报错滞后）
+if ! "$PY" -m ensurepip --version >/dev/null 2>&1; then
+    printf '%s\n' \
+        'ERROR: ensurepip 不可用（无法创建带 pip 的虚拟环境）。请先修复：' \
+        '  - Ubuntu/Debian: sudo apt-get install python3-venv' \
+        '  - Fedora:        sudo dnf install python3-pip' \
+        '  - 其他:         参考 https://pip.pypa.io/en/stable/installation/' \
+        >&2
+    exit 1
+fi
+
 # 2) 定位 devguard 仓
 if [[ -z "$REPO" && -n "${DEVGUARD_REPO:-}" ]]; then
     REPO="$DEVGUARD_REPO"

@@ -87,6 +87,15 @@ if ($env:DEVGUARD_PYTHON) {
     }
 }
 
+# 1.5) ensurepip 预检（2026-08-13 蓝队方案③：fail-closed，提前报错）
+$pyPrefixCheck = @()
+if ($PyCmd.Count -gt 1) { $pyPrefixCheck = @($PyCmd[1..($PyCmd.Count - 1)]) }
+& $PyCmd[0] @pyPrefixCheck -m ensurepip --version 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host 'ERROR: ensurepip 不可用（无法创建带 pip 的虚拟环境）。请先修复 Python 安装（重新运行 Python 安装包并勾选 pip / Repair）。'
+    exit 1
+}
+
 # 2) 定位 devguard 仓
 if (-not $Repo -and $env:DEVGUARD_REPO) { $Repo = $env:DEVGUARD_REPO }
 if (-not $Repo -and $PSScriptRoot) {

@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-13（红蓝对抗启动：蓝队优化执行中——大类一二完成 + 独立复核修复包：提交 A-G 入库，测试 205 全绿；红队对抗审查待通知）
+> 更新: 2026-08-13（红蓝对抗启动：蓝队优化执行中——大类一二三完成：提交 A-H 入库，测试 208 全绿；红队对抗审查待通知）
 <!-- devguard-progress: completed=54 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=52 -->
 
@@ -86,7 +86,7 @@
 | 4 | devguard 自身 dogfood | V2.0+ | 用 V1.x 约束开发规范项目本身 |
 | 5 | CI 跨平台测试 | V2.0+ | PowerShell vs bash 兼容 |
 | 6 | ~~脚手架载荷 ruff 钉版漂移~~ **已根治**（2026-08-13 提交 00cdebe：版本对齐 + 包名统一 + check_template_drift 镜像校验入闸） | ✅ 关闭 | 原：钉 0.11.7 vs 真源 0.15.20（2026-07-22 E2E 发现） |
-| 7 | install.sh 健壮性 | 待评估 | 缺 ensurepip 可用性预检（损坏时 fail-closed 但报错滞后）；安装失败时目标目录残留已写入载荷（2026-07-22 E2E 发现） |
+| 7 | ~~install.sh 健壮性~~ **已根治**（2026-08-13 大类三：ensurepip 预检 install.sh/install.ps1/setup_scaffold + install() 失败清理） | ✅ 关闭 | 原：缺 ensurepip 预检；失败残留（2026-07-22 E2E 发现） |
 
 ---
 

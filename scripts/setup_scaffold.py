@@ -415,23 +415,57 @@ def _run(command: Sequence[str], *, cwd: Path) -> None:
 
 
 def install(target: Path) -> None:
-    """Create an isolated toolchain and install both Git hook stages."""
+    """Create an isolated toolchain and install both Git hook stages.
+
+    失败清理（2026-08-13 蓝队方案③）：任何一步失败时删除本次创建的产物——
+    .venv（必然本次创建）与 .git（仅当 git init 前不存在时本次创建），
+    不留半成品（技术债 #7）。
+    """
     target = target.resolve()
-    _run(["git", "init"], cwd=target)
-    venv.EnvBuilder(with_pip=True).create(target / ".venv")
-    python = _venv_python(target)
-    if not python.is_file():
-        raise ScaffoldError("虚拟环境创建后找不到 Python")
-    _run([str(python), "-m", "pip", "install", "-r", "requirements-dev.txt"], cwd=target)
-    _run(
-        [
-            str(python),
-            "scripts/install_hooks.py",
-            "--root",
-            str(target),
-        ],
-        cwd=target,
+    venv_dir = target / ".venv"
+    git_dir = target / ".git"
+    git_existed = git_dir.exists()
+
+    # ensurepip 预检（fail-closed，提前失败而非 venv 创建后报错滞后）
+    check = subprocess.run(
+        [sys.executable, "-m", "ensurepip", "--version"],
+        capture_output=True,
+        check=False,
     )
+    if check.returncode != 0:
+        raise ScaffoldError(
+            "ensurepip 不可用（无法创建带 pip 的虚拟环境）。"
+            "请先修复 Python 环境：Debian/Ubuntu `sudo apt-get install python3-venv`；"
+            "其他发行版参考官方文档。"
+        )
+
+    try:
+        _run(["git", "init"], cwd=target)
+        venv.EnvBuilder(with_pip=True).create(venv_dir)
+        python = _venv_python(target)
+        if not python.is_file():
+            raise ScaffoldError("虚拟环境创建后找不到 Python")
+        _run(
+            [str(python), "-m", "pip", "install", "-r", "requirements-dev.txt"],
+            cwd=target,
+        )
+        _run(
+            [
+                str(python),
+                "scripts/install_hooks.py",
+                "--root",
+                str(target),
+            ],
+            cwd=target,
+        )
+    except Exception as error:
+        import shutil
+
+        if venv_dir.exists():
+            shutil.rmtree(venv_dir, ignore_errors=True)
+        if not git_existed and git_dir.exists():
+            shutil.rmtree(git_dir, ignore_errors=True)
+        raise ScaffoldError(f"安装事务失败，已清理本次产物：{error}") from error
 
 
 def build_parser() -> argparse.ArgumentParser:
