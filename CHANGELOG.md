@@ -21,7 +21,7 @@ All notable changes to devguard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [V2.5.0] - 2026-08-13
 
 ### Added
 
@@ -38,10 +38,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **技术债 #2/#5/#6/#7 销账**（commitlint 噪音消失 / 跨平台 CI 落地 / scaffold ruff 漂移根治 / install 健壮性）
+- **技术债 #2/#5/#6/#7/#9 销账**（commitlint 噪音 / 跨平台 CI / scaffold ruff 漂移 / install 健壮性 / 钩子失败恢复指引）
 - **本机 19 钩子旁路**（core.hooksPath 指向 ECC 目录致闸门空转）+ .venv 空壳（测试不可运行）
 - **PRD 不变量计数口径** 22→24 条（蓝队独立复核 P1）
 - **test_installer S108** 不安全临时目录 ×9（首次修复被 pre-commit restore 丢失，复核后重做）
+- **Windows 中文 stdout 编码**（cp1252 UnicodeEncodeError）——32 个治理脚本 UTF-8 重配置 + CI env
+
+### Security
+
+- **gitleaks 规则集重建（红队 P0）**——原配置仅含 allowlist 无任何规则，密钥拦截本地+CI 双失效；重建为官方默认规则全量（208 条）+ 教学豁免合并；故障注入 11/11=100% 拦截
+- **一致性假绿根治**——关键真源投影（模板/ruff/pytest/pre-commit）任一不一致 rc=1 硬失败，不受聚合阈值豁免（ruff/pytest/pre-commit 三变异验收 rc=1×3）
+- **豁免账加固**——7 列（到期日强制 YYYY-MM-DD）+ 既有行内容不可变校验（append-only set 差集）
+- **install 事务回滚补全**——跨阶段回滚含 receipt、final verify 失败同滚（install 中段失败 → target 归零测试）
 
 ## [V2.4.0] - 2026-07-22
 
