@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-13（红蓝对抗 21/21 闭环 + v2.3 收束机器四阶段 + #54 收官：**55/55 全部功能点完成**；测试 210 全绿；人审计 17 节点待 Owner 签核）
+> 更新: 2026-08-13（红蓝对抗 21/21 闭环 + v2.3 收束 + #54 收官：55/55；#9 销账；PR #10 CI 验证中；人审计 17 节点待 Owner）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
@@ -89,7 +89,7 @@
 | 6 | ~~脚手架载荷 ruff 钉版漂移~~ **已根治**（2026-08-13 提交 00cdebe：版本对齐 + 包名统一 + check_template_drift 镜像校验入闸） | ✅ 关闭 | 原：钉 0.11.7 vs 真源 0.15.20（2026-07-22 E2E 发现） |
 | 10 | requirements-dev.txt hash 锁定（供应链加固） | 待立项 | dev 依赖风险低，hash 锁定维护成本高；Owner 拍板 |
 | 8 | 钩子注册单一真源（_meta.yaml hooks 段 → render_meta 投射） | 待立项 | 当前三处同步（_meta/_pre-commit-config/ci.yml）靠纪律；重构风险高（见大类四提案执行记录） |
-| 9 | 钩子失败文案标准化（输出 `git add` 恢复指引等） | 待立项 | 2026-08-13 蓝队实战多次踩坑 pre-commit restore staged |
+| 9 | ~~钩子失败文案标准化~~ **已落地**（2026-08-13 architecture.md §4.6 失败恢复指引——四步姿势 + 高频拦截说明） | ✅ 关闭 | 原：蓝队实战多次踩坑 pre-commit restore staged |
 | 7 | ~~install.sh 健壮性~~ **已根治**（2026-08-13 大类三：ensurepip 预检 install.sh/install.ps1/setup_scaffold + install() 失败清理） | ✅ 关闭 | 原：缺 ensurepip 预检；失败残留（2026-07-22 E2E 发现） |
 
 ---

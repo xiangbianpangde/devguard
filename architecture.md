@@ -102,6 +102,15 @@ STATUS.md 的 `convergence-gate` 标记声明预设节点；开发清单中 ✅ 
 - **CI 辅助（本地 commit-msg 内）**：check_claude / check_status / check_plan 结构同步（由 19 钩子框架托管）
 - **CI（5 阶段）**：lint → test → l4-conventions → compliance → build
 
+### 4.6 钩子失败恢复指引（技术债 #9，2026-08-13 蓝队实战沉淀）
+
+pre-commit 在任一钩子失败时会**恢复工作区与暂存区**到运行前状态（Restored changes from patch）——蓝队在对抗修复期多次踩坑（staged 内容丢失、worklog 修改被还原）。正确姿势：
+
+1. 提交前本地预检：`pre-commit run --files <改动的文件>`（快速）+ 全部通过再 `git add`
+2. 提交失败后：**重新检查 `git status`**——staged 可能被清空，worklog/STATUS 等被还原的修改需要重做或重新 add
+3. 反复失败时固化顺序：改文件 → 本地 pre-commit 验证 → `git add` → commit（add 后不再有任何中间步骤）
+4. worklog 引用失败（commit-msg-worklog-ref）是最高频拦截：commit message 引用的 worklog 必须真实出现在 staged 变更中
+
 ## 五、版本与一致性矩阵
 
 | 检查 | 脚本 | 阈值 |
