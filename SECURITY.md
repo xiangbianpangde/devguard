@@ -80,3 +80,8 @@ devguard 自身的安全实践：
 ## pre-commit 仓库 tag 钉版的风险决策（2026-08-13 红队 R2-06 回应）
 
 pre-commit 的三个上游仓库（pre-commit-hooks / ruff-pre-commit / gitleaks）rev 使用 release tag（如 `v0.15.20`）——tag 理论上可被上游移动。蓝队评估后的决策：**维持 tag 钉版 + 版本真源校验**，理由：① pre-commit 框架对 tag 有本地缓存（首次解析后固定，环境可复现）；② `check_consistency` 已对 ruff rev 与 toolchain 真源做一致性校验（tag 移动会破坏版本语义而非静默漂移）；③ 改 commit SHA 会破坏 `_meta.yaml` 的版本可读性与 render_meta 渲染链。风险登记入技术债，若红队有 tag 移动攻击的可执行复现，蓝队接受重开。
+
+**风险接受要素（参照豁免账审计语义，2026-08-13 补）**：
+- 理由：pre-commit 框架本地缓存 tag 解析结果；check_consistency 对 ruff rev 与 toolchain 真源做一致性校验；SHA 钉版破坏版本可读性与渲染链
+- Owner 确认位：⏳ 待 Owner 签认（不同意则切换 SHA 钉版方案）
+- 触发条件：红队/任何人提供「上游 tag 被移动」可执行复现 → 蓝队 1 个工作日内改为 commit SHA 钉版并回传复验
