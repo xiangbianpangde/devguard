@@ -15,7 +15,7 @@
 | 模板族 | `docs/templates/` | 权威模板 + scaffold 载荷（core/optional manifest） | 规范正文 |
 | 渲染器 | `scripts/render_meta.py` / `render_dashboard.py` | 真源 → 渲染产物（分级标签/pre-commit 配置/README 表/dashboard） | _meta.yaml、STATUS.md |
 | 安装器 | `scripts/install.sh` / `install.ps1` / `setup_scaffold.py` | 引导 + 事务化初始化新项目 | 模板族 |
-| 治理脚本 | `scripts/check_*.py`（19 个） | 一致性/强制力/收束/豁免等闸门 | 真源 + 渲染产物 |
+| 治理脚本 | `scripts/check_*.py`（23 个） | 一致性/强制力/收束/豁免等闸门 | 真源 + 渲染产物 |
 | 测试 | `tests/conventions/`（205 测试） | 治理脚本与契约的自动化证明 | 治理脚本 |
 | 钩子配置 | `.pre-commit-config.yaml`（渲染产物） | 19 个 pre-commit/commit-msg 钩子 | render_meta |
 | CI | `.github/workflows/ci.yml` | 5 阶段（lint/test/l4-conventions/compliance/build） | 治理脚本 |
@@ -97,8 +97,9 @@ STATUS.md 的 `convergence-gate` 标记声明预设节点；开发清单中 ✅ 
 
 ### 4.5 钩子链（19 + 10）
 
-- **pre-commit（9）**：8 通用（trailing-whitespace/end-of-file/check-yaml/check-json/large-files/ruff/ruff-format/gitleaks）+ markdownlint + ecc-alignment
-- **commit-msg（10）**：commitlint + worklog-ref + status-updated + worklog-structure + file-placement + exemption-log + updated-tag + doc-sync + convergence-gate + claude/status/plan 结构同步
+- **pre-commit 阶段（10）**：trailing-whitespace / end-of-file-fixer / check-yaml / check-json / check-added-large-files / ruff / ruff-format / gitleaks / markdownlint / ecc-alignment
+- **commit-msg 阶段（9）**：commitlint / commit-msg-worklog-ref / commit-msg-status-updated / commit-msg-worklog-structure / commit-msg-file-placement / commit-msg-exemption-log / commit-msg-updated-tag / commit-msg-doc-sync / commit-msg-convergence-gate
+- **CI 辅助（本地 commit-msg 内）**：check_claude / check_status / check_plan 结构同步（由 19 钩子框架托管）
 - **CI（5 阶段）**：lint → test → l4-conventions → compliance → build
 
 ## 五、版本与一致性矩阵

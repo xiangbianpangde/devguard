@@ -154,7 +154,7 @@ docs/templates/ ──复制为──→ 新项目的 CLAUDE/STATUS/README/plan/
 │     → docs/specs/NN-<name>.md（编号与功能点对齐）
 │
 ├─ 架构总览 / 组件关系 / 依赖方向（持续维护的“当前架构是什么”）？
-│     → docs/architecture.md（架构变更必须回写，与实现同 PR）
+│     → architecture.md（架构变更必须回写，与实现同 PR）
 │
 ├─ 架构/技术选型决策（为什么选 A 不选 B）？
 │     → worklogs/decisions/NNNN-<标题>.md（ADR，仅收束节点产出，见 ADR 0006）

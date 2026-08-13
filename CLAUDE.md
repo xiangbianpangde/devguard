@@ -31,7 +31,7 @@
 ├── architecture.md               # ★当前架构总览（组件/依赖/数据流/机制，架构变更必须回写）
 ├── worklogs/                     # 工作日志 + decisions/（ADR，仅收束节点产出）
 ├── src/                          # 示例代码（按规范维度分目录）→ README-示例代码总览.md
-├── scripts/                      # 治理脚本：check_*（19 个 commit-msg/CI 闸门）+ render_meta.py（真源渲染）+ setup_scaffold.py / install.sh / install.ps1（一键初始化）+ start_server.py / 打开仪表盘.bat
+├── scripts/                      # 治理脚本：check_*（23 个治理脚本；其中 19 个为 pre-commit/commit-msg 钩子）+ render_meta.py（真源渲染）+ setup_scaffold.py / install.sh / install.ps1（一键初始化）+ start_server.py / 打开仪表盘.bat
 ├── meta/FILE_GRAPH.md            # 文件归类权威（"新文件放哪"决策树）
 ├── CLAUDE.md                     # 本文件（AI 上下文）
 ├── README.md                     # 人类使用指南

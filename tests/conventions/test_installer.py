@@ -120,14 +120,14 @@ class TestInstallShPassThrough:
         script = _neutral_installer(tmp_path)
         env, argv_file = _stub_env(tmp_path)
         result = _run_installer(
-            ["/tmp/whatever-target", "--verify"],
+            [(tmp_path / "whatever-target").as_posix(), "--verify"],
             env_extra=env,
             cwd=repo,
             script=script,
         )
         assert result.returncode == 0, result.stderr
         assert argv_file.read_text(encoding="utf-8").splitlines() == [
-            "/tmp/whatever-target",
+            (tmp_path / "whatever-target").as_posix(),
             "--verify",
         ]
 
@@ -137,14 +137,14 @@ class TestInstallShPassThrough:
         env, argv_file = _stub_env(tmp_path)
         env["DEVGUARD_REPO"] = str(repo)
         result = _run_installer(
-            ["/tmp/t", "--profile", "optional"],
+            [(tmp_path / "t").as_posix(), "--profile", "optional"],
             env_extra=env,
             cwd=tmp_path,
             script=script,
         )
         assert result.returncode == 0, result.stderr
         assert argv_file.read_text(encoding="utf-8").splitlines() == [
-            "/tmp/t",
+            (tmp_path / "t").as_posix(),
             "--profile",
             "optional",
         ]
@@ -152,7 +152,7 @@ class TestInstallShPassThrough:
     def test_setup_scaffold_exit_code_propagates(self, tmp_path):
         repo = _make_fake_repo(tmp_path)
         env, _argv_file = _stub_env(tmp_path, exit_code="3")
-        result = _run_installer(["--repo", str(repo), "/tmp/t"], env_extra=env)
+        result = _run_installer(["--repo", str(repo), (tmp_path / "t").as_posix()], env_extra=env)
         assert result.returncode == 3
 
 
@@ -161,7 +161,9 @@ class TestInstallShFailClosed:
         script = _neutral_installer(tmp_path)
         env, _ = _stub_env(tmp_path)
         env.pop("DEVGUARD_REPO", None)
-        result = _run_installer(["/tmp/t"], env_extra=env, cwd=tmp_path, script=script)
+        result = _run_installer(
+            [(tmp_path / "t").as_posix()], env_extra=env, cwd=tmp_path, script=script
+        )
         assert result.returncode == 1
         assert "git clone" in result.stderr
         assert "--repo" in result.stderr
@@ -170,7 +172,7 @@ class TestInstallShFailClosed:
         repo = _make_fake_repo(tmp_path)
         env, _ = _stub_env(tmp_path)
         env["DEVGUARD_PYTHON"] = str(tmp_path / "no-such-python")
-        result = _run_installer(["--repo", str(repo), "/tmp/t"], env_extra=env)
+        result = _run_installer(["--repo", str(repo), (tmp_path / "t").as_posix()], env_extra=env)
         assert result.returncode == 1
         assert "DEVGUARD_PYTHON" in result.stderr
 
@@ -181,7 +183,7 @@ class TestInstallShFailClosed:
         fake_py.chmod(fake_py.stat().st_mode | stat.S_IXUSR)
         env, _ = _stub_env(tmp_path)
         env["DEVGUARD_PYTHON"] = str(fake_py)
-        result = _run_installer(["--repo", str(repo), "/tmp/t"], env_extra=env)
+        result = _run_installer(["--repo", str(repo), (tmp_path / "t").as_posix()], env_extra=env)
         assert result.returncode == 1
         assert "3.10" in result.stderr
 
@@ -192,7 +194,7 @@ class TestInstallShFailClosed:
         env, _ = _stub_env(tmp_path)
         env.pop("DEVGUARD_PYTHON")
         env["PATH"] = str(empty_bin)
-        result = _run_installer(["--repo", str(repo), "/tmp/t"], env_extra=env)
+        result = _run_installer(["--repo", str(repo), (tmp_path / "t").as_posix()], env_extra=env)
         assert result.returncode == 1
         assert "Python >= 3.10" in result.stderr
         assert "brew install" in result.stderr  # 分平台指引而非自动安装
