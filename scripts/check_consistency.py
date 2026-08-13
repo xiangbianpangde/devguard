@@ -415,14 +415,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     report = evaluate_repository(args.repo_root)
     print(format_report(report, args.threshold))
-    # 红队第三轮 R-02 终修：关键真源投影（CI 模板一致性 / ruff / pytest /
-    # pre-commit）任一不一致必须硬失败，不受聚合阈值豁免（杜绝 96%≥95 假绿）。
+    # R-02/R2-09 硬失败组：任何「结构性同步/投影」事实失败必须 rc=1，
+    # 不受聚合阈值豁免——杜绝「CI 全绿」与「有事实 FAIL」并存的声称漂移土壤。
+    # 范围：CI模板投影维度全部 + 任意维度中名字含 projection/continuity/marker 的事实。
     critical_failures = [
         fact.name
         for dimension in report.dimensions
-        if dimension.name == "CI模板投影"
         for fact in dimension.facts
         if not fact.passed
+        and (
+            dimension.name == "CI模板投影"
+            or "projection" in fact.name
+            or "continuity" in fact.name
+            or fact.name.endswith("marker")
+        )
     ]
     if critical_failures:
         print(

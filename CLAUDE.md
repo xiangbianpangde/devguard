@@ -9,7 +9,7 @@
 ## 项目概述
 
 纯文档项目（Markdown 规范 + Python 示例），Git 管理。本身是一套可一键初始化到新项目的开发规范模板。54 个功能点已交付，#54（merged_report 存量迁移）已立项待启动；ECC 十域对标、跨 Harness skills-first 与事务化初始化已完成，final-report 报告格式已纳入模板族硬契约（#53），curl/irm 单命令跨平台安装器已交付（#55）。
-<!-- devguard-progress: completed=54 total=55 -->
+<!-- devguard-progress: completed=55 total=55 -->
 
 **本项目的核心设计**：`conventions/` 里的 6+1 份规范不是孤立文档，而是 `conventions/ai-workflow_AI协作开发流程/` 协作流程各步骤的**细化**——流程讲"什么时候做什么"，规范讲"那一步具体怎么做、红线是什么、配置怎么落地"。
 
