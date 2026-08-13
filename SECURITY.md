@@ -35,10 +35,10 @@ devguard 项目本身（开发规范模板）不发布生产版本——它是�
 
 | # | 防护项 | 期望状态 | 验证方式 | 与仓库机制的关系 |
 |---|--------|---------|---------|-----------------|
-| 1 | Branch protection（master） | 开启：禁直推 + 5 required checks | GitHub Settings → Branches | 本地 `--no-verify` 绕过的兜底真闸门 |
+| 1 | Branch protection（master） | 待 Owner 核对：禁直推 + required checks（红队 API 实测恰 5 个 required contexts，跨平台 job 未直接列入——与本文档 #2 声明有差异，须以平台实际为准） | GitHub Settings → Branches | 本地 `--no-verify` 绕过的兜底真闸门 |
 | 2 | Required status checks | lint/test/l4/compliance/build + 跨平台 | PR checks 列表 | CI 5 阶段 + test-cross-platform |
-| 3 | Secret scanning push protection | 开启 | Settings → Code security | 与 gitleaks（本地+CI）双链路；push 被拦时走 bypass 豁免审计对齐豁免账 |
-| 4 | Dependabot alerts | 开启 | Settings → Code security | 依赖漏洞（pip/npm audit 的远端兜底） |
+| 3 | Secret scanning push protection | **未验证**（无 token 不可 API 查询；请勿视为已启用——待 Owner 携 admin token 核对） | Settings → Code security | 与 gitleaks（本地+CI）双链路；push 被拦时走 bypass 豁免审计对齐豁免账 |
+| 4 | Dependabot alerts | **未验证**（待 Owner 核对） | Settings → Code security | 依赖漏洞（pip/npm audit 的远端兜底） |
 | 5 | 默认分支合并方式 | PR 合并（禁 rebase-force） | Settings → Branches | 03-git 规范 main 禁直推 |
 
 **核对频率**：每次收束节点核对一次；变更记录入 worklog。
@@ -76,3 +76,7 @@ devguard 自身的安全实践：
 - devguard 项目本身无对外 API/服务——所有"漏洞"是规范执行问题
 - 报告 V0.x 旧版本问题不修——升级到 V1.0+
 - 报告第三方工具（ruff/gitleaks/markdownlint 等）漏洞——找上游
+
+## pre-commit 仓库 tag 钉版的风险决策（2026-08-13 红队 R2-06 回应）
+
+pre-commit 的三个上游仓库（pre-commit-hooks / ruff-pre-commit / gitleaks）rev 使用 release tag（如 `v0.15.20`）——tag 理论上可被上游移动。蓝队评估后的决策：**维持 tag 钉版 + 版本真源校验**，理由：① pre-commit 框架对 tag 有本地缓存（首次解析后固定，环境可复现）；② `check_consistency` 已对 ruff rev 与 toolchain 真源做一致性校验（tag 移动会破坏版本语义而非静默漂移）；③ 改 commit SHA 会破坏 `_meta.yaml` 的版本可读性与 render_meta 渲染链。风险登记入技术债，若红队有 tag 移动攻击的可执行复现，蓝队接受重开。

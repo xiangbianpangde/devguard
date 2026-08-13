@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-13（V2.5.0 已发布 + 红队外源情报采纳：gitleaks extend 模式/平台层防护清单/llms.txt；胜负判定书待 Owner 终裁；人审计 17 节点待 Owner）
+> 更新: 2026-08-13（3 天赛制第 1 天：情报包 + 第二轮防御批 8 项修复入库；红队 R2 清单 P1×3/P2×4/P3×1 已响应）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 

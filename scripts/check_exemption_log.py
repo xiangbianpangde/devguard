@@ -7,6 +7,7 @@ import argparse
 import collections
 import os
 import re
+import datetime
 import subprocess
 import sys
 from pathlib import Path
@@ -95,14 +96,37 @@ def usage_rows(text: str) -> list[list[str]]:
 
 
 def validate_expiry(text: str) -> list[str]:
-    """R-04：每条使用记录必须有到期日且为 YYYY-MM-DD 格式。"""
+    """R-04 + R2-01：到期日必须 YYYY-MM-DD 且语义合法。
+
+    R2-01（红队二轮 P1）：仅格式校验等于无限期放行（2099/1900 均通过）。
+    语义约束：
+      1. 到期日 >= 登记日期（豁免必须晚于/等于登记当日）
+      2. 到期日 - 登记日期 <= 365 天（豁免不可能是无限期/超长期）
+    """
     errors: list[str] = []
     for cells in usage_rows(text):
         expiry = cells[6].strip(" `")
         if not expiry:
             errors.append(f"豁免记录缺到期日：{cells[0]} {cells[1][:24]}")
-        elif not EXPIRY_RE.fullmatch(expiry):
+            continue
+        if not EXPIRY_RE.fullmatch(expiry):
             errors.append(f"豁免到期日格式非法（需 YYYY-MM-DD）：{expiry}")
+            continue
+        registered = cells[0].strip(" `")
+        if not EXPIRY_RE.fullmatch(registered):
+            continue  # 登记日期非法由其他检查处理
+        try:
+            reg_date = datetime.date.fromisoformat(registered)
+            exp_date = datetime.date.fromisoformat(expiry)
+        except ValueError:
+            continue
+        if exp_date < reg_date:
+            errors.append(f"豁免到期日早于登记日期（语义非法）：{registered} → {expiry}")
+        elif (exp_date - reg_date).days > 365:
+            errors.append(
+                f"豁免到期日超过登记日期 365 天（等价无限期豁免，语义非法）："
+                f"{registered} → {expiry}"
+            )
     return errors
 
 

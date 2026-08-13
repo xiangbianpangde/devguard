@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 import yaml
+import html
 from string import Template
 
 TEMPLATE_FILE = Path(__file__).resolve().parent / "index.html"
@@ -95,12 +96,12 @@ def render_convention_rows(meta: dict) -> str:
         l1 = conv.get("l1_check", "")
         l3 = conv.get("l3_route", "")
         rows.append(
-            f"<tr><td><code>{cid}</code> {title}</td>"
+            f"<tr><td><code>{html.escape(cid)}</code> {html.escape(title)}</td>"
             f"<td>{grade.get('red_line', 0)}</td>"
             f"<td>{grade.get('warning', 0)}</td>"
             f"<td>{grade.get('recommend', 0)}</td>"
-            f"<td><code>{l1}</code></td>"
-            f"<td>{l3}</td></tr>"
+            f"<td><code>{html.escape(l1)}</code></td>"
+            f"<td>{html.escape(l3)}</td></tr>"
         )
     return "\n      ".join(rows)
 
@@ -119,8 +120,9 @@ def render_status_rows(rows: list[dict]) -> str:
         else:
             cls = ""
         out.append(
-            f"<tr><td>{r['num']}</td><td>{r['name']}</td>"
-            f'<td class="{cls}">{status}</td><td>{r["bdd"]}</td><td>{r["date"]}</td></tr>'
+            f"<tr><td>{html.escape(r['num'])}</td><td>{html.escape(r['name'])}</td>"
+            f'<td class="{cls}">{html.escape(status)}</td>'
+            f"<td>{html.escape(r['bdd'])}</td><td>{html.escape(r['date'])}</td></tr>"
         )
     return "\n      ".join(out)
 
@@ -151,7 +153,7 @@ def render(
     # 但 render_mtime 也必须在 dashboard.html 落地 = 跟 commit_time 一样用环境变量传入
     render_mtime = os.environ.get("DASHBOARD_RENDER_MTIME", "build-time")
     output = template.safe_substitute(
-        project_name=meta.get("project", "Unknown"),
+        project_name=html.escape(str(meta.get("project", "Unknown"))),
         render_date=commit_time,
         render_mtime=render_mtime,
         progress_done=done,
