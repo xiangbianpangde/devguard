@@ -9,6 +9,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Windows 中文 stdout 兼容（cp1252 下打印中文会 UnicodeEncodeError）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -18,7 +23,8 @@ from check_exemption_log import validate_exemptions  # noqa: E402
 
 
 WORKLOG_PATTERN = re.compile(
-    r"(?<![\w/])worklogs[\\/]+(?!decisions[\\/])" r"\d{4}-\d{2}-\d{2}[_-][^\s)\]}>]+\.md",
+    r"(?<![\w/])worklogs[\\/]+(?!decisions[\\/])"
+    r"\d{4}-\d{2}-\d{2}[_-][^\s)\]}>]+\.md",
     re.IGNORECASE,
 )
 SKIP_MARKER = "[skip-worklog]"

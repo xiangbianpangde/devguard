@@ -30,12 +30,20 @@ project: 开发规范       # 项目名（仅展示用）
 # check_consistency.py 与 tests/conventions/test_ci_contract.py 从这里读期望值。
 toolchain:
   ruff: 0.15.20
+  gitleaks: 8.24.3   # 密钥扫描版本真源：pre-commit rev 经 render_meta 渲染；ci.yml 手动下载步按此同步
+  pytest: 9.1.1      # 2026-08-13 R-02：测试框架版本真源（requirements/CI 钉版同步）
+  pre-commit: 4.6.0  # 2026-08-13 R-02：钩子框架版本真源
 
 # ============================================================
 # 1. 规范分级（每篇的红线/警告/推荐 数量 + 描述）
 # ============================================================
 # v0.1: #4 任务会从各篇 §一红线扫描后填实 + 加 warning/recommend 维度
 # 当前 grade 数字来自用户 2026-06-07 盘点表
+#
+# 目录型规范（schema 既定行为，2026-07-22 审查 D6 声明确认）：
+#   07-ai-workflow / 09-dashboard-gen / 10-templates-reporting 的 file 字段
+#   指向 conventions/ai-workflow_AI协作开发流程/ 目录（规范族锚点，非单文件）；
+#   render_meta 对目录型规范 SKIP 分级渲染，L1 走对应 check_*.py 章节级检测。
 conventions:
   - id: 01-architecture
     title: 架构设计规范
@@ -142,7 +150,7 @@ conventions:
         - scripts/check_updated_tag.py
         - scripts/check_doc_sync.py
         - scripts/check_convergence_gate.py
-    l1_check: 工作流契约 + 一致性事实矩阵 >=80% + 故障注入拦截率 >=90% + 8 个 commit-msg 治理闸门
+    l1_check: 工作流契约 + 一致性事实矩阵 >=95% + 故障注入拦截率 >=90% + 8 个 commit-msg 治理闸门
     l1_check_doc: https://docs.python.org/3/library/ast.html
     l3_route: AI 任务路由必读
 
@@ -340,10 +348,10 @@ pre_commit:
 
   - id: gitleaks
     source: gitleaks/gitleaks
-    rev: v8.18.0
+    rev: v8.24.3
     grade: red_line
     maps_to: 02-coding
-    description: "02 红线 3：阻止密钥入库"
+    description: "02 红线 3：阻止密钥入库（版本与 toolchain.gitleaks 真源一致）"
 
   # markdownlint 钩子 V0.3 启用：markdownlint-cli2（npm，与 commitlint 复用生态）
   # .markdownlint.json 已配置：禁用软规则（MD037/001/056/051/035/030/029/058 等中文常见误报）
@@ -506,7 +514,7 @@ ci:
       runner: ubuntu-latest
       needs: []
       conditional: "test -f scripts/check_compliance.py"
-      cmd: python scripts/check_compliance.py && python scripts/check_consistency.py --threshold 80
+      cmd: python scripts/check_compliance.py && python scripts/check_consistency.py --threshold 95
 
     - id: build
       name: 构建验证

@@ -38,7 +38,7 @@ def test_empty_evidence_files_cannot_manufacture_a_high_score(tmp_path):
         tmp_path, command_runner=lambda _command: (1, "injected failure")
     )
 
-    assert report.score < 80
+    assert report.score < 95
     assert report.total > 0
     assert any(d.passed < d.total for d in report.dimensions)
 
@@ -81,7 +81,7 @@ def test_ci_template_and_formatter_drift_are_scored(tmp_path):
 
     dimension = mod.evaluate_ci_projection(tmp_path)
 
-    assert dimension.total == 2
+    assert dimension.total == 4  # template + ruff parity + pytest + pre-commit projections
     assert dimension.passed == 0
 
 

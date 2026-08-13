@@ -18,10 +18,15 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
 
+# Windows 中文 stdout 兼容（cp1252 下打印中文会 UnicodeEncodeError）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 import yaml
 
 
-DEFAULT_THRESHOLD = 80.0
+DEFAULT_THRESHOLD = 95.0
 PROGRESS_MARKER = re.compile(r"<!--\s*devguard-progress:\s*completed=(\d+)\s+total=(\d+)\s*-->")
 CONVENTION_IDS = (
     "01-architecture",
@@ -224,8 +229,8 @@ def evaluate_gate_bindings(root: Path) -> Dimension:
     return Dimension("强制闸门绑定", tuple(facts))
 
 
-def _expected_ruff_version(root: Path) -> str | None:
-    """ruff 钉版的单一真源：conventions/_meta.yaml 的 toolchain.ruff"""
+def _toolchain_field(root: Path, field: str) -> str | None:
+    """工具链字段的单一真源：conventions/_meta.yaml 的 toolchain.<field>"""
     text = _read(root, "conventions/_meta.yaml")
     if text is None:
         return None
@@ -234,8 +239,41 @@ def _expected_ruff_version(root: Path) -> str | None:
     except yaml.YAMLError:
         return None
     toolchain = meta.get("toolchain") if isinstance(meta, dict) else None
-    version = toolchain.get("ruff") if isinstance(toolchain, dict) else None
+    version = toolchain.get(field) if isinstance(toolchain, dict) else None
     return version if isinstance(version, str) and version else None
+
+
+def _expected_ruff_version(root: Path) -> str | None:
+    """ruff 钉版的单一真源：conventions/_meta.yaml 的 toolchain.ruff"""
+    return _toolchain_field(root, "ruff")
+
+
+def _precommit_projection_fact(root: Path) -> "Fact":
+    """toolchain.pre-commit 全投影：requirements / pyproject / scaffold 三处一致。
+
+    红队第三轮 R-02 终修：pre-commit 字段此前完全未被投影（变异仍 25/25 假绿）。
+    """
+    version = _toolchain_field(root, "pre-commit")
+    if version is None:
+        return Fact("pre-commit pin projection", False, "toolchain.pre-commit 真源缺失")
+    requirements = _read(root, "requirements-dev.txt") or ""
+    pyproject = _read(root, "pyproject.toml") or ""
+    scaffold_req = _read(root, "docs/templates/devguard/scaffold/core/requirements-dev.txt") or ""
+    ok = bool(
+        re.search(rf"^pre-commit=={re.escape(version)}$", requirements, re.M)
+        and re.search(rf"pre-commit=={re.escape(version)}", pyproject)
+        and re.search(rf"^pre-commit=={re.escape(version)}$", scaffold_req, re.M)
+    )
+    return Fact(
+        "pre-commit pin projection",
+        ok,
+        f"requirements/pyproject/scaffold 均按 toolchain 真源钉版 pre-commit {version}"
+        if ok
+        else (
+            f"pre-commit 钉版投影缺失：toolchain 真源（{version}）与 "
+            "requirements / pyproject / scaffold 不一致"
+        ),
+    )
 
 
 def evaluate_ci_projection(root: Path) -> Dimension:
@@ -253,6 +291,17 @@ def evaluate_ci_projection(root: Path) -> Dimension:
         and pins == {version}
         and f"rev: v{version}" in pre_commit
         and "ruff format --check . --config src/coding/ruff.toml" in workflow
+    )
+    pytest_version = _toolchain_field(root, "pytest")
+    pytest_pins = set(re.findall(r"pytest==([0-9][0-9a-z.]*)", workflow or ""))
+    requirements = _read(root, "requirements-dev.txt") or ""
+    pyproject = _read(root, "pyproject.toml") or ""
+    pytest_projection = bool(
+        pytest_version
+        and workflow
+        and pytest_pins == {pytest_version}
+        and re.search(rf"^pytest=={re.escape(pytest_version)}$", requirements, re.M)
+        and re.search(rf"pytest=={re.escape(pytest_version)}", pyproject)
     )
     return Dimension(
         "CI模板投影",
@@ -273,6 +322,17 @@ def evaluate_ci_projection(root: Path) -> Dimension:
                     f"CI/pre-commit 的 ruff 钉版与 toolchain 真源（{version}）不一致或格式闸门缺失"
                 ),
             ),
+            Fact(
+                "pytest pin projection",
+                pytest_projection,
+                f"CI/requirements/pyproject 均按 toolchain 真源钉版 pytest {pytest_version}"
+                if pytest_projection
+                else (
+                    f"pytest 钉版投影缺失：toolchain 真源（{pytest_version}）与 "
+                    f"CI 钉版 {sorted(pytest_pins)} / requirements / pyproject 不一致"
+                ),
+            ),
+            _precommit_projection_fact(root),
         ),
     )
 
@@ -355,6 +415,21 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     report = evaluate_repository(args.repo_root)
     print(format_report(report, args.threshold))
+    # 红队第三轮 R-02 终修：关键真源投影（CI 模板一致性 / ruff / pytest /
+    # pre-commit）任一不一致必须硬失败，不受聚合阈值豁免（杜绝 96%≥95 假绿）。
+    critical_failures = [
+        fact.name
+        for dimension in report.dimensions
+        if dimension.name == "CI模板投影"
+        for fact in dimension.facts
+        if not fact.passed
+    ]
+    if critical_failures:
+        print(
+            f"FAIL 关键真源投影不一致（硬失败，不受阈值豁免）: {critical_failures}",
+            file=sys.stderr,
+        )
+        return 1
     return 0 if report.score >= args.threshold else 1
 
 

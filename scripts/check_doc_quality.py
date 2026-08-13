@@ -13,6 +13,11 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 中文 stdout 兼容（cp1252 下打印中文会 UnicodeEncodeError）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from check_report import count_tables
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

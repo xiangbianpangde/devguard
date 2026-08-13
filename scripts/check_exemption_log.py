@@ -11,6 +11,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Windows 中文 stdout 兼容（cp1252 下打印中文会 UnicodeEncodeError）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 REGISTRY_REL = "meta/豁免清单.md"
 SKIP_MARKER = re.compile(r"\[skip-[a-z0-9-]+\]", re.IGNORECASE)
@@ -51,21 +56,65 @@ def registry_markers(text: str) -> set[str]:
 
 
 def usage_counts(text: str) -> collections.Counter[str]:
-    """Count markers in complete six-column usage rows."""
+    """Count markers in complete seven-column usage rows (expiry included)."""
     usage = _section(text, USAGE_HEADING, None)
     counts: collections.Counter[str] = collections.Counter()
     for line in usage.splitlines():
         if not line.lstrip().startswith("|"):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) < 6 or all(set(cell) <= {"-", ":"} for cell in cells):
+        if len(cells) < 7 or all(set(cell) <= {"-", ":"} for cell in cells):
             continue
-        # A record is auditable only when date, scope, hook, owner and reason are non-empty.
-        if not all(cells[index].strip(" `") for index in (0, 1, 2, 4, 5)):
+        if cells[0] == "日期":
+            continue
+        # A record is auditable only when date, scope, hook, owner, reason and expiry are non-empty.
+        if not all(cells[index].strip(" `") for index in (0, 1, 2, 4, 5, 6)):
             continue
         for marker in extract_skip_markers(cells[3]):
             counts[marker] += 1
     return counts
+
+
+EXPIRY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def usage_rows(text: str) -> list[list[str]]:
+    """Return parsed seven-column usage rows (excluding the table separator)."""
+    usage = _section(text, USAGE_HEADING, None)
+    rows: list[list[str]] = []
+    for line in usage.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 7 or all(set(cell) <= {"-", ":"} for cell in cells):
+            continue
+        if cells[0] == "日期":  # 表头行
+            continue
+        rows.append(cells)
+    return rows
+
+
+def validate_expiry(text: str) -> list[str]:
+    """R-04：每条使用记录必须有到期日且为 YYYY-MM-DD 格式。"""
+    errors: list[str] = []
+    for cells in usage_rows(text):
+        expiry = cells[6].strip(" `")
+        if not expiry:
+            errors.append(f"豁免记录缺到期日：{cells[0]} {cells[1][:24]}")
+        elif not EXPIRY_RE.fullmatch(expiry):
+            errors.append(f"豁免到期日格式非法（需 YYYY-MM-DD）：{expiry}")
+    return errors
+
+
+def validate_immutable_rows(head: str, staged: str) -> list[str]:
+    """R-04：既有豁免记录行内容不可变（append-only）。"""
+    head_rows = {tuple(cells) for cells in usage_rows(head)}
+    staged_rows = {tuple(cells) for cells in usage_rows(staged)}
+    tampered = sorted(head_rows - staged_rows)
+    if not tampered:
+        return []
+    preview = "; ".join(f"{row[0]} {row[1][:20]}" for row in tampered[:3])
+    return [f"既有豁免记录被篡改或删除（append-only 违规）：{preview}"]
 
 
 def _git(root: Path, *args: str) -> tuple[int, str]:
@@ -120,6 +169,9 @@ def validate_exemptions(message: str, repo_root: Path | None = None) -> list[str
     missing_records = sorted(marker for marker in markers if after[marker] <= before[marker])
     if missing_records:
         errors.append(f"本次暂存未为这些豁免新增完整使用记录: {missing_records}")
+    errors.extend(validate_expiry(staged))
+    if head:
+        errors.extend(validate_immutable_rows(head, staged))
     return errors
 
 

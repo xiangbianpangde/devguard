@@ -1,7 +1,7 @@
 # 模板库 — 索引与编写规约
 
 > **👤 人类参考** | `docs/templates/` 是所有文件模板的**权威来源**。新项目从此处复制；新增模板须遵循本规约。
-> 更新: 2026-07-11
+> 更新: 2026-07-22
 
 ---
 
@@ -26,6 +26,10 @@
 | `devguard/scaffold/` | 自包含治理基线（core/optional manifest、Codex/Claude 双入口、事务回滚） | 新项目一键初始化 | 由 `scripts/setup_scaffold.py` 实例化到目标根目录 |
 | `devguard/html-report-template/` | 自动 dashboard 渲染（从 _meta.yaml + STATUS.md） | 项目状态可视化 | `dashboard.html` |
 | `devguard/final-report-template/` | **高密度学术风 HTML 报告**（11 Mermaid + 3 Tab + 5 进度条 + 1 步骤模拟器） | 阶段性汇报 / 收束报告 / 季度总结 | `docs/reports/YYYY-MM-DD_xxx.html` |
+| `计划模板.html` | HTML 设计提案（`{计划标题} · 设计提案`） | 复杂功能设计提案 | `docs/plan/design/` |
+| `实施设计模板.html` | HTML 实施设计（`{模块名} · 实施设计`） | 模块实施设计 | `docs/plan/design/` |
+| `汇报模板.html` | HTML 验收汇报（`{汇报标题} · 验收汇报`） | 功能点 / 阶段验收汇报 | `docs/reports/` |
+| `绘图素材库模板.html` | HTML 模板族公共绘图素材 | 制作 HTML 报告 / 提案时复用 | 随 HTML 模板族使用 |
 
 ---
 
@@ -85,3 +89,4 @@
 | 2026-06-08 | v1.1 | 新增 `devguard/final-report-template/`（V1.x 收尾汇报定型，11 Mermaid / 3 Tab / 5 进度条 / 1 步骤模拟器） |
 | 2026-07-11 | v1.2 | 新增显式 manifest 的 `devguard/scaffold/`，替代递归复制整个模板目录 |
 | 2026-07-11 | v1.3 | ECC 全项目对标：skills-first、AGENTS/Codex 配置、dry-run 与原子回滚 |
+| 2026-07-22 | v1.4 | 补登 4 个 HTML 模板（计划 / 实施设计 / 汇报 / 绘图素材库），消除账实不符（审查 F14） |

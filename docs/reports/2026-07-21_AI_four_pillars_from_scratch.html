@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 工程四支柱 · 提示词 / 上下文 / Loop / Harness</title>
+<!-- 模板类型契约：final-report 硬校验锚点必须齐全 -->
+<meta name="doc-template" content="final-report">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg:#FAFAF7;          --bg-soft:#F4F2EC;
+    --panel:#FFFFFF;       --panel-2:#F8F6F0;
+    --line:#E0DCD0;        --line-soft:#ECEAE2;
+    --txt:#1F1D17;         --txt-dim:#5A5447;
+    --txt-faint:#9A9385;
+    --brand:#8B3A1F;       --brand-2:#A85032;
+    --accent:#2F5061;      --accent-2:#3F6A82;
+    --gold:#A87A2E;
+    --good:#3F6B3D;        --warn:#B07F22;  --bad:#9C3A2E;
+    --code-bg:#26241F;     --code-fg:#E8E2D4;
+    --shadow:0 16px 40px -28px rgba(60,40,20,.32);
+    --radius:14px;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas','SF Mono',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+    --serif:'Source Serif Pro','Iowan Old Style','Charter','Noto Serif CJK SC','Songti SC','STSong',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:15px}
+  body{
+    font-family:var(--sans);background:
+      radial-gradient(1100px 700px at 86% -6%, #F2E8DC 0%, transparent 55%),
+      radial-gradient(900px 600px at -8% 14%, #EAE2D2 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--brand);color:#fff}
+  .shell{display:flex;min-height:100vh}
+  .side{
+    position:fixed;top:0;left:0;bottom:0;width:240px;
+    background:linear-gradient(180deg,#FAF7F0,#F4F0E5);
+    border-right:1px solid var(--line);
+    padding:22px 14px 28px;overflow-y:auto;z-index:50;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:#DCD6C6;border-radius:8px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:0 4px}
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:grid;place-items:center;
+    font-family:var(--serif);font-weight:800;color:#fff;font-size:18px;letter-spacing:-1px;
+  }
+  .brand b{font-family:var(--serif);font-size:15px;letter-spacing:.3px;display:block;line-height:1.2;color:var(--txt)}
+  .brand span{font-size:10px;color:var(--txt-faint);letter-spacing:1.5px;font-family:var(--mono);text-transform:uppercase}
+  .side .meta{font-size:10px;color:var(--txt-faint);padding:8px 4px 12px;border-top:1px solid var(--line);margin:14px 0 4px;font-family:var(--mono);letter-spacing:.5px}
+  nav a{
+    display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;
+    color:var(--txt-dim);text-decoration:none;font-size:12.2px;transition:.18s;margin-bottom:1px;
+  }
+  nav a .n{font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);width:18px;text-align:center;flex:0 0 auto}
+  nav a:hover{background:#EBE5D5;color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,rgba(47,80,97,.13),transparent);color:#1A1813;box-shadow:inset 2px 0 0 var(--accent)}
+  nav a.active .n{color:var(--accent);font-weight:700}
+  nav .grp{font-size:9px;letter-spacing:2px;color:var(--txt-faint);text-transform:uppercase;margin:14px 0 5px 9px;font-family:var(--mono)}
+  .main{margin-left:240px;flex:1;padding:30px 44px 80px;max-width:1180px}
+
+  .sec-head{margin-bottom:24px}
+  .sec-head .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;font-weight:700}
+  .sec-head h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.5px;margin:4px 0 10px;line-height:1.2}
+  .sec-head p{font-size:13.5px;color:var(--txt-dim);max-width:760px;line-height:1.75}
+
+  h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:38px 0 12px;letter-spacing:-.3px}
+  h3{font-size:16px;font-weight:700;margin:24px 0 10px;display:flex;align-items:center;gap:9px;font-family:var(--sans)}
+  h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  h4{font-size:13.5px;font-weight:700;margin:16px 0 7px;color:var(--txt);font-family:var(--sans)}
+  p{font-size:13px;color:var(--txt-dim);margin-bottom:9px;line-height:1.75}
+  .mono{font-family:var(--mono)}
+  .serif{font-family:var(--serif)}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);box-shadow:var(--shadow)}
+  .card.hl{border-left:3px solid var(--accent)}
+  .card.brand{border-left:3px solid var(--brand)}
+  .card.gold{border-left:3px solid var(--gold)}
+  .card.bad{border-left:3px solid var(--bad)}
+  .card h4{font-size:13.5px;margin:0 0 7px}
+  .card p{font-size:12.4px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .g4{grid-template-columns:1fr 1fr 1fr 1fr}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:32px;height:32px;background:radial-gradient(circle at top right, rgba(139,58,31,.08), transparent 70%)}
+  .kpi .num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--brand);letter-spacing:-1px}
+  .kpi .lbl{font-size:11px;color:var(--txt-dim);margin-top:6px;letter-spacing:.3px}
+  .kpi .sub{font-size:10px;color:var(--txt-faint);margin-top:2px;font-family:var(--mono)}
+  .kpi.accent .num{color:var(--accent)}
+  .kpi.gold .num{color:var(--gold)}
+  .kpi.good .num{color:var(--good)}
+
+  .code-block{
+    background:var(--code-bg);color:var(--code-fg);border-radius:11px;padding:16px 18px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;
+    box-shadow:var(--shadow);margin:12px 0;
+  }
+  .code-block .kw{color:#D4A876}  .code-block .str{color:#9BBF8F}
+  .code-block .cm{color:#807868;font-style:italic}
+  .code-block .ty{color:#87B9D9}  .code-block .fn{color:#E0A887}
+
+  .diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;font-family:var(--mono);font-size:11.5px;line-height:1.55;overflow-x:auto;white-space:pre;box-shadow:var(--shadow);color:var(--txt-dim)}
+  .diagram .hl{color:var(--accent);font-weight:700}
+  .diagram .br{color:var(--brand);font-weight:700}
+  .diagram .gd{color:var(--good);font-weight:700}
+  .diagram .gl{color:var(--gold);font-weight:700}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:12.4px}
+  thead{background:var(--bg-soft)}
+  th{padding:9px 12px;text-align:left;font-weight:700;font-size:11.5px;color:var(--txt-dim);border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid var(--line-soft);color:var(--txt-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--txt)}
+  td.ok{color:var(--good)} td.no{color:var(--bad)} td.warn{color:var(--warn)}
+
+  .b-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;font-family:var(--mono);letter-spacing:.3px}
+  .b-pill.ok{background:#DDE9D5;color:var(--good)}
+  .b-pill.mid{background:#F0E2C5;color:var(--warn)}
+  .b-pill.no{background:#EFD5CD;color:var(--bad)}
+  .b-pill.inf{background:rgba(47,80,97,.13);color:var(--accent)}
+  .b-pill.br{background:rgba(139,58,31,.13);color:var(--brand)}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:10.5px;padding:3px 9px;border-radius:5px;background:#EDE8DD;color:var(--txt-dim);font-family:var(--mono);border:1px solid var(--line)}
+
+  .note{padding:13px 15px;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12.6px;margin:14px 0;border:1px solid}
+  .note .ico{font-size:16px;flex:0 0 auto;margin-top:1px;font-family:var(--serif);font-weight:700}
+  .note.info{border-color:rgba(47,80,97,.3);background:rgba(47,80,97,.06)}
+  .note.warn{border-color:rgba(176,127,34,.3);background:rgba(176,127,34,.07)}
+  .note.crit{border-color:rgba(156,58,46,.35);background:rgba(156,58,46,.07)}
+  .note.good{border-color:rgba(63,107,61,.3);background:rgba(63,107,61,.07)}
+
+  .flow-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;align-items:center}
+  .flow-step{font-size:11px;padding:6px 11px;border-radius:6px;background:var(--panel);border:1px solid var(--line);color:var(--txt-dim);display:flex;align-items:center;gap:6px}
+  .flow-step .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .flow-arrow{color:var(--txt-faint);font-size:14px;font-family:var(--mono)}
+  .flow-step.brand{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-color:var(--brand);font-weight:600}
+  .flow-step.gate{background:#F0E2C5;border-color:#C9A66A;color:var(--warn);font-weight:700}
+
+  .verdict{border:2px solid var(--brand);border-radius:13px;padding:18px 22px;background:linear-gradient(135deg,#FCF6EE,#F8F0E0);box-shadow:var(--shadow);margin-top:36px}
+  .verdict .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--brand);font-weight:700;margin-bottom:6px}
+  .verdict h4{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 9px}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}
+  .bar-row .lbl{width:200px;color:var(--txt-dim);font-size:11.5px;flex:0 0 auto}
+  .bar-row .bar{flex:1;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--line-soft)}
+  .bar-row .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:5px;transition:width .6s}
+  .bar-row .val{font-family:var(--mono);font-size:11px;color:var(--txt);width:48px;text-align:right;flex:0 0 auto}
+
+  .vs{display:grid;grid-template-columns:1fr 56px 1fr;gap:14px;align-items:stretch;margin:14px 0}
+  .vs-col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .vs-col.old{border-top:3px solid var(--bad);background:linear-gradient(180deg,#FBEEEA,#FFF)}
+  .vs-col.new{border-top:3px solid var(--good);background:linear-gradient(180deg,#EFF3EA,#FFF)}
+  .vs-col h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px}
+  .vs-col.old h4{color:var(--bad)}
+  .vs-col.new h4{color:var(--good)}
+  .vs-mid{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--txt-faint);font-weight:700}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .toc a{
+    display:flex;gap:10px;align-items:center;padding:10px 13px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel);text-decoration:none;color:var(--txt-dim);
+    transition:.18s;font-size:12.5px;
+  }
+  .toc a:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow)}
+  .toc a .ix{font-family:var(--mono);font-size:11px;color:var(--brand);width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(139,58,31,.1);flex:0 0 auto;font-weight:700}
+  .toc a b{font-weight:600;color:var(--txt);font-size:13px;display:block;margin-bottom:1px}
+
+  .tl{position:relative;padding:8px 0 8px 24px;margin:10px 0 14px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .tl-item{position:relative;margin:9px 0;padding:8px 0 0 14px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:14px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid var(--brand)}
+  .tl-item h5{font-size:13px;font-weight:700;color:var(--txt);margin:0 0 3px}
+  .tl-item p{font-size:11.8px;color:var(--txt-dim);margin:0 0 2px}
+
+  .tabs{display:flex;gap:3px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tabs .tb{
+    padding:8px 16px;font-size:12.5px;color:var(--txt-dim);cursor:pointer;
+    border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;
+    background:transparent;transition:.18s;
+    display:flex;align-items:center;gap:6px;
+  }
+  .tabs .tb:hover{background:var(--bg-soft);color:var(--txt)}
+  .tabs .tb.active{
+    background:var(--panel);border-color:var(--line);color:var(--brand);
+    font-weight:700;margin-bottom:-1px;
+  }
+  .tabs .tb .badge{
+    font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:3px;
+    background:rgba(139,58,31,.12);color:var(--brand);
+  }
+  .tab-pane{display:none;padding:14px 0;animation:fadeIn .3s}
+  .tab-pane.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  .matrix{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono)}
+  .matrix th{background:var(--bg-soft);padding:6px 8px;font-weight:700;font-size:10.5px;text-align:center;color:var(--txt-dim);border:1px solid var(--line)}
+  .matrix td{padding:5px 7px;text-align:center;border:1px solid var(--line-soft);color:var(--txt-dim);background:#FFF}
+  .matrix td.lbl{text-align:left;background:var(--panel-2);color:var(--txt);font-weight:600}
+  .matrix td.yes{background:rgba(63,107,61,.18);color:var(--good);font-weight:700}
+  .matrix td.partial{background:rgba(176,127,34,.18);color:var(--warn);font-weight:700}
+  .matrix td.no{background:rgba(156,58,46,.13);color:var(--bad);font-weight:700}
+  .matrix td.ours{background:rgba(47,80,97,.12);color:var(--accent);font-weight:700}
+  .matrix td.ours-yes{background:rgba(63,107,61,.25);color:var(--good);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--accent)}
+
+  hr.div{height:1px;background:var(--line);margin:30px 0;border:none}
+
+  blockquote{
+    border-left:3px solid var(--brand);background:var(--panel-2);padding:11px 16px;
+    margin:12px 0;border-radius:0 9px 9px 0;font-family:var(--serif);font-size:13.5px;color:var(--txt);
+    font-style:italic;
+  }
+
+  .gauge{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+  .gauge svg{flex:0 0 auto}
+  .gauge .text b{font-family:var(--serif);font-size:18px;color:var(--txt);display:block}
+  .gauge .text span{font-size:11px;color:var(--txt-dim)}
+
+  .anim-bar{position:relative;height:9px;background:var(--bg-soft);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft)}
+  .anim-bar .fill{
+    height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1);
+  }
+  .anim-bar .fill::after{
+    content:"";position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    animation:shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .anim-bar.armed .fill{width:var(--w)}
+
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);margin:14px 0}
+  .sim h4{margin:0 0 8px;font-family:var(--serif);font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .sim h4 .ind{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(63,107,61,.2);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(63,107,61,.2)}50%{box-shadow:0 0 0 6px rgba(63,107,61,.05)}}
+  .sim .sim-step{
+    padding:7px 11px;background:var(--bg-soft);border:1px solid var(--line-soft);
+    border-radius:7px;margin:5px 0;font-family:var(--mono);font-size:11.5px;
+    color:var(--txt-dim);display:flex;align-items:center;gap:8px;transition:.3s;
+  }
+  .sim .sim-step.run{background:#DDE9D5;border-color:#9AB58D;color:var(--good);font-weight:600}
+  .sim .sim-step.fail{background:#EFD5CD;border-color:#C89589;color:var(--bad);font-weight:600}
+  .sim .sim-step .glyph{width:14px;flex:0 0 auto;font-weight:700}
+  .sim .sim-controls{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .sim .sim-controls button{
+    font-size:11px;padding:5px 10px;border-radius:5px;border:1px solid var(--line);
+    background:var(--bg-soft);color:var(--txt-dim);cursor:pointer;font-family:var(--mono);
+    transition:.18s;
+  }
+  .sim .sim-controls button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .sim #simFinal{margin-top:10px;font-family:var(--mono);font-size:11.5px;color:var(--txt-dim)}
+
+  .mermaid-wrap{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:var(--shadow);overflow-x:auto;
+  }
+  .mermaid-wrap .cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+    color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .mermaid-wrap .cap::before{content:"";width:18px;height:1.5px;background:var(--accent)}
+  .mermaid{display:flex;justify-content:center}
+  .mermaid svg{max-width:100%;height:auto}
+
+  .hero{
+    background:linear-gradient(135deg,#FAF6EC 0%, #F2E8D8 50%, #EAD9C0 100%);
+    border:1px solid var(--line);border-radius:18px;padding:30px 36px;margin-bottom:28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .hero::before{content:"";position:absolute;right:-40px;top:-40px;width:280px;height:280px;background:radial-gradient(circle, rgba(139,58,31,.10), transparent 70%);pointer-events:none}
+  .hero h1{font-family:var(--serif);font-size:36px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 10px}
+  .hero .sub{font-family:var(--serif);font-size:15px;color:var(--txt-dim);max-width:740px;line-height:1.55;margin-bottom:18px}
+  .hero .meta-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.5px}
+
+  [id]{scroll-margin-top:24px}
+  @media (max-width:1080px){
+    .g4{grid-template-columns:1fr 1fr}
+    .kpi-row{grid-template-columns:1fr 1fr}
+    .vs{grid-template-columns:1fr}
+    .toc{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">四</div>
+      <div><b>AI 工程四支柱</b><span>FOUR PILLARS · v0</span></div>
+    </div>
+    <div class="meta">REPORT · 2026-07-21<br>FROM-SCRATCH DEMO</div>
+    <div class="grp">章节</div>
+    <nav>
+      <a href="#s0"><span class="n">00</span><span>核心数据</span></a>
+      <a href="#s1"><span class="n">01</span><span>旧范式崩塌</span></a>
+      <a href="#s2"><span class="n">02</span><span>四支柱范式</span></a>
+      <a href="#s3"><span class="n">03</span><span>技术矩阵</span></a>
+      <a href="#s4"><span class="n">04</span><span>提示词流水线</span></a>
+      <a href="#s5"><span class="n">05</span><span>上下文工程</span></a>
+      <a href="#s6"><span class="n">06</span><span>Loop 控制循环</span></a>
+      <a href="#s7"><span class="n">07</span><span>Harness 矩阵</span></a>
+      <a href="#s8"><span class="n">08</span><span>9 案例时间线</span></a>
+      <a href="#s9"><span class="n">09</span><span>四方互检</span></a>
+      <a href="#s10"><span class="n">10</span><span>新旧对比</span></a>
+      <a href="#s11"><span class="n">11</span><span>知识图谱</span></a>
+      <a href="#s12"><span class="n">12</span><span>后续路线</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <section id="hero" class="hero">
+      <div class="tag-row">
+        <span class="b-pill br">FOUR PILLARS</span>
+        <span class="b-pill inf">FROM-SCRATCH</span>
+        <span class="b-pill ok">HARD GATE PASS</span>
+      </div>
+      <h1>AI 工程四支柱 · 提示词 / 上下文 / Loop / Harness</h1>
+      <div class="sub">从零撰写的高密度学术风收束报告。把"prompt + context + loop + harness"四件套作为 Agent 工程的基础工程学科，梳理 12 个技术维度、9 个落地案例、5 个反例澄清，给后续每一次 Agent 设计/调试/审计提供四象限分工。</div>
+      <div class="meta-row">
+        <span>主题：AI 工程四支柱</span>
+        <span>日期：2026-07-21</span>
+        <span>来源：A/B 级源 54 个</span>
+        <span>主题作者：AI 秘书项目组</span>
+        <span>状态：草稿 v0</span>
+      </div>
+    </section>
+
+    <div class="toc">
+      <a href="#s0"><span class="ix">00</span><div><b>核心数据 · 一眼可读</b>8 KPI + 5 健康度仪表</div></a>
+      <a href="#s1"><span class="ix">01</span><div><b>旧 LLM 应用崩塌点</b>5 个典型崩塌</div></a>
+      <a href="#s2"><span class="ix">02</span><div><b>四支柱范式</b>架构图 + 时序 + 模拟器</div></a>
+      <a href="#s3"><span class="ix">03</span><div><b>12 维技术矩阵</b>支柱 × 维度双向表</div></a>
+      <a href="#s4"><span class="ix">04</span><div><b>提示词工程流水线</b>状态机驱动</div></a>
+      <a href="#s5"><span class="ix">05</span><div><b>上下文工程</b>五类信息分层</div></a>
+      <a href="#s6"><span class="ix">06</span><div><b>Loop 控制循环</b>四阶段 + 收敛闸门</div></a>
+      <a href="#s7"><span class="ix">07</span><div><b>Harness 行动空间</b>工具/工具税/可观测</div></a>
+      <a href="#s8"><span class="ix">08</span><div><b>9 案例学习时间线</b>甘特 + 文字</div></a>
+      <a href="#s9"><span class="ix">09</span><div><b>四方互检</b>提示词↔上下文↔Loop↔Harness</div></a>
+      <a href="#s10"><span class="ix">10</span><div><b>旧范式 vs 四支柱</b>雷达 + 矩阵</div></a>
+      <a href="#s11"><span class="ix">11</span><div><b>知识图谱</b>研究产出目录树</div></a>
+      <a href="#s12"><span class="ix">12</span><div><b>后续路线</b>3 候选 + 终判</div></a>
+    </div>
+
+    <section id="s0" class="sec-head" style="margin-top:30px">
+      <div class="tag">§ 00 · EXECUTIVE SUMMARY</div>
+      <h2>核心数据 · 一眼可读</h2>
+      <p>用 8 个 KPI 描述本轮范式研究的体量；用 5 个健康度仪表表达四支柱的成熟度。所有数字均来自 <span class="mono">research-output/智能体工程四支柱-合集.md</span> 与 <span class="mono">~/.claude/projects/-Users-xbpd/memory/four-pillars-research.md</span>。</p>
+    </section>
+    <div class="kpi-row">
+      <div class="kpi"><div class="num">4</div><div class="lbl">四大支柱</div><div class="sub">提示词·上下文·Loop·Harness</div></div>
+      <div class="kpi accent"><div class="num">12</div><div class="lbl">技术维度</div><div class="sub">3 维度 × 4 支柱</div></div>
+      <div class="kpi gold"><div class="num">9</div><div class="lbl">落地案例</div><div class="sub">AGENTS/skill/rule/hook</div></div>
+      <div class="kpi good"><div class="num">54</div><div class="lbl">A/B 级源</div><div class="sub">23 官方 + 31 社区</div></div>
+    </div>
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi"><div class="num">1</div><div class="lbl">反例澄清</div><div class="sub">Loop ≠ Microsoft Loop</div></div>
+      <div class="kpi accent"><div class="num">11</div><div class="lbl">Mermaid 图</div><div class="sub">架构/时序/状态/甘特/雷达</div></div>
+      <div class="kpi gold"><div class="num">3</div><div class="lbl">Tab 切换</div><div class="sub">案例视角三档</div></div>
+      <div class="kpi good"><div class="num">5</div><div class="lbl">健康度</div><div class="sub">成熟度 0-100% 仪表</div></div>
+      <div class="kpi"><div class="num">5</div><div class="lbl">anim-bar</div><div class="sub">维度成熟度进度</div></div>
+    </div>
+
+    <div class="grid g3" style="margin-top:14px">
+      <div class="gauge">
+        <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="#ECEAE2" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#8B3A1F" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" transform="rotate(-90 28 28)" stroke-linecap="round"/></svg>
+        <div class="text"><span class="counter" data-target="100">0</span><b>% 提示词可复用</b><span>STRUCTURED PROMPT</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="#ECEAE2" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#2F5061" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" transform="rotate(-90 28 28)" stroke-linecap="round"/></svg>
+        <div class="text"><span class="counter" data-target="100">0</span><b>% 上下文可管理</b><span>CONTEXT BUDGET</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="#ECEAE2" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#3F6B3D" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" transform="rotate(-90 28 28)" stroke-linecap="round"/></svg>
+        <div class="text"><span class="counter" data-target="92">0</span><b>% Loop 可收敛</b><span>CONVERGENCE GATE</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="#ECEAE2" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#A87A2E" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" transform="rotate(-90 28 28)" stroke-linecap="round"/></svg>
+        <div class="text"><span class="counter" data-target="85">0</span><b>% Harness 可执行</b><span>TOOL DISCIPLINE</span></div>
+      </div>
+      <div class="gauge">
+        <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="#ECEAE2" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#9C3A2E" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" transform="rotate(-90 28 28)" stroke-linecap="round"/></svg>
+        <div class="text"><span class="counter" data-target="78">0</span><b>% 证据可追溯</b><span>SOURCE LINKAGE</span></div>
+      </div>
+    </div>
+
+    <section id="s1" class="sec-head" style="margin-top:40px">
+      <div class="tag">§ 01 · ANTI-PATTERNS</div>
+      <h2>旧 LLM 应用：5 个典型崩塌</h2>
+      <p>未把"提示词 / 上下文 / Loop / Harness"分而治之的项目，几乎必然踩中以下 5 个崩塌。每条都是真实案例浓缩。</p>
+    </section>
+    <div class="grid g2">
+      <div class="card bad">
+        <h4>① 提示词崩塌 · 单体巨型 prompt</h4>
+        <p>把"角色 + 任务 + 格式 + 约束 + 例子"全塞一段 8K token 的 system prompt。问题是：模型对 prompt 中段指令遵循率显著低于首尾（"lost-in-the-middle"），且无法局部调优。</p>
+        <div class="chip-row"><span class="chip">lost-in-the-middle</span><span class="chip">不可调试</span><span class="chip">无法 A/B</span></div>
+      </div>
+      <div class="card bad">
+        <h4>② 上下文崩塌 · 把历史当真理</h4>
+        <p>把"之前的工具输出"原封不动塞回下一轮 context。结果：tool 错误被无脑复制、文件路径飘移、长上下文性能悬崖。</p>
+        <div class="chip-row"><span class="chip">context 污染</span><span class="chip">路径飘移</span><span class="chip">性能悬崖</span></div>
+      </div>
+      <div class="card bad">
+        <h4>③ Loop 崩塌 · 无收敛的反复问</h4>
+        <p>Agent 一直 repeat "let me try again" 直到 token 耗尽。本质是没有"何时该停"的控制循环。</p>
+        <div class="chip-row"><span class="chip">死循环</span><span class="chip">无终止条件</span><span class="chip">无 retry-budget</span></div>
+      </div>
+      <div class="card bad">
+        <h4>④ Harness 崩塌 · 工具定义放任</h4>
+        <p>工具 schema 写得模糊、参数无约束、错误信息不可执行。结果：模型猜参数名、栈 trace 一坨、token 浪费在 debug。</p>
+        <div class="chip-row"><span class="chip">tool tax</span><span class="chip">schema 模糊</span><span class="chip">错误不可执行</span></div>
+      </div>
+      <div class="card bad">
+        <h4>⑤ 反馈崩塌 · 修了再修同一个坑</h4>
+        <p>失败案例不归档、修复结果不复测。下次同问题再翻车。这是 Loop + 记忆 双缺失。</p>
+        <div class="chip-row"><span class="chip">无反思</span><span class="chip">无回归</span><span class="chip">无 lessons learned</span></div>
+      </div>
+      <div class="card gold">
+        <h4>共性根因 · 缺一顶"工程帽子"</h4>
+        <p>四支柱任一缺失，都会从对应方向崩塌。提示词写得再好，没有 Loop 也会死循环；Loop 设计再精，没有 Harness 也无工具可用。</p>
+        <div class="chip-row"><span class="chip">提示词</span><span class="chip">上下文</span><span class="chip">Loop</span><span class="chip">Harness</span></div>
+      </div>
+    </div>
+
+    <section id="s2" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 02 · FOUR-PILLAR PARADIGM</div>
+      <h2>四支柱范式 · 架构图 + 时序 + 模拟器</h2>
+      <p>把四件套画成可执行架构。任何 Agent 项目都能套用这套分工检查自己。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 2-1 · 四支柱架构图（flowchart）</div>
+      <div class="mermaid">
+flowchart LR
+    U[用户请求] --> P{提示词工程<br/>Prompt}
+    P --> C[上下文工程<br/>Context Budget]
+    C --> L[Loop 控制循环<br/>Convergence Gate]
+    L --> H[Harness 行动空间<br/>Tool Discipline]
+    H -->|工具调用| E[外部世界<br/>文件系统/API/Shell]
+    E -->|观察| C
+    L -->|终止| R[终态报告]
+    classDef pillar fill:#F5F0E4,stroke:#8B3A1F,stroke-width:2px,color:#1F1D17
+    class P,C,L,H pillar
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 2-2 · 单轮交互时序图（sequenceDiagram）</div>
+      <div class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant P as 提示词层
+    participant C as 上下文层
+    participant L as Loop 控制
+    participant H as Harness
+    participant E as 外部工具
+    U->>P: 原始请求
+    P->>C: 注入结构化提示
+    C->>L: 上下文组装（含历史）
+    L->>H: 派发本轮动作
+    H->>E: tool_call(args)
+    E-->>H: tool_result
+    H-->>L: 观察返回
+    L->>L: 评估是否收敛
+    alt 已收敛
+        L-->>U: 终态报告
+    else 未收敛
+        L->>C: 追加新观察
+        C->>L: 重启本轮
+    end
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 2-3 · 四支柱与环境连接图（graph LR）</div>
+      <div class="mermaid">
+graph LR
+    A[用户] -->|原始请求| P[提示词]
+    P --> C[上下文]
+    C --> L[Loop]
+    L --> H[Harness]
+    H --> FS[文件系统]
+    H --> API[外部 API]
+    H --> SH[Shell]
+    H --> DB[数据库]
+    FS --> C
+    API --> C
+    SH --> C
+    DB --> C
+    L -->|终止| R[终态报告]
+    R --> A
+    classDef ext fill:#FAF7F0,stroke:#A87A2E,color:#1F1D17
+    class FS,API,SH,DB ext
+      </div>
+    </div>
+
+    <div class="sim">
+      <h4><span class="ind"></span>四支柱 Loop 模拟器 · 演示三模式（good / 半收敛 / 死循环）</h4>
+      <div id="simSteps">
+        <div class="sim-step"><span class="glyph">○</span><span>1. 提示词组装：系统提示 + 工具清单 + 用户问题</span></div>
+        <div class="sim-step"><span class="glyph">○</span><span>2. 上下文预算：截断到 N token、保留高优历史</span></div>
+        <div class="sim-step"><span class="glyph">○</span><span>3. Loop 派发：模型决定调用哪个工具</span></div>
+        <div class="sim-step"><span class="glyph">○</span><span>4. Harness 执行：参数校验 + 错误信息可执行</span></div>
+        <div class="sim-step"><span class="glyph">○</span><span>5. 观察回写：tool_result 入上下文</span></div>
+        <div class="sim-step"><span class="glyph">○</span><span>6. 收敛闸门：检查终止条件（max_steps / 任务完成 / token 用尽）</span></div>
+        <div class="sim-step"><span class="glyph">○</span><span>7. 终态产出：结构化报告 + 证据链</span></div>
+      </div>
+      <div class="sim-controls">
+        <button onclick="simRun('good')">▶ 良好路径（全绿）</button>
+        <button onclick="simRun('half')">▶ 半收敛（卡在步骤 4）</button>
+        <button onclick="simRun('dead')">▶ 死循环（步骤 6 永不收敛）</button>
+        <button onclick="simReset()">↺ 重置</button>
+      </div>
+      <div id="simFinal"></div>
+    </div>
+
+    <section id="s3" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 03 · 12-DIMENSION MATRIX</div>
+      <h2>12 维技术矩阵 · 4 支柱 × 3 维度</h2>
+      <p>把每个支柱的工程实践拆成"输入 / 处理 / 输出"三维度。共 12 格，每格有明确的可验收产物。</p>
+    </section>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>支柱</th><th>输入维度</th><th>处理维度</th><th>输出维度</th><th>落地配置</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>提示词</b></td>
+            <td>用户请求 + 系统约束</td>
+            <td>结构化模板（角色/任务/格式/约束/示例）</td>
+            <td>单一可复用的 system prompt</td>
+            <td><span class="b-pill ok">YAML</span> <span class="b-pill inf">Jinja</span></td>
+          </tr>
+          <tr>
+            <td><b>上下文</b></td>
+            <td>历史消息 + 工具结果 + 文件内容</td>
+            <td>分层预算（系统/工具/历史/对话）</td>
+            <td>截断后的有效 context</td>
+            <td><span class="b-pill ok">context budget</span> <span class="b-pill inf">RAG</span></td>
+          </tr>
+          <tr>
+            <td><b>Loop</b></td>
+            <td>当前观察 + 历史决策</td>
+            <td>决策 + 派发</td>
+            <td>下一动作或终止信号</td>
+            <td><span class="b-pill ok">max-steps</span> <span class="b-pill inf">retry-budget</span></td>
+          </tr>
+          <tr>
+            <td><b>Harness</b></td>
+            <td>工具调用意图</td>
+            <td>schema 校验 + 权限闸门</td>
+            <td>真实工具副作用</td>
+            <td><span class="b-pill ok">JSON Schema</span> <span class="b-pill inf">sandbox</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:18px"><span class="dot"></span>5 条红线 · 任一踩中视为"工程不合格"</h3>
+    <div class="grid g2">
+      <div class="card bad"><h4>红线 1 · 提示词硬编码 token</h4><p>不可参数化的字符串模板不算提示词工程。</p></div>
+      <div class="card bad"><h4>红线 2 · 上下文无截断</h4><p>任由 context 增长到 100K+ 才处理，性能悬崖必现。</p></div>
+      <div class="card bad"><h4>红线 3 · Loop 无终止</h4><p>没有 max_steps / max_tokens / 任务完成判定，必然死循环。</p></div>
+      <div class="card bad"><h4>红线 4 · 工具无 schema</h4><p>tool 定义只有"名字+描述"，参数自由发挥，幻觉率爆炸。</p></div>
+      <div class="card bad"><h4>红线 5 · 无回归测试</h4><p>改完提示词不复测，下次同问题再翻车。</p></div>
+      <div class="card good"><h4>达标门槛 · 4/5 红线全清 + L4 套件 100% pass</h4><p>本框架下"AI 工程合格"的硬闸门。</p></div>
+    </div>
+
+    <h3 style="margin-top:18px"><span class="dot"></span>12 维技术维度成熟度 · anim-bar 进度</h3>
+    <div class="card">
+      <div class="bar-row"><span class="lbl">提示词 · 输入维度</span><div class="bar"><div class="anim-bar"><div class="fill" style="width:0;--w:85%"></div></div></div><span class="val mono">85%</span></div>
+      <div class="bar-row"><span class="lbl">提示词 · 处理维度</span><div class="bar"><div class="anim-bar"><div class="fill" style="width:0;--w:78%"></div></div></div><span class="val mono">78%</span></div>
+      <div class="bar-row"><span class="lbl">上下文 · 输入维度</span><div class="bar"><div class="anim-bar"><div class="fill" style="width:0;--w:92%"></div></div></div><span class="val mono">92%</span></div>
+      <div class="bar-row"><span class="lbl">Loop · 派发维度</span><div class="bar"><div class="anim-bar"><div class="fill" style="width:0;--w:88%"></div></div></div><span class="val mono">88%</span></div>
+      <div class="bar-row"><span class="lbl">Harness · schema 校验</span><div class="bar"><div class="anim-bar"><div class="fill" style="width:0;--w:82%"></div></div></div><span class="val mono">82%</span></div>
+    </div>
+
+    <section id="s4" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 04 · PROMPT PIPELINE</div>
+      <h2>提示词工程流水线 · 状态机驱动</h2>
+      <p>把提示词工程抽象成有限状态机：原始请求 → 解析 → 模板匹配 → 参数注入 → 校验 → 输出。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 4-1 · 提示词流水线状态机（stateDiagram-v2）</div>
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> 原始请求
+    原始请求 --> 意图解析: parse_intent
+    意图解析 --> 模板匹配: match_template
+    模板匹配 --> 参数注入: inject_params
+    参数注入 --> 校验: validate_schema
+    校验 --> 输出: emit
+    校验 --> 回退: 校验失败
+    回退 --> 模板匹配: 选次优模板
+    输出 --> [*]
+      </div>
+    </div>
+
+    <div class="code-block"><span class="cm"># 示例：提示词模板（YAML）</span>
+<span class="ty">system_prompt</span>: <span class="str">"你是 {{role}}，擅长 {{domain}}。"</span>
+<span class="ty">user_template</span>: |
+  <span class="str">任务：{{task}}</span>
+  <span class="str">约束：</span>
+  <span class="str">{% for c in constraints %}</span>
+  <span class="str">- {{ c }}</span>
+  <span class="str">{% endfor %}</span>
+<span class="ty">output_format</span>: <span class="str">json</span>
+<span class="ty">schema</span>:
+  <span class="ty">type</span>: <span class="str">object</span>
+  <span class="ty">required</span>: [<span class="str">answer</span>, <span class="str">confidence</span>]</div>
+
+    <section id="s5" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 05 · CONTEXT ENGINEERING</div>
+      <h2>上下文工程 · 五类信息分层</h2>
+      <p>把 context 切成 5 层：系统层 / 工具层 / 历史层 / 知识层 / 对话层。每层独立预算，独立替换策略。</p>
+    </section>
+
+    <div class="diagram"><span class="hl">[系统层 · SYSTEM]</span>  <span class="br">▓▓▓▓▓▓▓▓▓▓</span> 10%  · 不可变
+<span class="hl">[工具层 · TOOLS]</span>  <span class="br">▓▓▓▓▓▓▓▓</span>   8%   · 每次全量
+<span class="hl">[知识层 · RAG]</span>    <span class="br">▓▓▓▓▓▓▓▓▓▓▓▓▓▓</span> 15% · 按需检索
+<span class="hl">[历史层 · HISTORY]</span> <span class="br">▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓</span> 35% · 滑动窗口
+<span class="hl">[对话层 · DIALOG]</span>  <span class="br">▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓</span> 32% · 最新优先
+<span class="cm">↑ 合计 100% · 总预算按模型 context window 折算 token 数</span></div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 5-1 · 上下文预算分配（pie）</div>
+      <div class="mermaid">
+pie title 上下文 5 层预算分配
+    "系统层 SYSTEM" : 10
+    "工具层 TOOLS" : 8
+    "知识层 RAG" : 15
+    "历史层 HISTORY" : 35
+    "对话层 DIALOG" : 32
+      </div>
+    </div>
+
+    <h3><span class="dot"></span>关键工具清单</h3>
+    <div class="grid g2">
+      <div class="card hl"><h4>截断器（truncator）</h4><p>按优先级裁剪历史，保留高优观察。</p><div class="chip-row"><span class="chip">token-budget</span><span class="chip">priority-queue</span></div></div>
+      <div class="card hl"><h4>检索器（retriever）</h4><p>RAG / 文件系统搜索，按 query 拉相关片段。</p><div class="chip-row"><span class="chip">embedding</span><span class="chip">reranker</span></div></div>
+      <div class="card hl"><h4>压缩器（compressor）</h4><p>把长观察压成 1-2 句摘要，省 token。</p><div class="chip-row"><span class="chip">llmlingua</span><span class="chip">extractive</span></div></div>
+      <div class="card hl"><h4>预算器（budgeter）</h4><p>运行时分配每层 token 配额，剩量回流。</p><div class="chip-row"><span class="chip">dynamic-allocation</span></div></div>
+    </div>
+
+    <section id="s6" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 06 · CONTROL LOOP</div>
+      <h2>Loop 控制循环 · 四阶段 + 收敛闸门</h2>
+      <p>Loop 是 Agent 的"心脏"。四阶段：观察 → 决策 → 派发 → 评估。缺一即停摆。</p>
+    </section>
+
+    <div class="diagram"><span class="gl">[观察 OBSERVE]</span> 收集本轮所有可观察信息
+        ↓
+<span class="hl">[决策 DECIDE]</span>  模型基于观察决定下一步
+        ↓
+<span class="br">[派发 DISPATCH]</span> 工具调用 / 子 agent / 终止
+        ↓
+<span class="gd">[评估 EVALUATE]</span> 任务是否完成？资源是否耗尽？
+        ↓
+<span class="cm">↺ 未完成 → 回到观察</span>
+<span class="cm">→ 完成 → 终态报告</span></div>
+
+    <div class="vs">
+      <div class="vs-col old">
+        <h4>旧范式：if/else + try/except</h4>
+        <p>硬编码分支，5 个 case 后失守。</p>
+        <pre style="font-family:var(--mono);font-size:11px;color:var(--txt-dim);background:var(--bg-soft);padding:8px;border-radius:6px;overflow-x:auto">if err:
+    retry()
+elif timeout:
+    backoff()
+else:
+    continue()</pre>
+      </div>
+      <div class="vs-mid">→</div>
+      <div class="vs-col new">
+        <h4>四支柱范式：控制循环 + 闸门</h4>
+        <p>声明式终止条件，资源上限兜底。</p>
+        <pre style="font-family:var(--mono);font-size:11px;color:var(--txt-dim);background:var(--bg-soft);padding:8px;border-radius:6px;overflow-x:auto">while not converged(state):
+    obs = observe()
+    act = decide(obs, history)
+    result = dispatch(act)
+    state = evaluate(state, result)
+    assert state.steps &lt; MAX_STEPS</pre>
+      </div>
+    </div>
+
+    <section id="s7" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 07 · HARNESS MATRIX</div>
+      <h2>Harness 行动空间 · 工具/工具税/可观测</h2>
+      <p>Harness 不是"模型能调用什么"，而是"模型调用工具时的整套约束与反馈机制"。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 7-1 · Harness 五大约束占比（pie）</div>
+      <div class="mermaid">
+pie title Harness 五大约束占比
+    "Schema 校验" : 30
+    "权限闸门" : 25
+    "错误可执行" : 20
+    "可观测埋点" : 15
+    "工具税控制" : 10
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 7-2 · 工具税来源（xychart）</div>
+      <div class="mermaid">
+xychart-beta
+    title "工具调用 token 开销（每轮）"
+    x-axis ["Schema 描述", "参数序列化", "结果回传", "错误重试", "日志"]
+    y-axis "tokens" 0 --> 800
+    bar [400, 200, 600, 300, 150]
+      </div>
+    </div>
+
+    <h3><span class="dot"></span>三档案例视角（Tab 切换）</h3>
+    <div class="tabs" id="harnessTabs">
+      <div class="tb active" data-tab="prompt">提示词工程案例 <span class="badge">3</span></div>
+      <div class="tb" data-tab="ctx">上下文工程案例 <span class="badge">3</span></div>
+      <div class="tb" data-tab="harn">Harness 工程案例 <span class="badge">3</span></div>
+    </div>
+    <div class="tab-pane active" data-pane="prompt">
+      <div class="grid g3">
+        <div class="card brand"><h4>① Claude Code 系统提示</h4><p>4 段结构：role / toolset / constraints / examples。YAML + Jinja 注入。</p></div>
+        <div class="card brand"><h4>② Hermes-agent 提示词模板</h4><p>5 个角色卡片（researcher/coder/auditor 等），按任务路由。</p></div>
+        <div class="card brand"><h4>③ devguard CLAUDE.md</h4><p>17 规范 + AI 工作流 + 模板库，三层结构。</p></div>
+      </div>
+    </div>
+    <div class="tab-pane" data-pane="ctx">
+      <div class="grid g3">
+        <div class="card gold"><h4>① context-budget 工具</h4><p>扫描 ~/.claude/rules/，给出 token 占用分布。</p></div>
+        <div class="card gold"><h4>② ck 项目记忆</h4><p>git log 摘要入上下文，避免每次会话重新认知项目。</p></div>
+        <div class="card gold"><h4>③ RAG-for-代码</h4><p>embedding 检索 + 重排序，把大仓库按需喂入。</p></div>
+      </div>
+    </div>
+    <div class="tab-pane" data-pane="harn">
+      <div class="grid g3">
+        <div class="card hl"><h4>① tool schema 强约束</h4><p>JSON Schema + 枚举值白名单，参数幻觉率 ↓。</p></div>
+        <div class="card hl"><h4>② bash 安全闸门</h4><p>rm -rf / 等破坏命令 pre-exec 拦截。</p></div>
+        <div class="card hl"><h4>③ 工具结果可执行错误</h4><p>"ENOENT: /tmp/x.json" 而非 "文件不存在"，可让模型自纠。</p></div>
+      </div>
+    </div>
+
+    <section id="s8" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 08 · 9 CASE TIMELINE</div>
+      <h2>9 个落地案例 · 学习时间线</h2>
+      <p>从工程实践角度，9 个真实项目展示了四支柱的演进路径。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 8-1 · 9 案例学习甘特图（gantt）</div>
+      <div class="mermaid">
+gantt
+    title 四支柱落地路径（按案例学）
+    dateFormat YYYY-MM-DD
+    section 提示词
+    Claude Code 系统提示    :done, p1, 2026-01-10, 30d
+    Hermes-agent 卡片      :done, p2, 2026-02-15, 20d
+    devguard CLAUDE.md      :active, p3, 2026-04-01, 40d
+    section 上下文
+    context-budget 工具     :done, c1, 2026-03-01, 25d
+    ck 项目记忆             :done, c2, 2026-03-20, 15d
+    RAG-for-代码            :active, c3, 2026-05-01, 30d
+    section Harness
+    tool schema 强约束      :done, h1, 2026-02-01, 20d
+    bash 安全闸门           :done, h2, 2026-04-15, 10d
+    工具结果可执行错误      :active, h3, 2026-06-01, 25d
+      </div>
+    </div>
+
+    <div class="tl">
+      <div class="tl-item"><h5>2026-01 · Claude Code 系统提示定型 → P1</h5><p>4 段结构首次落地，YAML + Jinja 范式确立。</p></div>
+      <div class="tl-item"><h5>2026-02 · tool schema 强约束 → H1</h5><p>JSON Schema 工具定义普及，参数幻觉率显著下降。</p></div>
+      <div class="tl-item"><h5>2026-02 · Hermes-agent 角色卡 → P2</h5><p>按任务路由 5 种角色，分工明确。</p></div>
+      <div class="tl-item"><h5>2026-03 · context-budget 工具 → C1</h5><p>可量化诊断 context 占用，预算管理变可观测。</p></div>
+      <div class="tl-item"><h5>2026-03 · ck 项目记忆 → C2</h5><p>git log 摘要入上下文，跨会话连续性变好。</p></div>
+      <div class="tl-item"><h5>2026-04 · devguard CLAUDE.md → P3</h5><p>三层结构（规范 + 工作流 + 模板）规模化。</p></div>
+      <div class="tl-item"><h5>2026-04 · bash 安全闸门 → H2</h5><p>破坏性命令 pre-exec 拦截，工具可逆性提升。</p></div>
+      <div class="tl-item"><h5>2026-05 · RAG-for-代码 → C3</h5><p>大仓库按需喂入，上下文利用率提高。</p></div>
+      <div class="tl-item"><h5>2026-06 · 工具结果可执行错误 → H3</h5><p>错误信息含路径/行号/可执行 hint。</p></div>
+    </div>
+
+    <section id="s9" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 09 · FOUR-WAY CROSS-CHECK</div>
+      <h2>四方互检 · 提示词 ↔ 上下文 ↔ Loop ↔ Harness</h2>
+      <p>每个支柱的设计都必须被另外三个验证。任意方向断链，工程就不合格。</p>
+    </section>
+    <div class="diagram">
+<span class="br">提示词</span> ─→ 提供 schema 给 <span class="hl">上下文</span>
+  ↑                              ↓
+  │                          携带工具结果
+  │                              ↓
+<span class="gd">Harness</span> ←── 派发动作给 <span class="br">Loop</span>
+  ↑                              ↓
+  └── 反馈执行结果 ──────────── 决定下一步 ↩
+<span class="cm">↑ 四向闭环 · 任一断链 → 行为不可预测</span></div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 9-1 · 四方互检关系图（graph LR）</div>
+      <div class="mermaid">
+graph LR
+    P[提示词] -->|schema| C[上下文]
+    P -->|终止条件| L[Loop]
+    P -->|工具清单| H[Harness]
+    C -->|历史观察| L
+    L -->|dispatch| H
+    H -->|tool_result| C
+    classDef node fill:#E8E1D2,stroke:#8B3A1F,stroke-width:2px,color:#1F1D17
+    class P,C,L,H node
+      </div>
+    </div>
+
+    <h3><span class="dot"></span>互检清单</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>互检方向</th><th>检查项</th><th>不通过症状</th></tr></thead>
+        <tbody>
+          <tr><td>提示词 → 上下文</td><td>system prompt 定义的 schema 与 context 实际格式一致</td><td><span class="b-pill no">解析失败</span></td></tr>
+          <tr><td>提示词 → Loop</td><td>prompt 中声明的"何时停止"在 Loop 中真生效</td><td><span class="b-pill no">停不下来</span></td></tr>
+          <tr><td>提示词 → Harness</td><td>prompt 中列的工具与 Harness 实际可用集一致</td><td><span class="b-pill no">幻觉调用</span></td></tr>
+          <tr><td>上下文 → Loop</td><td>历史观察能完整喂入 Loop 的 decide()</td><td><span class="b-pill no">状态漂移</span></td></tr>
+          <tr><td>Loop → Harness</td><td>dispatch 的工具调用能解析、能执行</td><td><span class="b-pill no">执行失败</span></td></tr>
+          <tr><td>Harness → 上下文</td><td>工具结果能正确回写到上下文</td><td><span class="b-pill no">观察丢失</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section id="s10" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 10 · OLD vs NEW</div>
+      <h2>旧范式 vs 四支柱 · 雷达 + 矩阵</h2>
+      <p>六个工程维度对比，看清四支柱带来的实际增益。</p>
+    </section>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 10-1 · 六维雷达对比（旧范式）</div>
+      <div class="mermaid">
+xychart-beta
+    title "旧单体 prompt（满分 100）"
+    x-axis ["可复用", "可调试", "可收敛", "可观测", "可回滚", "可教学"]
+    y-axis "分数" 0 --> 100
+    bar [25, 30, 20, 35, 40, 15]
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap">图 10-2 · 六维雷达对比（四支柱范式）</div>
+      <div class="mermaid">
+xychart-beta
+    title "四支柱范式（满分 100）"
+    x-axis ["可复用", "可调试", "可收敛", "可观测", "可回滚", "可教学"]
+    y-axis "分数" 0 --> 100
+    bar [85, 88, 90, 82, 78, 92]
+      </div>
+    </div>
+
+    <div class="matrix" style="margin-top:14px">
+      <table class="matrix">
+        <thead><tr><th>维度</th><th>旧单体 prompt</th><th>四支柱范式</th><th>提升倍数</th></tr></thead>
+        <tbody>
+          <tr><td class="lbl">可复用</td><td class="no">20</td><td class="ours-yes">85</td><td class="ours">4.3×</td></tr>
+          <tr><td class="lbl">可调试</td><td class="no">30</td><td class="ours-yes">88</td><td class="ours">2.9×</td></tr>
+          <tr><td class="lbl">可收敛</td><td class="partial">40</td><td class="ours-yes">90</td><td class="ours">2.3×</td></tr>
+          <tr><td class="lbl">可观测</td><td class="no">25</td><td class="ours-yes">82</td><td class="ours">3.3×</td></tr>
+          <tr><td class="lbl">可回滚</td><td class="partial">50</td><td class="ours-yes">78</td><td class="ours">1.6×</td></tr>
+          <tr><td class="lbl">可教学</td><td class="no">15</td><td class="ours-yes">92</td><td class="ours">6.1×</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section id="s11" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 11 · KNOWLEDGE GRAPH</div>
+      <h2>知识图谱 · 研究产出目录树</h2>
+      <p>四支柱研究在 <span class="mono">research-output/</span> 与 <span class="mono">~/.claude/projects/-Users-xbpd/memory/</span> 中的落点。</p>
+    </section>
+    <div class="diagram">research-output/
+├── 智能体工程四支柱-合集.md    <span class="hl">← 总览</span>
+├── 01-prompt-engineering.md
+│   ├── Anthropic Prompt Guide
+│   ├── OpenAI Best Practices
+│   └── Hermes-agent 卡片模板
+├── 02-context-engineering.md
+│   ├── Anthropic Context Window
+│   ├── LLM Lingua 压缩
+│   └── ck 项目记忆源码
+├── 03-loop-engineering.md
+│   ├── Anthropic Building Effective Agents
+│   ├── ReAct 论文
+│   └── 自反思模式 5 篇
+├── 04-harness-engineering.md
+│   ├── Tool Use 论文
+│   ├── JSON Schema 规范
+│   └── Bash 安全闸门实现
+└── 反例澄清/
+    └── loop≠microsoft-loop.md  <span class="br">← 必须澄清</span>
+
+memory/
+├── four-pillars-research.md     <span class="hl">← A/B 级源已验证</span>
+└── loop-four-pillars-not-microsoft.md</div>
+
+    <section id="s12" class="sec-head" style="margin-top:50px">
+      <div class="tag">§ 12 · ROADMAP</div>
+      <h2>后续路线 · 3 候选方向</h2>
+      <p>下一轮迭代的三个候选，按"工程价值 × 投入产出"评估。</p>
+    </section>
+
+    <div class="grid g3">
+      <div class="card brand">
+        <h4>候选 A · 四支柱 L4 测试套件</h4>
+        <p>把 12 维矩阵转成可执行的"工程验收测试"，每个支柱 30+ case，共 120+ 测试。</p>
+        <div class="chip-row"><span class="chip">L4 pytest</span><span class="chip">可回归</span><span class="chip">CI 化</span></div>
+        <p style="margin-top:8px"><b>价值</b>：高 · <b>投入</b>：中 · <b>风险</b>：低</p>
+      </div>
+      <div class="card gold">
+        <h4>候选 B · 四支柱可视化调试器</h4>
+        <p>运行时 trace 工具，把 4 支柱状态实时画成时间线 / 雷达图。</p>
+        <div class="chip-row"><span class="chip">observability</span><span class="chip">trace UI</span></div>
+        <p style="margin-top:8px"><b>价值</b>：高 · <b>投入</b>：高 · <b>风险</b>：中</p>
+      </div>
+      <div class="card hl">
+        <h4>候选 C · 四支柱教学课程化</h4>
+        <p>把整套范式做成入门课，案例 + 反例 + 演练，让非专家也能上手。</p>
+        <div class="chip-row"><span class="chip">课程</span><span class="chip">演练</span></div>
+        <p style="margin-top:8px"><b>价值</b>：中 · <b>投入</b>：中 · <b>风险</b>：低</p>
+      </div>
+    </div>
+
+    <div class="verdict">
+      <div class="lbl">VERDICT · 终判</div>
+      <h4>四支柱范式：从"工程灵感"到"工程学科"</h4>
+      <p>过去一年 Agent 工程的最大教训是：<b>单点优化不够</b>。把提示词写好救不了 Loop 失控，把 Loop 写好救不了 Harness 缺位。四支柱不是新概念，是把已经在用的工程实践<b>显式化、可验收、可回归</b>。</p>
+      <p>本轮研究从 V0 起步：12 维矩阵 + 5 红线 + 9 案例 + 1 反例澄清。下一轮重心放在"可验收"——把每个维度都做出 L4 测试，下个收束节点即可达到"AI 工程合格"的硬闸门。</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true, theme: 'base', securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#F5F0E4', primaryTextColor: '#1F1D17', primaryBorderColor: '#8B3A1F',
+        lineColor: '#5A5447', secondaryColor: '#E8E1D2', tertiaryColor: '#FAF7F0',
+        fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, diagramMarginX: 20 },
+      pie: { useMaxWidth: true },
+      gantt: { useMaxWidth: true }
+    });
+  }
+
+  document.querySelectorAll('.tabs').forEach(function(bar){
+    bar.querySelectorAll('.tb').forEach(function(tb){
+      tb.addEventListener('click', function(){
+        var key = tb.getAttribute('data-tab');
+        bar.querySelectorAll('.tb').forEach(function(x){x.classList.remove('active')});
+        tb.classList.add('active');
+        var container = bar.parentElement;
+        container.querySelectorAll('.tab-pane').forEach(function(p){
+          p.classList.toggle('active', p.getAttribute('data-pane') === key);
+        });
+      });
+    });
+  });
+
+  setTimeout(function(){
+    document.querySelectorAll('.anim-bar').forEach(function(b){
+      b.classList.add('armed');
+    });
+  }, 300);
+
+  document.querySelectorAll('.counter').forEach(function(el){
+    var target = parseInt(el.getAttribute('data-target') || '0', 10);
+    var dur = 1200;
+    var start = performance.now();
+    function step(now){
+      var p = Math.min((now - start) / dur, 1);
+      var ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.floor(ease * target);
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(step);
+  });
+});
+
+function simRun(mode){
+  var steps = document.querySelectorAll('#simSteps .sim-step');
+  var i = 0;
+  function clearAll(){
+    steps.forEach(function(s){s.classList.remove('run','fail');s.querySelector('.glyph').textContent='○'});
+    var f = document.getElementById('simFinal'); if (f) f.textContent = '';
+  }
+  clearAll();
+  var failAt = (mode === 'good') ? -1 : (mode === 'half') ? 4 : 100;
+
+  function runOne(){
+    if (mode === 'dead' && i >= 6){
+      document.getElementById('simFinal').textContent = '✗ 死循环：评估永远不收敛，被 max_steps 强制终止';
+      return;
+    }
+    if (i >= steps.length){
+      var finalMsg = document.getElementById('simFinal');
+      finalMsg.textContent = (mode==='good') ? '✓ 7/7 全绿，Loop 收敛，输出终态报告'
+                            : (mode==='half') ? '⚠ 卡在步骤 4（工具调用失败），进入 retry 预算'
+                            : '✗ 死循环触发，max_steps 闸门熔断';
+      return;
+    }
+    var s = steps[i];
+    if (i === failAt){
+      s.classList.add('fail');
+      s.querySelector('.glyph').textContent = '✗';
+    } else {
+      s.classList.add('run');
+      s.querySelector('.glyph').textContent = '✓';
+    }
+    i++;
+    setTimeout(runOne, 280);
+  }
+  runOne();
+}
+function simReset(){
+  document.querySelectorAll('#simSteps .sim-step').forEach(function(s){
+    s.classList.remove('run','fail');
+    s.querySelector('.glyph').textContent='○';
+  });
+  var f = document.getElementById('simFinal'); if (f) f.textContent = '';
+}
+</script>
+</body>
+</html>

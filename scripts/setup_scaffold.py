@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import re
+import dataclasses
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+
+# Windows 中文 stdout 兼容（cp1252 下打印中文会 UnicodeEncodeError）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_ROOT = REPO_ROOT / "docs" / "templates" / "devguard" / "scaffold"
@@ -52,11 +58,15 @@ class SetupResult:
     target: Path
     profile: str
     written: tuple[str, ...]
+    # 2026-08-13 R-03：被覆盖文件的原始字节备份（install 失败时跨阶段回滚用）
+    previous: dict[str, bytes | None] = dataclasses.field(default_factory=dict)
 
 
 CORE_MANIFEST: tuple[ManifestEntry, ...] = (
     ManifestEntry("core/.gitattributes", ".gitattributes"),
     ManifestEntry("core/.gitignore", ".gitignore"),
+    # 2026-08-13 R-01/R-02：gitleaks 全量规则集（与真源逐字节镜像）
+    ManifestEntry("core/.gitleaks.toml", ".gitleaks.toml"),
     ManifestEntry("core/.pre-commit-config.yaml", ".pre-commit-config.yaml"),
     ManifestEntry("core/devguard.json.tmpl", ".devguard.json", render=True),
     ManifestEntry("core/.github/workflows/devguard.yml", ".github/workflows/devguard.yml"),
@@ -311,6 +321,7 @@ def setup(
         target=target,
         profile=profile,
         written=tuple(entry.destination for entry in entries),
+        previous={},
     )
     payloads[".devguard-receipt.json"] = _receipt_payload(result, payloads)
 
@@ -320,6 +331,15 @@ def setup(
         if destination.exists() and not destination.is_file():
             raise ScaffoldError(f"manifest 目标不是普通文件：{destination}")
         previous[relative] = destination.read_bytes() if destination.is_file() else None
+
+    # R-03（2026-08-13 第二轮）：written 必须包含 receipt（运行时注入 payloads），
+    # 否则跨阶段回滚会残留 .devguard-receipt.json
+    result = SetupResult(
+        target=target,
+        profile=profile,
+        written=tuple(payloads.keys()),
+        previous=previous,
+    )
 
     written: list[str] = []
     try:
@@ -415,23 +435,62 @@ def _run(command: Sequence[str], *, cwd: Path) -> None:
 
 
 def install(target: Path) -> None:
-    """Create an isolated toolchain and install both Git hook stages."""
+    """Create an isolated toolchain and install both Git hook stages.
+
+    失败清理（2026-08-13 蓝队方案③）：任何一步失败时删除本次创建的产物——
+    .venv（必然本次创建）与 .git（仅当 git init 前不存在时本次创建），
+    不留半成品（技术债 #7）。
+    """
     target = target.resolve()
-    _run(["git", "init"], cwd=target)
-    venv.EnvBuilder(with_pip=True).create(target / ".venv")
-    python = _venv_python(target)
-    if not python.is_file():
-        raise ScaffoldError("虚拟环境创建后找不到 Python")
-    _run([str(python), "-m", "pip", "install", "-r", "requirements-dev.txt"], cwd=target)
-    _run(
-        [
-            str(python),
-            "scripts/install_hooks.py",
-            "--root",
-            str(target),
-        ],
-        cwd=target,
+    venv_dir = target / ".venv"
+    git_dir = target / ".git"
+    git_existed = git_dir.exists()
+
+    # ensurepip 预检（fail-closed，提前失败而非 venv 创建后报错滞后）
+    check = subprocess.run(
+        [sys.executable, "-m", "ensurepip", "--version"],
+        capture_output=True,
+        check=False,
     )
+    if check.returncode != 0:
+        raise ScaffoldError(
+            "ensurepip 不可用（无法创建带 pip 的虚拟环境）。"
+            "请先修复 Python 环境：Debian/Ubuntu `sudo apt-get install python3-venv`；"
+            "其他发行版参考官方文档。"
+        )
+
+    try:
+        _run(["git", "init"], cwd=target)
+        venv.EnvBuilder(with_pip=True).create(venv_dir)
+        python = _venv_python(target)
+        if not python.is_file():
+            raise ScaffoldError("虚拟环境创建后找不到 Python")
+        _run(
+            [str(python), "-m", "pip", "install", "-r", "requirements-dev.txt"],
+            cwd=target,
+        )
+        _run(
+            [
+                str(python),
+                "scripts/install_hooks.py",
+                "--root",
+                str(target),
+            ],
+            cwd=target,
+        )
+        # R-03（第二轮）：hooks 安装后的最终校验（require_hooks=True），
+        # 失败即异常 → main 层跨阶段回滚（不留半成品）
+        hook_errors = verify(target, profile=None, require_hooks=True)
+        if hook_errors:
+            raise ScaffoldError("hooks 安装后校验失败：\n- " + "\n- ".join(hook_errors))
+    except Exception as error:
+        import shutil
+
+        if venv_dir.exists():
+            shutil.rmtree(venv_dir, ignore_errors=True)
+        if not git_existed and git_dir.exists():
+            shutil.rmtree(git_dir, ignore_errors=True)
+        raise ScaffoldError(f"安装事务失败，已清理本次产物：{error}") from error
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -459,7 +518,25 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+MIN_PYTHON = (3, 10)
+
+
+def python_guidance() -> str:
+    """R-15d：直调入口的版本预检指引（与 install.sh/install.ps1 同款文案）。"""
+    return (
+        "Python >= 3.10 未满足。请先安装再重试（安装器不会自动安装 Python）：\n"
+        "  - macOS:        brew install python@3.12   或 https://www.python.org/downloads/\n"
+        "  - Ubuntu/Debian: sudo apt-get install python3 python3-venv\n"
+        "  - Fedora:       sudo dnf install python3\n"
+        "  - Arch:         sudo pacman -S python\n"
+        "  - Windows:      winget install Python.Python.3.12（或使用 scripts/install.ps1）"
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    if sys.version_info[:2] < MIN_PYTHON:
+        print(f"ERROR: {python_guidance()}", file=sys.stderr)
+        return 1
     args = build_parser().parse_args(argv)
     target = args.target.resolve()
     profile = args.profile or (None if args.verify else "core")
@@ -498,10 +575,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             force=args.force,
         )
         if args.install:
-            install(target)
-            errors = verify(target, profile=profile, require_hooks=True)
-            if errors:
-                raise ScaffoldError("安装后校验失败：\n- " + "\n- ".join(errors))
+            try:
+                install(target)
+                # R-03（第三轮终修）：final verify 纳入同一跨阶段回滚 try——
+                # install 成功但末段校验失败（状态化注入场景）也必须回滚归零
+                errors = verify(target, profile=profile, require_hooks=True)
+                if errors:
+                    raise ScaffoldError("安装后校验失败：\n- " + "\n- ".join(errors))
+            except ScaffoldError:
+                # R-03：install/末段校验失败必须回滚 setup 写下的全部 payload
+                # （恢复被覆盖的 owner 文件），不留半成品
+                try:
+                    _rollback_writes(target, result.previous, list(result.written))
+                except Exception as rollback_error:
+                    raise ScaffoldError(f"安装失败且跨阶段回滚失败：{rollback_error}") from None
+                raise
         print(f"INIT OK: {target} ({result.profile}, {len(result.written)} files)")
         if not args.install:
             print("完整一键安装：在同一命令追加 --install（会创建 .venv 并访问依赖源）")

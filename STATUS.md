@@ -1,8 +1,8 @@
 # 项目状态
 
-> 更新: 2026-07-17（审查加固：markdownlint POSIX 门禁修复、render_meta 防截断、ruff 版本真源、脚本镜像漂移防护；#53 final-report 报告格式纳入模板族硬契约）
-<!-- devguard-progress: completed=53 total=53 -->
-<!-- convergence-gate: nodes=31,35,46,49,52 last_converged_fp=52 -->
+> 更新: 2026-08-13（红蓝对抗 21/21 闭环 + v2.3 收束 + #54 收官 55/55 + CI 全绿 + 终态渲染；人审计 17 节点待 Owner）
+<!-- devguard-progress: completed=55 total=55 -->
+<!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
 ## 当前进度
 
@@ -20,6 +20,8 @@
 | P0/P1 强化 | #47 渲染/CI、#48 可测闸门、#49 一键初始化 | ✅ | 2026-07-11 |
 | ECC 全项目对标 | #50 分支收敛、#51 能力矩阵与治理对齐、#52 一键初始化 2.0 | ✅ | 2026-07-11 |
 | V2.4 增强 | #53 报告格式入族（final-report 契约 + 规范路由澄清） | ✅ | 2026-07-17 |
+| V2.4 增强 | #55 单命令跨平台安装器（install.sh / install.ps1 + README 三平台示例） | ✅ | 2026-07-17 |
+| V2.4 增强 | #54 merged_report 存量迁移（3 份 06-08 报告打标 final-report） | ✅ | 2026-08-13 |
 | **V2.0.1 启动** | **devguard dogfood (V1.x 范式在自身闭环 8 次拦截 / 全部修复)** | **✅** | **2026-06-08** |
 
 ## 累计数据
@@ -27,15 +29,19 @@
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **19 个 pre-commit / commit-msg 钩子**（含 ECC 十域对标硬闸门）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **188 tests passed**（tests/conventions/）
+- **210 tests passed（205 基线 + 3 增量：scaffold 三测）**（tests/conventions/）
 - **17 个收束节点**（V0.1-V2.2 全部落盘；本轮机器收束通过）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
-- **8 ADR 决策**（worklogs/decisions/）
+- **9 ADR 决策**（worklogs/decisions/，0009=对抗式验证固化）
 - **~50+ commits**（5/26 → 6/8 完整链可追）
 
 ## 阻塞项
 
-（无）
+| 项目 | 等谁 / 等什么 |
+|------|--------------|
+| ~~v2.3 收束~~ **已完成**（2026-08-13 机器四阶段通过，收束报告落盘；人审计待签核） | ✅ 关闭 |
+| v0.2–v2.2 人审计签核（16 节点） | 等 Owner 批量签核（2026-06-30 目标已逾期，不计完成） |
+| 豁免账 append-only 硬闸门 | 待立项（决策登记 D5：`docs/reports/2026-07-22_一致性强制性规范性审查/决策登记.md`） |
 
 ## 图例
 
@@ -67,6 +73,7 @@
 | **v1.5** | **2026-06-08** | **V1.5.1 (1 件)** | **✅** | **✅ 65/65** | **✅ 0红线** | **⏳ 待签核** | **✅** | **final-report-template + 2 汇报** |
 | **v2.1** | **2026-07-11** | **#47-#49 (3 件)** | **✅** | **✅ 132/132** | **✅ 0 个 P0/P1** | **⏳ 待签核** | **✅** | **一致性 100% + 拦截率 100% + 一键初始化 + 分支保护** |
 | **v2.2** | **2026-07-11** | **#50-#52 (3 件)** | **✅** | **✅ 163/163** | **✅ ECC 10/10** | **⏳ 待签核** | **✅** | **全分支历史合入 + skills-first + 原子回滚 + 仓外 E2E** |
+| **v2.3** | **2026-08-13** | **#53/#55 + 红蓝对抗整理周期（21 项修复）** | **✅** | **✅ 210/210** | **✅ 0 红线 + 对抗 21/21 闭环** | **⏳ 待签核** | **✅** | **对抗式验证固化（ADR 0009）+ 硬失败机制 + 三变异验收** |
 
 > **人审计签核说明**（2026-07-11 核对）：v0.1 已签核（见 `docs/reports/人审计签核-v0.1.md`）；v0.2–v2.2 共 16 个节点尚待 Owner 签核。历史目标日期 2026-06-30 已逾期，不计为已完成。详见 `docs/reports/2026-06-10_强制性约束审查与修复/`。
 
@@ -74,11 +81,16 @@
 
 | # | 项目 | 收束节点 | 备注 |
 |---|------|----------|------|
-| 1 | `docs/重构笔记-使用开发规范重构项目指南.md` | 待用户决定 | V0 遗留 untracked |
-| 2 | commitlint "config" 警告噪音 | V2.0+ | 钩子不阻断但污染输出 |
+| 1 | `docs/历史文件/重构笔记-使用开发规范重构项目指南.md` | 待用户决定 | V0 遗留；已移至 `docs/历史文件/` 且已 tracked，去留仍待人拍板 |
+| 2 | ~~commitlint "config" 警告噪音~~ **已消失**（2026-08-13 实跑验证无噪音，node_modules 就位后 npx 本地解析） | ✅ 关闭 | 原：钩子不阻断但污染输出 |
 | 3 | 18-章外规范入 _meta.yaml | V2.0+ | 已无明显遗漏 |
 | 4 | devguard 自身 dogfood | V2.0+ | 用 V1.x 约束开发规范项目本身 |
-| 5 | CI 跨平台测试 | V2.0+ | PowerShell vs bash 兼容 |
+| 5 | ~~CI 跨平台测试~~ **已落地**（2026-08-13 大类五：test-cross-platform job macOS+windows matrix） | ✅ 关闭 | 原：PowerShell vs bash 兼容 |
+| 6 | ~~脚手架载荷 ruff 钉版漂移~~ **已根治**（2026-08-13 提交 00cdebe：版本对齐 + 包名统一 + check_template_drift 镜像校验入闸） | ✅ 关闭 | 原：钉 0.11.7 vs 真源 0.15.20（2026-07-22 E2E 发现） |
+| 10 | requirements-dev.txt hash 锁定（供应链加固） | 待立项 | dev 依赖风险低，hash 锁定维护成本高；Owner 拍板 |
+| 8 | 钩子注册单一真源（_meta.yaml hooks 段 → render_meta 投射） | 待立项 | 当前三处同步（_meta/_pre-commit-config/ci.yml）靠纪律；重构风险高（见大类四提案执行记录） |
+| 9 | ~~钩子失败文案标准化~~ **已落地**（2026-08-13 architecture.md §4.6 失败恢复指引——四步姿势 + 高频拦截说明） | ✅ 关闭 | 原：蓝队实战多次踩坑 pre-commit restore staged |
+| 7 | ~~install.sh 健壮性~~ **已根治**（2026-08-13 大类三：ensurepip 预检 install.sh/install.ps1/setup_scaffold + install() 失败清理） | ✅ 关闭 | 原：缺 ensurepip 预检；失败残留（2026-07-22 E2E 发现） |
 
 ---
 
@@ -139,3 +151,5 @@
 | 51 | ECC 全项目能力矩阵与治理对齐 | specs/07-ai-workflow.md | ✅ 已完成 | 2026-07-11 |
 | 52 | ECC 对标的一键初始化 2.0 与最终收束 | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-11 |
 | 53 | 报告格式入族（final-report 契约 + 规范路由澄清） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-07-17 |
+| 54 | merged_report 存量迁移（3 份 06-08 报告打标 final-report，契约全覆盖） | specs/10-templates-reporting.md | ✅ 已完成 | 2026-08-13 |
+| 55 | 单命令跨平台安装器（install.sh / install.ps1 引导脚本） | specs/00-infrastructure-template.md | ✅ 已完成 | 2026-07-17 |

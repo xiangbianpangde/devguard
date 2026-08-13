@@ -327,3 +327,132 @@ def test_verify_rejects_hooks_that_git_will_ignore_without_local_hook_path(tmp_p
         check=True,
     )
     assert module.verify(target, profile="core", require_hooks=True) == []
+
+
+def test_install_prechecks_ensurepip_before_creating_venv(tmp_path, monkeypatch):
+    """2026-08-13 方案③：ensurepip 预检 fail-closed——预检失败时不创建任何产物。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    real_run = module.subprocess.run
+
+    def fake_run(command, **kwargs):
+        if command[1:3] == ["-m", "ensurepip"]:
+            return module.subprocess.CompletedProcess(command, returncode=1)
+        return real_run(command, **kwargs)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    with pytest.raises(module.ScaffoldError, match="ensurepip 不可用"):
+        module.install(target)
+
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+
+
+def test_install_cleans_partial_venv_and_git_on_failure(tmp_path, monkeypatch):
+    """2026-08-13 方案③：安装事务失败时清理本次创建的 .venv 与 .git。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    real_run = module._run
+    calls = 0
+
+    def fail_at_pip(command, *, cwd):
+        nonlocal calls
+        calls += 1
+        if calls == 3:  # git init / venv 之后，pip install 时
+            raise module.ScaffoldError("injected pip failure")
+        real_run(command, cwd=cwd)
+
+    monkeypatch.setattr(module, "_run", fail_at_pip)
+
+    with pytest.raises(module.ScaffoldError, match="已清理本次产物"):
+        module.install(target)
+
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+
+
+def test_manifest_covers_all_payload_files():
+    """2026-08-13 方案③：manifest 反向校验——载荷目录每个物理文件都被显式声明。"""
+    module = load_scaffold()
+    declared = {entry.source for entry in (*module.CORE_MANIFEST, *module.OPTIONAL_MANIFEST)}
+    # 2026-08-13 R-09：TEMPLATE_ROOT 已含 scaffold，正确路径为 TEMPLATE_ROOT/core 与 /optional
+    payload_roots = (
+        module.TEMPLATE_ROOT / "core",
+        module.TEMPLATE_ROOT / "optional",
+    )
+    physical = {
+        path.relative_to(module.TEMPLATE_ROOT).as_posix()
+        for root in payload_roots
+        for path in root.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts
+    }
+    undeclared = sorted(physical - declared)
+    assert undeclared == [], (
+        f"载荷目录存在未在 manifest 声明的文件: {undeclared}（新增模板必须登记 manifest）"
+    )
+
+
+def test_install_failure_rolls_back_setup_payloads_too(tmp_path, monkeypatch):
+    """2026-08-13 R-03：install 中段失败 → setup 写入的 payload 一并回滚，target 归零。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    owner_file = target / "README.md"
+    owner_file.write_text("owner README\n", encoding="utf-8")
+    real_run = module._run
+    calls = 0
+
+    def fail_at_pip(command, *, cwd):
+        nonlocal calls
+        calls += 1
+        if calls == 3:  # git init / venv 之后，pip install 时
+            raise module.ScaffoldError("injected pip failure")
+        real_run(command, cwd=cwd)
+
+    monkeypatch.setattr(module, "_run", fail_at_pip)
+
+    # 红队第二轮要求：--force 真跑（目标含 owner 文件，setup 需覆盖写入）
+    returncode = module.main([str(target), "--profile", "core", "--install", "--force"])
+    assert returncode == 1
+
+    # payload 全部回滚（含 receipt）+ owner 文件恢复 + venv/git 清理 → target 归零
+    assert not (target / ".devguard.json").exists()
+    assert not (target / ".devguard-receipt.json").exists()
+    assert not (target / "STATUS.md").exists()
+    assert not (target / "CLAUDE.md").exists()
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+    assert owner_file.read_text(encoding="utf-8") == "owner README\n"
+    assert sorted(p.name for p in target.iterdir()) == ["README.md"]
+
+
+def test_final_verify_failure_after_install_rolls_back_too(tmp_path, monkeypatch):
+    """2026-08-13 红队第三轮 R-03 终修：install 成功后 final verify 失败 → 全量回滚归零。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    owner_file = target / "README.md"
+    owner_file.write_text("owner README\n", encoding="utf-8")
+
+    def fake_verify(target_path, *, profile, require_hooks):
+        # install() 内部的 verify 通过（profile=None）；main 的 final verify 失败
+        if profile is None:
+            return []
+        return ["injected final verify failure"]
+
+    monkeypatch.setattr(module, "verify", fake_verify)
+
+    returncode = module.main([str(target), "--profile", "core", "--install", "--force"])
+    assert returncode == 1
+
+    # payload（含 receipt）全部回滚 + owner 文件恢复 + venv/git 清理 → target 归零
+    assert not (target / ".devguard.json").exists()
+    assert not (target / ".devguard-receipt.json").exists()
+    assert not (target / "STATUS.md").exists()
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+    assert owner_file.read_text(encoding="utf-8") == "owner README\n"
+    assert sorted(p.name for p in target.iterdir()) == ["README.md"]

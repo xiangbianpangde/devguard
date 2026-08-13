@@ -1,94 +1,329 @@
 # ============================================================
-# 模板：_meta.yaml（开发规范元信息 / 真源）
+# 开发规范元信息（真源 / single source of truth）
 # ============================================================
-# 复制为:  {新项目仓库}/conventions/_meta.yaml
-# 用途:    配置入口（"改这一个文件改一切"）
-# 配套:    复制 scripts/render_meta.py 一起用
+# 改这一个文件 → 规范分级、pre-commit 钩子、CI 范围、L4 测试 全部自动同步
 #
-# 个性化改造流程（新项目 fork 时）:
-#   1. 改 {项目名} 占位 → 你的项目名
-#   2. 改 conventions 节 → 你的规范列表（删掉不要的，按本项目编号续）
-#   3. 改 pre_commit 节 → 你要的钩子（默认这套是通用最佳实践）
-#   4. 跑 python scripts/render_meta.py --render 生成 .pre-commit-config.yaml
-#
-# 渲染策略: B3 变体
+# 同步策略（B3 变体）：
 #   - 本文件是**真源**（手维护）
 #   - 每篇规范顶部 `## 分级标签` 小节是**渲染产物**（CI 由 scripts/render_meta.py 生成）
-#   - pre-commit 钩子列表由 render_meta.py 投射到根目录 .pre-commit-config.yaml
+#   - pre-commit 钩子列表由 scripts/render_meta.py 投射到根目录 .pre-commit-config.yaml
 #
-# 变更纪律:
+# 配套文件：
+#   - 渲染脚本:    scripts/render_meta.py
+#   - 模板版本:    docs/templates/devguard/conventions/_meta.yaml
+#   - 本仓库实例:  conventions/_meta.yaml（本文件）
+#
+# 变更纪律：
+#   - 改本文件 → 必须同步 docs/templates/devguard/conventions/_meta.yaml
 #   - 改本文件 → commit message 加 [meta] 标记
 #   - 不在 git 里手改"渲染产物"（会被 CI 覆盖）
 # ============================================================
 
 version: 1.0.0          # _meta.yaml schema 版本（不是项目版本）
-project: {项目名}        # <!-- 必填：新项目名 -->
+project: 开发规范       # 项目名（仅展示用）
 
 # ============================================================
 # 0. 工具链版本（单一真源 / single source of truth）
 # ============================================================
+# 改这里的版本 → 必须同步：CI pip install 钉版、pre-commit rev（经 render_meta
+# 渲染）、requirements-dev.txt、pyproject.toml dev extras。
+# check_consistency.py 与 tests/conventions/test_ci_contract.py 从这里读期望值。
 toolchain:
   ruff: 0.15.20
+  gitleaks: 8.24.3   # 密钥扫描版本真源：pre-commit rev 经 render_meta 渲染；ci.yml 手动下载步按此同步
+  pytest: 9.1.1      # 2026-08-13 R-02：测试框架版本真源（requirements/CI 钉版同步）
+  pre-commit: 4.6.0  # 2026-08-13 R-02：钩子框架版本真源
 
 # ============================================================
 # 1. 规范分级（每篇的红线/警告/推荐 数量 + 描述）
 # ============================================================
-# 编号规则: NN-<name>，与 conventions/NN-*.md 文件名对齐
-# grade 字段: red_line 红线数 / warning 警告数 / recommend 推荐数
-#            （v0.1 模板只列 red_line，后续会扩展到 warning + recommend）
-# l1_check: 该篇规范对应的 L1 自动检查工具（CI 跑）
-# l3_route: AI 任务路由提示（CLAUDE.md 任务路由速查表读这一节）
+# v0.1: #4 任务会从各篇 §一红线扫描后填实 + 加 warning/recommend 维度
+# 当前 grade 数字来自用户 2026-06-07 盘点表
+#
+# 目录型规范（schema 既定行为，2026-07-22 审查 D6 声明确认）：
+#   07-ai-workflow / 09-dashboard-gen / 10-templates-reporting 的 file 字段
+#   指向 conventions/ai-workflow_AI协作开发流程/ 目录（规范族锚点，非单文件）；
+#   render_meta 对目录型规范 SKIP 分级渲染，L1 走对应 check_*.py 章节级检测。
 conventions:
-  - id: 01-{name}
-    title: {规范名}
-    file: conventions/01-{name}_{中文名}.md
+  - id: 01-architecture
+    title: 架构设计规范
+    file: conventions/01-architecture_架构设计规范.md
     grade:
-      red_line: 0       # <!-- 必填：手动从该篇 §一红线 数 -->
+      red_line: 4
       warning: 0
       recommend: 0
-    l1_check: {L1 工具名，如 importlinter / ruff / pytest}
-    l3_route: 任务类型={类型} → 必读本篇
+      l1_check_path:
+        - importlinter.ini
+    l1_check: importlinter
+    l1_check_doc: https://importlinter.readthedocs.io/
+    l3_route: 任务类型=架构设计 → 必读本篇
 
-  # <!-- 按你的项目续写更多规范条目 -->
+  - id: 02-coding
+    title: 代码编写规范
+    file: conventions/02-coding_代码编写规范.md
+    grade:
+      red_line: 7
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - src/coding/ruff.toml
+        - .gitleaks.toml
+        - .markdownlint.json
+    l1_check: ruff + gitleaks + markdownlint-cli
+    l1_check_doc: https://docs.astral.sh/ruff/
+    l3_route: 任务类型=实现 → 必读本篇
+
+  - id: 03-git
+    title: Git 协作规范
+    file: conventions/03-git_Git协作规范.md
+    grade:
+      red_line: 5
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - .pre-commit-config.yaml
+        - commitlint.config.js
+        - scripts/check_worklog_ref.py
+    l1_check: pre-commit + commitlint
+    l1_check_doc: https://pre-commit.com/
+    l3_route: 任务类型=提交 → 必读本篇
+
+  - id: 04-api
+    title: API 设计规范
+    file: conventions/04-api_API设计规范.md
+    grade:
+      red_line: 7
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - .spectral.yaml
+    l1_check: spectral
+    l1_check_doc: https://stoplight.io/open-source/spectral
+    l3_route: 任务类型=接口设计 → 必读本篇
+
+  - id: 05-testing
+    title: 测试规范
+    file: conventions/05-testing_测试规范.md
+    grade:
+      red_line: 4
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - pyproject.toml
+    l1_check: pytest --cov-fail-under
+    l1_check_doc: https://docs.pytest.org/
+    l3_route: 任务类型=实现 → 必读本篇
+
+  - id: 06-documentation
+    title: 文档规范
+    file: conventions/06-documentation_文档规范.md
+    grade:
+      red_line: 5
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - .markdownlint.json
+        - scripts/lint_markdown.py
+    l1_check: markdownlint-cli + .markdownlint.json
+    l1_check_doc: https://github.com/DavidAnson/markdownlint
+    l3_route: 任务类型=写文档 → 必读本篇
+
+  - id: 07-ai-workflow
+    title: AI 协作开发流程
+    file: conventions/ai-workflow_AI协作开发流程/
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 9    # 9 篇流程文档（v2.0 双轨制 + 部署规范）
+      l1_check_path:
+        - scripts/check_ai_workflow.py
+        - scripts/check_report.py
+        - scripts/check_doc_quality.py
+        - scripts/check_consistency.py
+        - scripts/check_enforcement.py
+        - scripts/check_ecc_alignment.py
+        - scripts/check_worklog_ref.py
+        - scripts/check_status_updated.py
+        - scripts/check_worklog_structure.py
+        - scripts/check_file_placement.py
+        - scripts/check_exemption_log.py
+        - scripts/check_updated_tag.py
+        - scripts/check_doc_sync.py
+        - scripts/check_convergence_gate.py
+    l1_check: 工作流契约 + 一致性事实矩阵 >=95% + 故障注入拦截率 >=90% + 8 个 commit-msg 治理闸门
+    l1_check_doc: https://docs.python.org/3/library/ast.html
+    l3_route: AI 任务路由必读
+
+  - id: 08-code-understanding
+    title: 代码理解与图谱规范
+    file: conventions/08-code-understanding_代码理解与图谱规范.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - scripts/check_code_understanding.py
+    l1_check: check_code_understanding.py（V5.3 章节级 L1）
+    l1_check_doc: https://docs.python.org/3/library/ast.html
+    l3_route: 任务类型=图谱生成 → 必读本篇
+
+  - id: 09-dashboard-gen
+    title: 仪表盘自动生成规范
+    file: conventions/ai-workflow_AI协作开发流程/
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - scripts/render_meta.py
+        - docs/templates/devguard/html-report-template/render.py
+    l1_check: render_meta.py + render.py（仪表盘模板 + 渲染脚本）
+    l1_check_doc: https://docs.python.org/3/library/string.html#template-strings
+    l3_route: 任务类型=仪表盘渲染 → 必读本篇
+
+  - id: 10-templates-reporting
+    title: 模板与汇报规范
+    file: conventions/ai-workflow_AI协作开发流程/
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - docs/templates/devguard/
+        - docs/templates/devguard/README-模板索引.md
+        - docs/reports/
+    l1_check: 模板 + reports/ 目录（V7.1 章节级 L1）
+    l1_check_doc: https://keepachangelog.com/
+    l3_route: 任务类型=模板/汇报 → 必读本篇
+
+  - id: 11-readme
+    title: README 规范
+    file: README.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - README.md
+    l1_check: README.md 存在（V9.2 章节级 L1）
+    l1_check_doc: https://www.makeareadme.com/
+    l3_route: 任务类型=项目入口 → 必读本篇
+
+  - id: 12-codeowners
+    title: CODEOWNERS 规范
+    file: .github/CODEOWNERS
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - .github/CODEOWNERS
+    l1_check: CODEOWNERS 文件存在（V1.1 章节级 L1）
+    l1_check_doc: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+    l3_route: 任务类型=PR 审查 → 必读本篇
+
+  - id: 13-changelog
+    title: CHANGELOG 规范
+    file: CHANGELOG.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - CHANGELOG.md
+    l1_check: CHANGELOG.md 存在（V1.1 章节级 L1）
+    l1_check_doc: https://keepachangelog.com/
+    l3_route: 任务类型=发布 → 必读本篇
+
+  - id: 14-security
+    title: SECURITY 规范
+    file: SECURITY.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - SECURITY.md
+    l1_check: SECURITY.md 存在（V1.1.2 章节级 L1）
+    l1_check_doc: https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability
+    l3_route: 任务类型=安全报告 → 必读本篇
+
+  - id: 15-support
+    title: SUPPORT 规范
+    file: SUPPORT.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - SUPPORT.md
+    l1_check: SUPPORT.md 存在（V1.2 章节级 L1）
+    l1_check_doc: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/adding-support-resources-to-your-project
+    l3_route: 任务类型=用户支持 → 必读本篇
+
+  - id: 16-license
+    title: LICENSE 规范
+    file: LICENSE
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - LICENSE
+    l1_check: LICENSE 文件存在（V1.3 章节级 L1）
+    l1_check_doc: https://choosealicense.com/
+    l3_route: 任务类型=开源发布 → 必读本篇
+
+  - id: 17-contributing
+    title: CONTRIBUTING 规范
+    file: CONTRIBUTING.md
+    grade:
+      red_line: 0
+      warning: 0
+      recommend: 0
+      l1_check_path:
+        - CONTRIBUTING.md
+    l1_check: CONTRIBUTING.md 存在（V1.4 章节级 L1）
+    l1_check_doc: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors
+    l3_route: 任务类型=开源贡献 → 必读本篇
 
 # ============================================================
-# 2. pre-commit 钩子（#1 任务专用 / 通用最佳实践默认套）
+# 2. pre-commit 钩子（#1 任务专用 / 写实）
 # ============================================================
-# 新项目 fork 时可保留全部（这是 L1 检测的"标准套"），也可按需增删
-# grade 字段: red_line 红线 / warning 警告 / recommend 推荐
-# maps_to: 对应规范 ID（说明这条钩子落实哪篇规范的红线）
+# v0.1 完整版（来源: src/git/.pre-commit-config.yaml，提升到根目录 + 元数据化）
+# 后续改动只动本节 + 跑 render_meta.py 即可同步到根目录 .pre-commit-config.yaml
 pre_commit:
   - id: trailing-whitespace
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: recommend
     maps_to: 通用整洁
     description: 去除行尾空白
 
   - id: end-of-file-fixer
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: recommend
     maps_to: 通用整洁
     description: 确保文件以换行符结尾
 
   - id: check-yaml
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: YAML 语法检查（_meta.yaml 修改后必须能解析）
 
   - id: check-json
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: JSON 语法检查
 
   - id: check-added-large-files
     source: pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     grade: red_line
     maps_to: 通用整洁
     description: 防止误提交大文件
@@ -101,46 +336,194 @@ pre_commit:
     maps_to: 02-coding
     description: "02 红线 1/4/5：print / 裸 except / 调试断点等"
     stages: [pre-commit]
+    args: ["--config=src/coding/ruff.toml"]   # 用项目内 02 规范的可运行配置
 
   - id: ruff-format
     source: astral-sh/ruff-pre-commit
     rev: v0.15.20
     grade: red_line
     maps_to: 02-coding
-    description: 格式化
+    description: 格式化（取代 black）
+    args: ["--config=src/coding/ruff.toml"]
 
   - id: gitleaks
     source: gitleaks/gitleaks
-    rev: v8.18.0
+    rev: v8.24.3
     grade: red_line
     maps_to: 02-coding
-    description: "02 红线 3：阻止密钥入库"
+    description: "02 红线 3：阻止密钥入库（版本与 toolchain.gitleaks 真源一致）"
+
+  # markdownlint 钩子 V0.3 启用：markdownlint-cli2（npm，与 commitlint 复用生态）
+  # .markdownlint.json 已配置：禁用软规则（MD037/001/056/051/035/030/029/058 等中文常见误报）
+  - id: markdownlint
+    name: markdownlint
+    source: local
+    grade: recommend
+    maps_to: 06-documentation
+    description: "06 文档规范 L1 检测：markdown 格式检查（Python 预过滤 .md 文件，绕开 cli glob 不被尊重问题）"
+    entry: python scripts/lint_markdown.py
+    language: system
+
+  - id: ecc-alignment
+    name: ECC capability alignment must stay above 80 percent
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "ECC 全项目对标能力面必须具备可执行证据，得分不得低于 80%"
+    entry: python scripts/check_ecc_alignment.py --threshold 80
+    language: system
+    pass_filenames: false
 
   - id: commitlint
-    source: alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.16.0
+    name: commit message must follow Conventional Commits
+    source: local
     grade: red_line
     maps_to: 03-git
     description: "03 红线 2：commit message 符合 Conventional Commits"
     stages: [commit-msg]
-    config: commitlint.config.js
+    entry: npx --no -- commitlint --edit
+    language: system
+
+  - id: commit-msg-worklog-ref
+    name: commit-msg must reference worklog file
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "06 红线：commit message 必须引用 worklog 文件（汇报不断档）"
+    stages: [commit-msg]
+    entry: python scripts/check_worklog_ref.py
+    language: python
+
+  - id: commit-msg-status-updated
+    name: worklog and STATUS must stay synchronized
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "修改 worklog 时必须同步 STATUS.md，且日期与最新 worklog 一致"
+    stages: [commit-msg]
+    entry: python scripts/check_status_updated.py
+    language: system
+
+  - id: commit-msg-worklog-structure
+    name: staged worklogs must contain evidence sections
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "worklog 必须含完成内容、验证结果、交接和已完成项"
+    stages: [commit-msg]
+    entry: python scripts/check_worklog_structure.py
+    language: system
+
+  - id: commit-msg-file-placement
+    name: new files must follow FILE_GRAPH
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "新增文件必须落入 FILE_GRAPH 允许的位置，根目录默认拒绝"
+    stages: [commit-msg]
+    entry: python scripts/check_file_placement.py
+    language: system
+
+  - id: commit-msg-exemption-log
+    name: skip markers must be registered and auditable
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "任何 [skip-*] 必须登记并在本次提交新增完整使用记录"
+    stages: [commit-msg]
+    entry: python scripts/check_exemption_log.py
+    language: system
+
+  - id: commit-msg-updated-tag
+    name: managed documents must refresh update tags
+    source: local
+    grade: red_line
+    maps_to: 06-documentation
+    description: "受管 Markdown 修改时必须把 > 更新: 日期刷新为当天"
+    stages: [commit-msg]
+    entry: python scripts/check_updated_tag.py
+    language: system
+
+  - id: commit-msg-doc-sync
+    name: STATUS plan and AI context must stay structurally synchronized
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "功能点结构改动必须同步 STATUS、开发清单与 CLAUDE"
+    stages: [commit-msg]
+    entry: python scripts/check_doc_sync.py
+    language: system
+
+  - id: commit-msg-convergence-gate
+    name: delivery cannot cross an unconverged node
+    source: local
+    grade: red_line
+    maps_to: 07-ai-workflow
+    description: "越过预设但未收束节点时拒绝提交"
+    stages: [commit-msg]
+    entry: python scripts/check_convergence_gate.py
+    language: system
 
 # ============================================================
 # 3. CI 配置（#2 任务专用）
 # ============================================================
+# v0.1 最小可用版：lint + test 已写实；l4-conventions/compliance/build 用条件 stage 自动激活
+# 模板在 docs/templates/devguard/.github/workflows/ci.yml
 ci:
-  provider: github-actions   # <!-- 推荐: github-actions / gitea-actions / gitlab-ci -->
+  provider: github-actions
   python_version: '3.11'
-  # 5 阶段流水线
+
+  # 触发条件
+  trigger:
+    push:
+      branches: [main, master]
+    pull_request:
+      branches: [main, master]
+    workflow_dispatch: {}
+
+  # 5 阶段流水线（每阶段独立 job，失败立即红）
   stages:
-    - lint            # ruff + gitleaks + markdownlint
-    - test            # pytest + 覆盖率门禁
-    - l4-conventions  # L4 规范测试
-    - compliance      # 合规扫描
-    - build           # 构建验证
+    - id: lint
+      name: L1 lint（ruff + gitleaks + markdownlint + importlinter + spectral）
+      runner: ubuntu-latest
+      needs: []
+      tools:
+        - pip: ruff==0.15.20 pyyaml
+        - pip: import-linter   # V10: 01-architecture L1（分层依赖契约 + 领域层纯净）
+        - bin: gitleaks
+        - bin: markdownlint   # V3.1 启用：markdownlint-cli + npm + Python 包装脚本 lint_markdown.py
+        - bin: spectral        # V10: 04-api L1（npx @stoplight/spectral-cli）
+
+    - id: test
+      name: 仓库全量 pytest（失败闭合）
+      runner: ubuntu-latest
+      needs: []
+      tools:
+        - pip: pytest pyyaml
+      cmd: python scripts/render_meta.py --check && pytest -q
+
+    - id: l4-conventions
+      name: L4 规范测试（#3 任务产出后自动激活）
+      runner: ubuntu-latest
+      needs: []
+      conditional: "test -d tests/conventions && test -f scripts/render_meta.py"
+      cmd: python scripts/render_meta.py --check && pytest tests/conventions/ -v
+
+    - id: compliance
+      name: 合规扫描（#10 任务产出后自动激活）
+      runner: ubuntu-latest
+      needs: []
+      conditional: "test -f scripts/check_compliance.py"
+      cmd: python scripts/check_compliance.py && python scripts/check_consistency.py --threshold 95
+
+    - id: build
+      name: 构建验证
+      runner: ubuntu-latest
+      needs: [lint, test, l4-conventions, compliance]
+      cmd: python -m compileall src/ -q && python scripts/collect_l4_stats.py
 
 # ============================================================
-# 4. L4 规范测试（#3 任务专用）
+# 4. L4 规范测试（#3 任务专用 / v0.1 占位）
 # ============================================================
 l4_tests:
   root: tests/conventions/
@@ -160,3 +543,75 @@ render:
     - kind: convention-grade
       output: 每篇规范顶部 ## 分级标签 小节
       template: conventions 节
+
+# ============================================================
+# 6. 用户跨项目偏好整合（#11 任务 / 审计追踪）
+# ============================================================
+# 来源：~/.mavis/agents/mavis/memory/MEMORY.md（agent memory）
+# 原则：跨项目稳定偏好进规范；纯个人偏好不进
+preferences_integration:
+  - id: mem-coding-001
+    source: agent-memory
+    target: conventions/02-coding_代码编写规范.md §三 注释
+    content: "写代码前先写注释当 prompt（非显然实现 / 技术债）"
+    date: 2026-06-07
+
+  - id: mem-coding-002
+    source: agent-memory
+    target: conventions/02-coding_代码编写规范.md §一 红线 3a
+    content: "展示密钥/Token 时用 inline code + 末 4 位明文 + 描述"
+    date: 2026-06-07
+
+  - id: mem-testing-001
+    source: agent-memory
+    target: conventions/05-testing_测试规范.md §一 红线 5
+    content: "开发按 BDD+TDD 流程（先 BDD 规格 → 红 → 绿 → 重构）"
+    date: 2026-06-07
+
+  - id: mem-docs-001
+    source: agent-memory
+    target: conventions/06-documentation_文档规范.md §二 落地
+    content: "中文批处理用 Python 脚本 + UTF-8（PowerShell 5.1 ANSI 编码坑）"
+    date: 2026-06-07
+
+  - id: mem-docs-002
+    source: user-profile
+    target: conventions/06-documentation_文档规范.md §三 配图规约
+    content: "学术论文配图要期刊式 + 高信息密度视觉图表（data flow / DB schema / 视觉对比矩阵）"
+    trigger: 仅学术论文 figure 触发
+    date: 2026-06-07
+
+  - id: mem-workflow-001
+    source: user-profile
+    target: conventions/ai-workflow_AI协作开发流程/04-长程开发.md §迭代开发 前置
+    content: "动本地文件前必备份（git 不是备份）"
+    date: 2026-06-07
+
+  - id: mem-claude-001
+    source: user-profile
+    target: CLAUDE.md 核心规则 7
+    content: "严格按既定方法论/规范执行，不要自创抽象"
+    date: 2026-06-07
+
+  - id: mem-claude-002
+    source: user-profile
+    target: CLAUDE.md AI 协作原则
+    content: "开工前原则：先 skills / 先想好再行动 / 团队完成 status / 长程 plan 设 cron self"
+    date: 2026-06-07
+
+  - id: mem-claude-003
+    source: user-profile
+    target: CLAUDE.md 质量验证原则
+    content: "真机 E2E 验证（不信 demo 录屏 / HTTP 200 不算）"
+    date: 2026-06-07
+
+# ============================================================
+# 7. 不进规范的偏好（个人偏好 / 项目历史，不污染通用规范）
+# ============================================================
+excluded_preferences:
+  - id: excluded-001
+    reason: 个人偏好（仅 user 有 main push 权限时适用）
+    content: "完成代码修改后直接 push main，跳过 PR/Review 流程"
+  - id: excluded-002
+    reason: 项目历史（不是通用规范）
+    content: "医学问诊助手项目上下文"

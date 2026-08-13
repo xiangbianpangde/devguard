@@ -6,12 +6,18 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
+
+# Windows 中文 stdout 兼容（cp1252 下打印中文会 UnicodeEncodeError）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 
 DEFAULT_THRESHOLD = 90.0
@@ -175,6 +181,18 @@ def _injections() -> tuple[Injection, ...]:
         _write(root, "STATUS.md", status + "| #4 status-only | ✅ |\n")
         _git(root, "add", "STATUS.md")
 
+    def hardcoded_secret(root: Path) -> None:
+        # 高熵 fine-grained PAT（github-fine-grained-pat 规则 regex=github_pat_\w{82}）
+        # 注入测试故意包含高熵 PAT（变量名避开 S105 硬编码密码命名检测）
+        pat_value = (
+            "github_pat_"
+            "K7x3Qm9Zr2Lp8Vb5Nw1Tj6Hc4Fd2Ys8"  # 22
+            "_"
+            "aQ9bN7mK3xR5pJ2tW8cV4hF6dG1sY7uM2nB9qX5zL3kP8jT6wC4rE1vH9gS"  # 59
+        )
+        _write(root, "scripts/leak_demo.py", f'PAT = "{pat_value}"\n')
+        _git(root, "add", "scripts/leak_demo.py")
+
     def cross_convergence_node(root: Path) -> None:
         plan = (root / "docs/plan/开发清单.md").read_text(encoding="utf-8")
         plan = plan.replace("| 2 | node | ⏳ |", "| 2 | node | ✅ |")
@@ -224,6 +242,14 @@ def _injections() -> tuple[Injection, ...]:
             valid_worklog_only,
         ),
         Injection(
+            "hardcoded-secret",
+            "gitleaks",
+            "stage a high-entropy fine-grained PAT; pre-commit gitleaks must block",
+            "feat: x worklogs/2026-07-10_good.md",
+            "leaks found",
+            hardcoded_secret,
+        ),
+        Injection(
             "root-file-placement",
             "check_file_placement.py",
             "stage an unclassified root-level file",
@@ -266,6 +292,34 @@ def _injections() -> tuple[Injection, ...]:
     )
 
 
+def _find_gitleaks(script_root: Path) -> str | None:
+    """Locate a gitleaks binary: env override → PATH → pre-commit cache → CI tmp."""
+    candidates: list[str] = []
+    env_override = os.environ.get("DEVGUARD_GITLEAKS")
+    if env_override:
+        candidates.append(env_override)
+    from_path = shutil.which("gitleaks")
+    if from_path:
+        candidates.append(from_path)
+    cache_root = Path.home() / ".cache" / "pre-commit"
+    if cache_root.is_dir():
+        for binary in sorted(cache_root.glob("*/golangenv*/bin/gitleaks")):
+            candidates.append(str(binary))
+    # noqa: S108 —— CI 既定下载位置，仅只读探测存在性
+    ci_tmp = Path("/tmp/gitleaks")  # noqa: S108
+    if ci_tmp.is_file():
+        candidates.append(str(ci_tmp))
+    for candidate in candidates:
+        path = Path(candidate)
+        if not (path.is_file() and os.access(candidate, os.X_OK)):
+            continue
+        # 需支持 git 子命令（v8.20+；旧缓存可能只有 detect/protect）
+        probe = subprocess.run([candidate, "--help"], capture_output=True, text=True, check=False)
+        if " git " in (probe.stdout or ""):
+            return candidate
+    return None
+
+
 def _run_case(script_root: Path, root: Path, injection: Injection) -> CaseResult:
     injection.apply(root)
     message_file = root / "COMMIT_EDITMSG"
@@ -274,20 +328,49 @@ def _run_case(script_root: Path, root: Path, injection: Injection) -> CaseResult
     environment["DEVGUARD_REPO_ROOT"] = str(root)
     environment["PYTHONUTF8"] = "1"
     environment["PYTHONIOENCODING"] = "utf-8"
-    completed = subprocess.run(
-        [
-            sys.executable,
-            str(script_root / "scripts" / injection.gate_script),
-            str(message_file),
-        ],
-        cwd=root,
-        env=environment,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+    if injection.gate_script == "gitleaks":
+        # gitleaks 不是 scripts/ 下的 Python 闸门：对临时仓 staged 内容执行
+        # 与 pre-commit 钩子同源的检测（git --pre-commit --staged，仓根配置）
+        binary = _find_gitleaks(script_root)
+        if binary is None:
+            return CaseResult(
+                injection.name,
+                injection.gate_script,
+                injection.mutation,
+                injection.expected_message,
+                False,
+                -1,
+                "gitleaks 二进制不可用（环境缺 pre-commit 缓存/CI 下载）",
+            )
+        config = script_root / ".gitleaks.toml"
+        command = [binary, "git", "--pre-commit", "--staged", "--exit-code=1"]
+        if config.is_file():
+            command += ["--config", str(config)]
+        completed = subprocess.run(
+            command,
+            cwd=root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+    else:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(script_root / "scripts" / injection.gate_script),
+                str(message_file),
+            ],
+            cwd=root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
     output = (completed.stdout + "\n" + completed.stderr).strip()
     blocked = completed.returncode != 0 and injection.expected_message in output
     return CaseResult(

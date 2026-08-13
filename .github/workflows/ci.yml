@@ -6,6 +6,9 @@
 # 同步纪律：改 _meta.yaml ci 节 → 必须同步本文件
 # 模板版本：docs/templates/devguard/.github/workflows/ci.yml
 # ============================================================
+# 编号说明：本文件注释中的 "V2.x 子计划 #NN" 为历史子计划（流程强制化 / 模板族等）
+# 内部编号，与 STATUS.md 主表功能点编号不对应（如子计划 #48=HTML 模板族，主表 #48=可测闸门）。
+# ============================================================
 name: CI
 
 on:
@@ -39,9 +42,12 @@ jobs:
       - name: ruff format check
         run: ruff format --check . --config src/coding/ruff.toml
 
+      # gitleaks 版本真源：conventions/_meta.yaml toolchain.gitleaks（改真源后须同步此处与 pre-commit rev）
+      # R-15b（2026-08-13）：下载链健壮性——retry + sha256 校验（值=GitHub release 官方产物）
       - name: gitleaks manual run V3.3
         run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          curl -sSfL --retry 3 --retry-all-errors https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          echo "9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c  /tmp/gitleaks.tgz" | sha256sum -c -
           tar -xzf /tmp/gitleaks.tgz -C /tmp
           /tmp/gitleaks detect --source . --config .gitleaks.toml --log-opts="--no-merges --first-parent" --exit-code=1
 
@@ -66,12 +72,46 @@ jobs:
         run: |
           python scripts/check_report.py
           python scripts/check_doc_quality.py
-          python scripts/check_consistency.py
+          python scripts/check_consistency.py --threshold 95
           python scripts/check_ecc_alignment.py --threshold 80
 
   # -------------------------------------------------------------
   # 阶段 2：test（文档规范仓库的 Python/契约测试）
   # -------------------------------------------------------------
+  # -------------------------------------------------------------
+  # 阶段 2.5：跨平台契约测试（2026-08-13 蓝队大类五，技术债 #5 关闭）
+  # 排除：test_installer（引导脚本 bash/ps1 依赖）、test_dashboard_entry（.bat 依赖）
+  # -------------------------------------------------------------
+  test-cross-platform:
+    name: Cross-platform contract tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install pytest + pyyaml + pinned ruff
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
+
+      - name: Cross-platform subset tests
+        run: pytest tests/conventions/ --ignore=tests/conventions/test_installer.py --ignore=tests/conventions/test_dashboard_entry.py -q --no-header
+
+      - name: Governance parity on platform (ruff + gitleaks)
+        run: |
+          ruff check . --config src/coding/ruff.toml
+          ruff format --check . --config src/coding/ruff.toml
+        shell: bash
+
   test:
     name: Repository pytest suite
     runs-on: ubuntu-latest
@@ -84,7 +124,7 @@ jobs:
           cache: 'pip'
 
       - name: Install pytest + pyyaml + pinned ruff
-        run: pip install pytest pyyaml ruff==0.15.20
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
@@ -108,7 +148,7 @@ jobs:
           cache: 'pip'
 
       - name: Install deps
-        run: pip install pytest pyyaml ruff==0.15.20
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
@@ -123,18 +163,18 @@ jobs:
       - name: check_code_understanding.py（V6.1 08 章节级 L1）
         run: python scripts/check_code_understanding.py
 
-      # V2.1 #40-#42：入口文件章节级 L1（STATUS / CLAUDE / 开发清单）
-      - name: check_status.py（V2.1 #40 STATUS 格式 L1）
+      # V2.1 子计划 #40-#42：入口文件章节级 L1（STATUS / CLAUDE / 开发清单）
+      - name: check_status.py（V2.1 子计划 #40 STATUS 格式 L1）
         run: python scripts/check_status.py
 
-      - name: check_claude.py（V2.1 #41 CLAUDE 结构 L1）
+      - name: check_claude.py（V2.1 子计划 #41 CLAUDE 结构 L1）
         run: python scripts/check_claude.py
 
-      - name: check_plan.py（V2.1 #42 开发清单格式 L1 + 交叉校验）
+      - name: check_plan.py（V2.1 子计划 #42 开发清单格式 L1 + 交叉校验）
         run: python scripts/check_plan.py
 
-      # V2.1 #46: 收束节点产物检查（ADR + 收束报告）
-      - name: check_convergence_artifacts.py（V2.1 #46 收束产物检查）
+      # V2.1 子计划 #46: 收束节点产物检查（ADR + 收束报告）
+      - name: check_convergence_artifacts.py（V2.1 子计划 #46 收束产物检查）
         run: python scripts/check_convergence_artifacts.py
 
   # -------------------------------------------------------------
@@ -157,16 +197,20 @@ jobs:
       - name: Run compliance scan
         run: python scripts/check_compliance.py
 
-      # V2.1 #44: 模板漂移检测（5 类入口文件章节存在性对比）
-      - name: check_template_drift.py（V2.1 #44 模板漂移检测）
+      # V2.1 子计划 #44: 模板漂移检测（5 类入口文件章节存在性对比）
+      - name: check_template_drift.py（V2.1 子计划 #44 模板漂移检测）
         run: python scripts/check_template_drift.py
 
-      # V2.3 #48: HTML 产出物结构审计（模板族契约；typed 违规 fail，untyped 仅提示）
-      - name: check_html_artifact.py --all（V2.3 #48 HTML 模板族结构审计）
+      # V2.3 子计划 #48: HTML 产出物结构审计（模板族契约；typed 违规 fail，untyped 仅提示）
+      - name: check_html_artifact.py --all（V2.3 子计划 #48 HTML 模板族结构审计）
         run: python scripts/check_html_artifact.py --all
 
-      # V2.3 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
-      - name: check_decision_alignment.py --all（V2.3 #50 决策对齐审计）
+      # V2.3 子计划 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
+      # R-10（2026-08-13）：约束覆盖率矩阵 ↔ _meta.yaml 机器校验
+      - name: check_coverage_matrix.py（矩阵↔真源逐行核对）
+        run: python scripts/check_coverage_matrix.py
+
+      - name: check_decision_alignment.py --all（V2.3 子计划 #50 决策对齐审计）
         run: python scripts/check_decision_alignment.py --all
 
   # -------------------------------------------------------------
@@ -175,7 +219,7 @@ jobs:
   build:
     name: Build verification
     runs-on: ubuntu-latest
-    needs: [lint, test, l4-conventions, compliance]
+    needs: [lint, test, l4-conventions, compliance, test-cross-platform]
     steps:
       - uses: actions/checkout@v4
 
@@ -184,7 +228,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install build verification dependencies
-        run: pip install pytest pyyaml ruff==0.15.20
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
 
       - name: Python compile check
         run: python -m compileall src/ -q

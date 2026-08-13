@@ -142,7 +142,10 @@ class TestMarkdownlintGate:
         runner = _RecordingRunner()
 
         code = mod._run_batches(
-            ["a.md"], platform="linux", runner=runner, which=lambda _name: "/usr/bin/npx"
+            ["a.md"],
+            platform="linux",
+            runner=runner,
+            which=lambda _name: "/usr/bin/npx",
         )
 
         assert code == 0
@@ -179,7 +182,10 @@ class TestMarkdownlintGate:
         runner = _RecordingRunner(error=FileNotFoundError("npx"))
 
         code = mod._run_batches(
-            ["a.md"], platform="linux", runner=runner, which=lambda _name: "/usr/bin/npx"
+            ["a.md"],
+            platform="linux",
+            runner=runner,
+            which=lambda _name: "/usr/bin/npx",
         )
 
         assert code == 1
@@ -189,7 +195,10 @@ class TestMarkdownlintGate:
         mod = _load_lint_markdown()
 
         code = mod._run_batches(
-            ["a.md"], platform="linux", runner=runner, which=lambda _name: "/usr/bin/npx"
+            ["a.md"],
+            platform="linux",
+            runner=runner,
+            which=lambda _name: "/usr/bin/npx",
         )
 
         assert code == 1

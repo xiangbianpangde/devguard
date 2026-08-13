@@ -147,7 +147,7 @@ def evaluate(root: Path) -> Report:
         ),
         Fact(
             "measurable governance",
-            _has_all(consistency, "DEFAULT_THRESHOLD = 80.0", "evaluate")
+            _has_all(consistency, "DEFAULT_THRESHOLD = 95.0", "evaluate")
             and _has_all(enforcement, "DEFAULT_THRESHOLD = 90.0", "fault"),
             "consistency and fault-injection enforcement have executable thresholds",
         ),
