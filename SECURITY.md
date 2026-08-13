@@ -18,7 +18,7 @@
 
 > V1.1.2 新建
 > 维护者: 袁 (xiangbianpangde) | 创建: 2026-06-07
-> 更新: 2026-07-11
+> 更新: 2026-08-13
 
 ## Supported Versions
 
@@ -28,6 +28,20 @@ devguard 项目本身（开发规范模板）不发布生产版本——它是�
 | ------- | ------------------ |
 | V1.0+   | :white_check_mark: |
 | V0.x    | :x: 已归档        |
+
+## 平台层防护验证清单（2026-08-13 红队 N-2 落地）
+
+仓库内闸门（19 钩子 + CI）之外，以下防护属于 **GitHub 设置层**——仓库内无法机器验证，须由维护者配置并定期人工核对。模式对齐微软 Agent Governance Toolkit：「CI 为真闸门 + push protection 带 bypass 豁免审计」，与 `meta/豁免清单.md` 审计账天然对齐。
+
+| # | 防护项 | 期望状态 | 验证方式 | 与仓库机制的关系 |
+|---|--------|---------|---------|-----------------|
+| 1 | Branch protection（master） | 开启：禁直推 + 5 required checks | GitHub Settings → Branches | 本地 `--no-verify` 绕过的兜底真闸门 |
+| 2 | Required status checks | lint/test/l4/compliance/build + 跨平台 | PR checks 列表 | CI 5 阶段 + test-cross-platform |
+| 3 | Secret scanning push protection | 开启 | Settings → Code security | 与 gitleaks（本地+CI）双链路；push 被拦时走 bypass 豁免审计对齐豁免账 |
+| 4 | Dependabot alerts | 开启 | Settings → Code security | 依赖漏洞（pip/npm audit 的远端兜底） |
+| 5 | 默认分支合并方式 | PR 合并（禁 rebase-force） | Settings → Branches | 03-git 规范 main 禁直推 |
+
+**核对频率**：每次收束节点核对一次；变更记录入 worklog。
 
 ## Reporting a Vulnerability
 

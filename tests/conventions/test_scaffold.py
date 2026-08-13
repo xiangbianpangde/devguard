@@ -456,3 +456,22 @@ def test_final_verify_failure_after_install_rolls_back_too(tmp_path, monkeypatch
     assert not (target / ".git").exists()
     assert owner_file.read_text(encoding="utf-8") == "owner README\n"
     assert sorted(p.name for p in target.iterdir()) == ["README.md"]
+
+
+def test_gitleaks_config_uses_extend_mode_not_rule_copy():
+    """2026-08-13 红队 N-1：extend 模式防规则集腐化——禁止回退到复制默认规则。"""
+    root_config = REPO_ROOT / ".gitleaks.toml"
+    content = root_config.read_text(encoding="utf-8")
+    # extend 模式必须存在（上游演进自动生效）
+    assert "[extend]" in content
+    assert "useDefault = true" in content
+    # 复制模式必须不存在（[[rules]] 全量复制会随上游腐化）
+    assert "[[rules]]" not in content
+    # 教学豁免增量保留
+    assert "security_demo" in content
+    # 镜像逐字节一致
+    for mirror in (
+        REPO_ROOT / "docs/templates/devguard/.gitleaks.toml",
+        REPO_ROOT / "docs/templates/devguard/scaffold/core/.gitleaks.toml",
+    ):
+        assert mirror.read_bytes() == root_config.read_bytes(), f"镜像漂移: {mirror}"

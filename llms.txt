@@ -1,0 +1,41 @@
+# DevGuard
+
+> 通用开发规范 + AI 协作开发流程 + 可执行治理闸门 + 一键初始化（V2.5.0，55/55 功能点）
+> 维护者: 袁 (xiangbianpangde) | MIT License | https://github.com/xiangbianpangde/devguard
+
+## 入口
+
+- [CLAUDE.md](CLAUDE.md)：AI 项目上下文（新会话自动加载；AI 优先读此文件）
+- [README.md](README.md)：人类使用指南
+- [AGENTS.md](AGENTS.md)：Codex 项目入口（skills-first 路由）
+
+## 必读文档
+
+- [项目介绍-PRD.md](docs/plan/项目介绍-PRD.md)：PRD 不变量 24 条（整理/验收基准）
+- [architecture.md](architecture.md)：当前架构总览（组件/依赖/数据流/机制；架构变更必须回写）
+- [STATUS.md](STATUS.md)：进度数据源（55/55 完成）
+- [CHANGELOG.md](CHANGELOG.md)：版本历史（V2.5.0 最新）
+
+## 规范与流程
+
+- [README-规范导航.md](conventions/README-规范导航.md)：人类入口（红线速查）
+- [CLAUDE-规范导航.md](conventions/CLAUDE-规范导航.md)：AI 入口（任务→规范路由）
+- [AI 协作开发流程](conventions/ai-workflow_AI协作开发流程/)：9 篇（双轨制：长程/思考任务 + 收束四阶段）
+- [约束覆盖率矩阵.md](meta/约束覆盖率矩阵.md)：17 规范 × 强制方式映射
+
+## 治理与工具
+
+- [FILE_GRAPH.md](meta/FILE_GRAPH.md)：文件归类权威（新文件放哪 + 命名/归档/权限规约）
+- 治理脚本：`scripts/check_*.py`（23 个；19 钩子 + 5 阶段 CI）
+- 一键初始化：`bash scripts/install.sh <目标> --profile core --install`（跨平台 install.ps1 等价）
+- 自检：`bash scripts/selfcheck.sh [--full]`；环境重建：`bash scripts/bootstrap.sh`
+
+## 关键决策（ADR）
+
+- [0009 对抗式验证固化](worklogs/decisions/0009-对抗式验证固化.md)：收束审计必须真源侧反向变异
+- [0001-0008](worklogs/decisions/)：规范体系结构 / 六维度 / 流程独立 / 目录迁移 / 长文拆分 / 约束节点 / 可执行治理 / ECC 对标
+
+## 红蓝对抗（2026-08-13）
+
+- [红队问题清单](docs/reports/2026-08-13_红队对抗审查-问题清单.md)：21 项（P0×1/P1×6/P2×11/P3×3）三轮闭环
+- [胜负判定书](docs/reports/2026-08-13_红蓝对抗-胜负判定书.md)：红队胜 / 蓝队最佳修复闭环
