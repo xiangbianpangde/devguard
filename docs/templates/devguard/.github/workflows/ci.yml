@@ -98,7 +98,7 @@ jobs:
           cache: 'pip'
 
       - name: Install pytest + pyyaml + pinned ruff
-        run: pip install pytest pyyaml ruff==0.15.20
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
 
       - name: Cross-platform subset tests
         run: pytest tests/conventions/ --ignore=tests/conventions/test_installer.py --ignore=tests/conventions/test_dashboard_entry.py -q --no-header
@@ -121,7 +121,7 @@ jobs:
           cache: 'pip'
 
       - name: Install pytest + pyyaml + pinned ruff
-        run: pip install pytest pyyaml ruff==0.15.20
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
@@ -145,7 +145,7 @@ jobs:
           cache: 'pip'
 
       - name: Install deps
-        run: pip install pytest pyyaml ruff==0.15.20
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
 
       - name: Check committed generated artifacts
         run: python scripts/render_meta.py --check
@@ -225,7 +225,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install build verification dependencies
-        run: pip install pytest pyyaml ruff==0.15.20
+        run: pip install pytest==9.1.1 pyyaml ruff==0.15.20
 
       - name: Python compile check
         run: python -m compileall src/ -q

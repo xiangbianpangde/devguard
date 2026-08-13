@@ -81,7 +81,7 @@ def test_ci_template_and_formatter_drift_are_scored(tmp_path):
 
     dimension = mod.evaluate_ci_projection(tmp_path)
 
-    assert dimension.total == 2
+    assert dimension.total == 3  # template + ruff parity + pytest projection
     assert dimension.passed == 0
 
 

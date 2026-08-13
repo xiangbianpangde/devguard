@@ -414,13 +414,16 @@ def test_install_failure_rolls_back_setup_payloads_too(tmp_path, monkeypatch):
 
     monkeypatch.setattr(module, "_run", fail_at_pip)
 
-    returncode = module.main([str(target), "--profile", "core", "--install"])
+    # 红队第二轮要求：--force 真跑（目标含 owner 文件，setup 需覆盖写入）
+    returncode = module.main([str(target), "--profile", "core", "--install", "--force"])
     assert returncode == 1
 
-    # payload 全部回滚 + owner 文件恢复 + venv/git 清理
+    # payload 全部回滚（含 receipt）+ owner 文件恢复 + venv/git 清理 → target 归零
     assert not (target / ".devguard.json").exists()
     assert not (target / ".devguard-receipt.json").exists()
     assert not (target / "STATUS.md").exists()
+    assert not (target / "CLAUDE.md").exists()
     assert not (target / ".venv").exists()
     assert not (target / ".git").exists()
     assert owner_file.read_text(encoding="utf-8") == "owner README\n"
+    assert sorted(p.name for p in target.iterdir()) == ["README.md"]

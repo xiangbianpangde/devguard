@@ -75,8 +75,13 @@ curl -fsSL https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scr
 ```
 
 ```powershell
-# 远程引导：irm 取脚本内容 → scriptblock 执行 → 参数原样透传（与 bash 版三路等价）
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scripts/install.ps1))) 'C:\dev\my-project' --profile core --install
+# 两步式（远程执行无脚本文件上下文，无法自我定位仓库——fail-closed 不静默猜测）：
+#   1) 先 clone devguard 仓
+git clone https://github.com/xiangbianpangde/devguard.git
+#   2) 仓内 -File 调用（位置参数原样透传给 setup_scaffold.py）
+powershell -ExecutionPolicy Bypass -File .\devguard\scripts\install.ps1 'C:\dev\my-project' --profile core --install
+# 或指定既有仓路径（-Repo 命名参数）：
+powershell -ExecutionPolicy Bypass -File .\devguard\scripts\install.ps1 -Repo 'C:\path\to\devguard' 'C:\dev\my-project' --profile core --install
 ```
 
 引导脚本只做三件事：探测 Python ≥3.10（缺失则给出分平台安装指引并退出，不自动安装、不静默降级）→ 定位 devguard 仓 → 将参数原样透传给 `scripts/setup_scaffold.py`。

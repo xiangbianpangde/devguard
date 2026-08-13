@@ -327,10 +327,12 @@ def setup(
             raise ScaffoldError(f"manifest 目标不是普通文件：{destination}")
         previous[relative] = destination.read_bytes() if destination.is_file() else None
 
+    # R-03（2026-08-13 第二轮）：written 必须包含 receipt（运行时注入 payloads），
+    # 否则跨阶段回滚会残留 .devguard-receipt.json
     result = SetupResult(
         target=target,
         profile=profile,
-        written=result.written,
+        written=tuple(payloads.keys()),
         previous=previous,
     )
 
@@ -471,6 +473,11 @@ def install(target: Path) -> None:
             ],
             cwd=target,
         )
+        # R-03（第二轮）：hooks 安装后的最终校验（require_hooks=True），
+        # 失败即异常 → main 层跨阶段回滚（不留半成品）
+        hook_errors = verify(target, profile=None, require_hooks=True)
+        if hook_errors:
+            raise ScaffoldError("hooks 安装后校验失败：\n- " + "\n- ".join(hook_errors))
     except Exception as error:
         import shutil
 

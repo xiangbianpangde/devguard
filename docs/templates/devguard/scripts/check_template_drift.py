@@ -127,7 +127,7 @@ def check_scaffold_precommit_revs(root: Path) -> list[str]:
     scaffold 配置是精简版（repo 集合为真源子集），不能逐字节比对；
     但任何共有 repo 的 rev 漂移（如 gitleaks v8.18.0）必须 FAIL。
     """
-    import yaml  # noqa: PLC0415（本脚本本就依赖 pyyaml 环境）
+    import yaml  # noqa: PLC0415
 
     scaffold_path = root / "docs/templates/devguard/scaffold/core/.pre-commit-config.yaml"
     live_path = root / ".pre-commit-config.yaml"

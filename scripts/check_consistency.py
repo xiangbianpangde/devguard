@@ -224,8 +224,8 @@ def evaluate_gate_bindings(root: Path) -> Dimension:
     return Dimension("强制闸门绑定", tuple(facts))
 
 
-def _expected_ruff_version(root: Path) -> str | None:
-    """ruff 钉版的单一真源：conventions/_meta.yaml 的 toolchain.ruff"""
+def _toolchain_field(root: Path, field: str) -> str | None:
+    """工具链字段的单一真源：conventions/_meta.yaml 的 toolchain.<field>"""
     text = _read(root, "conventions/_meta.yaml")
     if text is None:
         return None
@@ -234,8 +234,13 @@ def _expected_ruff_version(root: Path) -> str | None:
     except yaml.YAMLError:
         return None
     toolchain = meta.get("toolchain") if isinstance(meta, dict) else None
-    version = toolchain.get("ruff") if isinstance(toolchain, dict) else None
+    version = toolchain.get(field) if isinstance(toolchain, dict) else None
     return version if isinstance(version, str) and version else None
+
+
+def _expected_ruff_version(root: Path) -> str | None:
+    """ruff 钉版的单一真源：conventions/_meta.yaml 的 toolchain.ruff"""
+    return _toolchain_field(root, "ruff")
 
 
 def evaluate_ci_projection(root: Path) -> Dimension:
@@ -254,6 +259,17 @@ def evaluate_ci_projection(root: Path) -> Dimension:
         and f"rev: v{version}" in pre_commit
         and "ruff format --check . --config src/coding/ruff.toml" in workflow
     )
+    pytest_version = _toolchain_field(root, "pytest")
+    pytest_pins = set(re.findall(r"pytest==([0-9][0-9a-z.]*)", workflow or ""))
+    requirements = _read(root, "requirements-dev.txt") or ""
+    pyproject = _read(root, "pyproject.toml") or ""
+    pytest_projection = bool(
+        pytest_version
+        and workflow
+        and pytest_pins == {pytest_version}
+        and re.search(rf"^pytest=={re.escape(pytest_version)}$", requirements, re.M)
+        and re.search(rf"pytest=={re.escape(pytest_version)}", pyproject)
+    )
     return Dimension(
         "CI模板投影",
         (
@@ -271,6 +287,16 @@ def evaluate_ci_projection(root: Path) -> Dimension:
                 if formatter_matches
                 else (
                     f"CI/pre-commit 的 ruff 钉版与 toolchain 真源（{version}）不一致或格式闸门缺失"
+                ),
+            ),
+            Fact(
+                "pytest pin projection",
+                pytest_projection,
+                f"CI/requirements/pyproject 均按 toolchain 真源钉版 pytest {pytest_version}"
+                if pytest_projection
+                else (
+                    f"pytest 钉版投影缺失：toolchain 真源（{pytest_version}）与 "
+                    f"CI 钉版 {sorted(pytest_pins)} / requirements / pyproject 不一致"
                 ),
             ),
         ),

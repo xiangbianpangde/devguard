@@ -15,11 +15,14 @@
 #   4. 当前工作目录
 #
 # Python 探测顺序：DEVGUARD_PYTHON（若设置，强制使用）→ py -3 → python。
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding=$false)]
 param(
-    [string]$Repo = "",
+    # R-08（2026-08-13 红队二轮）：禁用位置绑定——位置参数（目标目录等）全部进
+    # Passthrough（ValueFromRemainingArguments），-Repo 仅命名传入；
+    # 修复前首位置参数会错绑 $Repo 导致「未找到 devguard 仓」。
     [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$Passthrough = @()
+    [string[]]$Passthrough = @(),
+    [string]$Repo = ""
 )
 
 $ErrorActionPreference = 'Stop'
