@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-13（**V2.5.0 已发布**：55/55 + 对抗 21/21 闭环 + CI 全绿；#8 立项设计落盘；人审计 17 节点待 Owner）
+> 更新: 2026-08-13（3 天赛制第 1 天：情报包 + 二轮防御批 8 项 + CRLF/SHA256/触发条件补强；红队 R2 清单响应中）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
@@ -87,6 +87,8 @@
 | 4 | devguard 自身 dogfood | V2.0+ | 用 V1.x 约束开发规范项目本身 |
 | 5 | ~~CI 跨平台测试~~ **已落地**（2026-08-13 大类五：test-cross-platform job macOS+windows matrix） | ✅ 关闭 | 原：PowerShell vs bash 兼容 |
 | 6 | ~~脚手架载荷 ruff 钉版漂移~~ **已根治**（2026-08-13 提交 00cdebe：版本对齐 + 包名统一 + check_template_drift 镜像校验入闸） | ✅ 关闭 | 原：钉 0.11.7 vs 真源 0.15.20（2026-07-22 E2E 发现） |
+| 11 | 钩子按 staged 文件类型裁剪（红队 S-3 观察） | 观察 | easy-vibe husky 模式；需论证不破坏 C2（19 钩子在场）完整性——裁剪后须保持全量可跑 |
+| 12 | 子目录级 CLAUDE.md（红队 S-4 观察） | 观察 | Anthropic 官方建议；conventions/ 已有双导航近似覆盖，增量价值待评估 |
 | 10 | requirements-dev.txt hash 锁定（供应链加固） | 待立项 | 评估：dev 依赖（非生产运行时）风险低；pip hash 锁定后每次升级需重生成 hashes，与 55/55 稳定态冲突；建议维持钉版现状 |
 | 8 | 钩子注册单一真源（_meta.yaml hooks 段 → render_meta 投射） | 📋 已立项（设计提案-技术债8 落盘，实现待 Owner 拍板） | 事后检测已具备（check_template_drift rev 校验 + check_consistency 投影）；真源投射待实现 |
 | 9 | ~~钩子失败文案标准化~~ **已落地**（2026-08-13 architecture.md §4.6 失败恢复指引——四步姿势 + 高频拦截说明） | ✅ 关闭 | 原：蓝队实战多次踩坑 pre-commit restore staged |

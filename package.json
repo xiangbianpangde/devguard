@@ -13,6 +13,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
-    "markdownlint-cli": "^0.49.0"
+    "markdownlint-cli": "^0.49.0",
+    "@stoplight/spectral-cli": "6.16.3"
   }
 }

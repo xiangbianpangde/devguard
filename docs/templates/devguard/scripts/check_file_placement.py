@@ -29,6 +29,7 @@ ROOT_WHITELIST = {
     "AGENTS.md",
     "architecture.md",
     "CHANGELOG.md",
+    "llms.txt",  # AI 导航入口（2026-08-13 红队 S-2）
     "CLAUDE.md",
     "CONTRIBUTING.md",
     "LICENSE",

@@ -71,7 +71,19 @@ python3 scripts/setup_scaffold.py ~/dev/my-project --profile core --project-name
 远程引导（`curl | bash` / `irm | iex`）：脚本执行时需能定位本仓（当前目录即仓、或 `--repo` / `DEVGUARD_REPO` 指定），否则 fail-closed 提示先 `git clone`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scripts/install.sh | bash -s -- ~/dev/my-project --install
+# 钉版引导（推荐）：用 Release tag 的 raw 内容而非 master（防未审核变更），
+# 下载后先校验再执行（SHA256 见对应 Release 说明）
+curl -fsSL https://raw.githubusercontent.com/xiangbianpangde/devguard/v2.5.0/scripts/install.sh -o /tmp/devguard-install.sh
+shasum -a 256 /tmp/devguard-install.sh   # 与下表 SHA256 核对（当前仓库版本；Release 页为准）
+bash /tmp/devguard-install.sh ~/dev/my-project --install
+
+**引导脚本 SHA256（当前仓库版本，2026-08-13）**：
+
+| 脚本 | SHA256 |
+|------|--------|
+| scripts/install.sh | `ebbfbc8b0ea3e1fc483712ab4c745027f9c12f2a5f574fa9ae456eb587127f5d` |
+| scripts/install.ps1 | `c69289f3bdf81e90177106dc9582916e168d39793f24ced2e26120f087a29aac` |
+
 ```
 
 ```powershell
