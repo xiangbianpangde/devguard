@@ -48,8 +48,8 @@ flowchart TB
     subgraph L4["治理层（怎么强制）"]
         G1["19 个 pre-commit / commit-msg 钩子"]
         G2["5 阶段 CI<br/>lint→test→l4→compliance→build"]
-        G3["check_* 治理脚本 19 个<br/>一致性 / 拦截率 / 收束闸门"]
-        G4["205 tests（tests/conventions/）"]
+        G3["check_* 治理脚本 23 个（其中 19 个为 pre-commit/commit-msg 钩子）<br/>一致性 / 拦截率 / 收束闸门"]
+        G4["208 tests（tests/conventions/）"]
     end
 
     subgraph L5["交付层（产出什么）"]
@@ -169,7 +169,7 @@ devguard/
 │   └── 历史文件/            # 只读归档（v1.0 旧版流程等）
 ├── src/                    # 可运行示例（按规范维度）
 ├── scripts/                # 治理脚本 + 渲染器 + 安装器
-├── tests/                  # 205 测试（一致性 / 强制力 / 性能基线）
+├── tests/                  # 208 测试（一致性 / 强制力 / 性能基线）
 ├── worklogs/               # 工作日志 + decisions/（ADR）
 ├── meta/FILE_GRAPH.md      # ★文件放置权威（新文件先查决策树）
 ├── CLAUDE.md               # AI 入口（本仓实例）
@@ -214,7 +214,7 @@ devguard/
 | ID | 不变量 | 验证方式 |
 |----|--------|---------|
 | S1 | 工具链版本单一真源：`_meta.yaml` 与 CI、pre-commit、requirements、pyproject、脚手架载荷**全部一致**，零漂移 | `check_consistency.py`（一致性事实矩阵 ≥95%） |
-| S2 | 测试基线可复现：全新 `.venv` 按固定依赖安装后 205 tests 全绿 | 自举重建脚本 + `pytest tests/` |
+| S2 | 测试基线可复现：全新 `.venv` 按固定依赖安装后 208 tests 全绿 | 自举重建脚本 + `pytest tests/` |
 | S3 | 强制力有量化的故障注入证明：隔离 Git 故障注入拦截率 ≥90% | `check_enforcement.py` |
 | S4 | 渲染产物禁止手改：分级标签/README 分级表/pre-commit 配置漂移即 CI fail | `render_meta.py --check` 入 CI |
 | S5 | 文档与代码同 PR：改规范必须同步 BDD，动落地配置必须同步 src/ 示例 | `check_doc_sync.py` |

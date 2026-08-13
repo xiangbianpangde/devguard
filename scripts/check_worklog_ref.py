@@ -18,7 +18,8 @@ from check_exemption_log import validate_exemptions  # noqa: E402
 
 
 WORKLOG_PATTERN = re.compile(
-    r"(?<![\w/])worklogs[\\/]+(?!decisions[\\/])" r"\d{4}-\d{2}-\d{2}[_-][^\s)\]}>]+\.md",
+    r"(?<![\w/])worklogs[\\/]+(?!decisions[\\/])"
+    r"\d{4}-\d{2}-\d{2}[_-][^\s)\]}>]+\.md",
     re.IGNORECASE,
 )
 SKIP_MARKER = "[skip-worklog]"

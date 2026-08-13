@@ -75,7 +75,8 @@ curl -fsSL https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scr
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scripts/install.ps1 | iex
+# 远程引导：irm 取脚本内容 → scriptblock 执行 → 参数原样透传（与 bash 版三路等价）
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/xiangbianpangde/devguard/master/scripts/install.ps1))) 'C:\dev\my-project' --profile core --install
 ```
 
 引导脚本只做三件事：探测 Python ≥3.10（缺失则给出分平台安装指引并退出，不自动安装、不静默降级）→ 定位 devguard 仓 → 将参数原样透传给 `scripts/setup_scaffold.py`。

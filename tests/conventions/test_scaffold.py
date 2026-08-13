@@ -378,9 +378,10 @@ def test_manifest_covers_all_payload_files():
     """2026-08-13 方案③：manifest 反向校验——载荷目录每个物理文件都被显式声明。"""
     module = load_scaffold()
     declared = {entry.source for entry in (*module.CORE_MANIFEST, *module.OPTIONAL_MANIFEST)}
+    # 2026-08-13 R-09：TEMPLATE_ROOT 已含 scaffold，正确路径为 TEMPLATE_ROOT/core 与 /optional
     payload_roots = (
-        module.TEMPLATE_ROOT / "scaffold" / "core",
-        module.TEMPLATE_ROOT / "scaffold" / "optional",
+        module.TEMPLATE_ROOT / "core",
+        module.TEMPLATE_ROOT / "optional",
     )
     physical = {
         path.relative_to(module.TEMPLATE_ROOT).as_posix()
@@ -392,3 +393,34 @@ def test_manifest_covers_all_payload_files():
     assert undeclared == [], (
         f"载荷目录存在未在 manifest 声明的文件: {undeclared}（新增模板必须登记 manifest）"
     )
+
+
+def test_install_failure_rolls_back_setup_payloads_too(tmp_path, monkeypatch):
+    """2026-08-13 R-03：install 中段失败 → setup 写入的 payload 一并回滚，target 归零。"""
+    module = load_scaffold()
+    target = tmp_path / "t"
+    target.mkdir()
+    owner_file = target / "README.md"
+    owner_file.write_text("owner README\n", encoding="utf-8")
+    real_run = module._run
+    calls = 0
+
+    def fail_at_pip(command, *, cwd):
+        nonlocal calls
+        calls += 1
+        if calls == 3:  # git init / venv 之后，pip install 时
+            raise module.ScaffoldError("injected pip failure")
+        real_run(command, cwd=cwd)
+
+    monkeypatch.setattr(module, "_run", fail_at_pip)
+
+    returncode = module.main([str(target), "--profile", "core", "--install"])
+    assert returncode == 1
+
+    # payload 全部回滚 + owner 文件恢复 + venv/git 清理
+    assert not (target / ".devguard.json").exists()
+    assert not (target / ".devguard-receipt.json").exists()
+    assert not (target / "STATUS.md").exists()
+    assert not (target / ".venv").exists()
+    assert not (target / ".git").exists()
+    assert owner_file.read_text(encoding="utf-8") == "owner README\n"

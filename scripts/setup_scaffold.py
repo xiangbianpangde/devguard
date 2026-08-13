@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import re
+import dataclasses
 import subprocess
 import sys
 import tempfile
@@ -52,11 +53,15 @@ class SetupResult:
     target: Path
     profile: str
     written: tuple[str, ...]
+    # 2026-08-13 R-03：被覆盖文件的原始字节备份（install 失败时跨阶段回滚用）
+    previous: dict[str, bytes | None] = dataclasses.field(default_factory=dict)
 
 
 CORE_MANIFEST: tuple[ManifestEntry, ...] = (
     ManifestEntry("core/.gitattributes", ".gitattributes"),
     ManifestEntry("core/.gitignore", ".gitignore"),
+    # 2026-08-13 R-01/R-02：gitleaks 全量规则集（与真源逐字节镜像）
+    ManifestEntry("core/.gitleaks.toml", ".gitleaks.toml"),
     ManifestEntry("core/.pre-commit-config.yaml", ".pre-commit-config.yaml"),
     ManifestEntry("core/devguard.json.tmpl", ".devguard.json", render=True),
     ManifestEntry("core/.github/workflows/devguard.yml", ".github/workflows/devguard.yml"),
@@ -311,6 +316,7 @@ def setup(
         target=target,
         profile=profile,
         written=tuple(entry.destination for entry in entries),
+        previous={},
     )
     payloads[".devguard-receipt.json"] = _receipt_payload(result, payloads)
 
@@ -320,6 +326,13 @@ def setup(
         if destination.exists() and not destination.is_file():
             raise ScaffoldError(f"manifest 目标不是普通文件：{destination}")
         previous[relative] = destination.read_bytes() if destination.is_file() else None
+
+    result = SetupResult(
+        target=target,
+        profile=profile,
+        written=result.written,
+        previous=previous,
+    )
 
     written: list[str] = []
     try:
@@ -493,7 +506,25 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+MIN_PYTHON = (3, 10)
+
+
+def python_guidance() -> str:
+    """R-15d：直调入口的版本预检指引（与 install.sh/install.ps1 同款文案）。"""
+    return (
+        "Python >= 3.10 未满足。请先安装再重试（安装器不会自动安装 Python）：\n"
+        "  - macOS:        brew install python@3.12   或 https://www.python.org/downloads/\n"
+        "  - Ubuntu/Debian: sudo apt-get install python3 python3-venv\n"
+        "  - Fedora:       sudo dnf install python3\n"
+        "  - Arch:         sudo pacman -S python\n"
+        "  - Windows:      winget install Python.Python.3.12（或使用 scripts/install.ps1）"
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    if sys.version_info[:2] < MIN_PYTHON:
+        print(f"ERROR: {python_guidance()}", file=sys.stderr)
+        return 1
     args = build_parser().parse_args(argv)
     target = args.target.resolve()
     profile = args.profile or (None if args.verify else "core")
@@ -532,7 +563,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             force=args.force,
         )
         if args.install:
-            install(target)
+            try:
+                install(target)
+            except ScaffoldError:
+                # R-03：install 失败必须回滚 setup 写下的全部 payload
+                # （恢复被覆盖的 owner 文件），不留半成品
+                try:
+                    _rollback_writes(target, result.previous, list(result.written))
+                except Exception as rollback_error:
+                    raise ScaffoldError(f"安装失败且跨阶段回滚失败：{rollback_error}") from None
+                raise
             errors = verify(target, profile=profile, require_hooks=True)
             if errors:
                 raise ScaffoldError("安装后校验失败：\n- " + "\n- ".join(errors))

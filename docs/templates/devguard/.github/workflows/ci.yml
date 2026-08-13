@@ -43,9 +43,11 @@ jobs:
         run: ruff format --check . --config src/coding/ruff.toml
 
       # gitleaks 版本真源：conventions/_meta.yaml toolchain.gitleaks（改真源后须同步此处与 pre-commit rev）
+      # R-15b（2026-08-13）：下载链健壮性——retry + sha256 校验（值=GitHub release 官方产物）
       - name: gitleaks manual run V3.3
         run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          curl -sSfL --retry 3 --retry-all-errors https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          echo "9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c  /tmp/gitleaks.tgz" | sha256sum -c -
           tar -xzf /tmp/gitleaks.tgz -C /tmp
           /tmp/gitleaks detect --source . --config .gitleaks.toml --log-opts="--no-merges --first-parent" --exit-code=1
 
@@ -100,6 +102,12 @@ jobs:
 
       - name: Cross-platform subset tests
         run: pytest tests/conventions/ --ignore=tests/conventions/test_installer.py --ignore=tests/conventions/test_dashboard_entry.py -q --no-header
+
+      - name: Governance parity on platform (ruff + gitleaks)
+        run: |
+          ruff check . --config src/coding/ruff.toml
+          ruff format --check . --config src/coding/ruff.toml
+        shell: bash
 
   test:
     name: Repository pytest suite
@@ -195,6 +203,10 @@ jobs:
         run: python scripts/check_html_artifact.py --all
 
       # V2.3 子计划 #50: 设计提案决策对齐审计（缺 Owner 决策节 fail，遗留待拍板仅提示）
+      # R-10（2026-08-13）：约束覆盖率矩阵 ↔ _meta.yaml 机器校验
+      - name: check_coverage_matrix.py（矩阵↔真源逐行核对）
+        run: python scripts/check_coverage_matrix.py
+
       - name: check_decision_alignment.py --all（V2.3 子计划 #50 决策对齐审计）
         run: python scripts/check_decision_alignment.py --all
 
@@ -204,7 +216,7 @@ jobs:
   build:
     name: Build verification
     runs-on: ubuntu-latest
-    needs: [lint, test, l4-conventions, compliance]
+    needs: [lint, test, l4-conventions, compliance, test-cross-platform]
     steps:
       - uses: actions/checkout@v4
 

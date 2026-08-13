@@ -29,7 +29,8 @@ def _registry(usage: str = "") -> str:
         "| 豁免标记 | 钩子 | 说明 |\n|---|---|---|\n"
         "| `[skip-worklog]` | check_worklog_ref.py | emergency |\n\n"
         "## 三、豁免使用记录\n\n"
-        "| 日期 | 范围 | 钩子 | 豁免标记 | 申请人 | 为何 |\n|---|---|---|---|---|---|\n" + usage
+        "| 日期 | 范围 | 钩子 | 豁免标记 | 申请人 | 为何 | 到期 |\n|---|---|---|---|---|---|---|\n"
+        + usage
     )
 
 
@@ -59,7 +60,8 @@ def test_new_usage_row_allows_registered_marker(tmp_path):
     path = root / "meta" / "豁免清单.md"
     path.write_text(
         _registry(
-            "| 2026-07-10 | hotfix | check_worklog_ref.py | `[skip-worklog]` | owner | outage |\n"
+            "| 2026-07-10 | hotfix | check_worklog_ref.py | `[skip-worklog]` "
+            "| owner | outage | 2026-07-10 |\n"
         ),
         encoding="utf-8",
     )

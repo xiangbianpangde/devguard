@@ -87,8 +87,12 @@ def check_script_mirrors(root: Path) -> list[str]:
 # 2026-08-12 蓝队整理方案⑧：scaffold/core/requirements-dev.txt 曾长期漂移
 # （ruff 0.11.7 vs 真源 0.15.20，技术债 #6）且无机器检测——加入本表后漂移即 FAIL
 SCAFFOLD_MIRRORS = [
-    # (相对 docs/templates/devguard/ 的路径, 真源相对路径)
+    # (相对 docs/templates/devguard/ 的路径, 真源相对路径) —— 逐字节一致
+    # 2026-08-13 R-02：scaffold pre-commit 的 gitleaks rev 曾漂移 v8.18.0 无人察觉。
+    # scaffold pre-commit 是精简版（非逐字节镜像），改由 check_scaffold_precommit_revs
+    # 做字段级校验（repo rev 一致性）。
     ("scaffold/core/requirements-dev.txt", "requirements-dev.txt"),
+    ("scaffold/core/.gitleaks.toml", ".gitleaks.toml"),
     ("conventions/_meta.yaml", "conventions/_meta.yaml"),
     (".github/workflows/ci.yml", ".github/workflows/ci.yml"),
 ]
@@ -113,6 +117,44 @@ def check_scaffold_mirrors(root: Path) -> list[str]:
         if scaffold_path.read_bytes() != live_path.read_bytes():
             errors.append(
                 f"脚手架漂移: {scaffold_path.relative_to(root)} 与真源 {live_rel} 内容不一致"
+            )
+    return errors
+
+
+def check_scaffold_precommit_revs(root: Path) -> list[str]:
+    """字段级校验：scaffold pre-commit 的每个 repo rev 必须与真源同 repo 一致。
+
+    scaffold 配置是精简版（repo 集合为真源子集），不能逐字节比对；
+    但任何共有 repo 的 rev 漂移（如 gitleaks v8.18.0）必须 FAIL。
+    """
+    import yaml  # noqa: PLC0415（本脚本本就依赖 pyyaml 环境）
+
+    scaffold_path = root / "docs/templates/devguard/scaffold/core/.pre-commit-config.yaml"
+    live_path = root / ".pre-commit-config.yaml"
+    errors: list[str] = []
+    if not scaffold_path.is_file():
+        return ["脚手架 pre-commit 配置缺失: scaffold/core/.pre-commit-config.yaml"]
+    if not live_path.is_file():
+        return [".pre-commit-config.yaml 真源缺失"]
+    try:
+        scaffold_cfg = yaml.safe_load(scaffold_path.read_text(encoding="utf-8"))
+        live_cfg = yaml.safe_load(live_path.read_text(encoding="utf-8"))
+    except Exception as error:  # noqa: BLE001
+        return [f"pre-commit 配置解析失败: {error}"]
+    live_revs = {
+        repo.get("repo"): repo.get("rev") for repo in live_cfg.get("repos", []) if repo.get("repo")
+    }
+    for repo in scaffold_cfg.get("repos", []):
+        repo_url = repo.get("repo")
+        if not repo_url:
+            continue
+        if repo_url not in live_revs:
+            errors.append(f"脚手架 pre-commit 含真源没有的 repo: {repo_url}")
+            continue
+        if repo.get("rev") != live_revs[repo_url]:
+            errors.append(
+                f"脚手架 pre-commit rev 漂移: {repo_url} "
+                f"scaffold={repo.get('rev')} vs 真源={live_revs[repo_url]}"
             )
     return errors
 
@@ -151,6 +193,9 @@ def main() -> int:
 
     # 脚手架载荷镜像：scaffold 关键文件 ↔ 真源 逐字节对比（方案⑧）
     errors.extend(check_scaffold_mirrors(REPO_ROOT))
+
+    # 脚手架 pre-commit rev 字段级校验（R-02）
+    errors.extend(check_scaffold_precommit_revs(REPO_ROOT))
 
     if errors:
         print("FAIL 模板漂移检测不通过：", file=sys.stderr)

@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-13（红蓝对抗启动：蓝队六大类整理全部完成并防守加固：提交 A-L 入库，测试 208 全绿；红队对抗审查进行中）
+> 更新: 2026-08-13（红蓝对抗：红队 21 项问题（P0×1/P1×6/P2×11/P3×3）蓝队全部修复待提交回传；测试 209 全绿）
 <!-- devguard-progress: completed=54 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=52 -->
 
@@ -29,7 +29,7 @@
 - **17 规范齐全**（01-08 原始 + 09-17 衍展）
 - **19 个 pre-commit / commit-msg 钩子**（含 ECC 十域对标硬闸门）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
-- **205 tests passed**（tests/conventions/）
+- **208 tests passed（205 基线 + 3 增量：scaffold 三测）**（tests/conventions/）
 - **17 个收束节点**（V0.1-V2.2 全部落盘；本轮机器收束通过）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **8 ADR 决策**（worklogs/decisions/）
