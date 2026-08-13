@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-13（红蓝对抗启动：蓝队优化执行中——大类一二三完成：提交 A-H 入库，测试 208 全绿；红队对抗审查待通知）
+> 更新: 2026-08-13（红蓝对抗启动：蓝队优化执行中——大类一二三四完成：提交 A-I 入库，测试 208 全绿；红队对抗审查待通知）
 <!-- devguard-progress: completed=54 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=52 -->
 
@@ -81,11 +81,13 @@
 | # | 项目 | 收束节点 | 备注 |
 |---|------|----------|------|
 | 1 | `docs/历史文件/重构笔记-使用开发规范重构项目指南.md` | 待用户决定 | V0 遗留；已移至 `docs/历史文件/` 且已 tracked，去留仍待人拍板 |
-| 2 | commitlint "config" 警告噪音 | V2.0+ | 钩子不阻断但污染输出 |
+| 2 | ~~commitlint "config" 警告噪音~~ **已消失**（2026-08-13 实跑验证无噪音，node_modules 就位后 npx 本地解析） | ✅ 关闭 | 原：钩子不阻断但污染输出 |
 | 3 | 18-章外规范入 _meta.yaml | V2.0+ | 已无明显遗漏 |
 | 4 | devguard 自身 dogfood | V2.0+ | 用 V1.x 约束开发规范项目本身 |
 | 5 | CI 跨平台测试 | V2.0+ | PowerShell vs bash 兼容 |
 | 6 | ~~脚手架载荷 ruff 钉版漂移~~ **已根治**（2026-08-13 提交 00cdebe：版本对齐 + 包名统一 + check_template_drift 镜像校验入闸） | ✅ 关闭 | 原：钉 0.11.7 vs 真源 0.15.20（2026-07-22 E2E 发现） |
+| 8 | 钩子注册单一真源（_meta.yaml hooks 段 → render_meta 投射） | 待立项 | 当前三处同步（_meta/_pre-commit-config/ci.yml）靠纪律；重构风险高（见大类四提案执行记录） |
+| 9 | 钩子失败文案标准化（输出 `git add` 恢复指引等） | 待立项 | 2026-08-13 蓝队实战多次踩坑 pre-commit restore staged |
 | 7 | ~~install.sh 健壮性~~ **已根治**（2026-08-13 大类三：ensurepip 预检 install.sh/install.ps1/setup_scaffold + install() 失败清理） | ✅ 关闭 | 原：缺 ensurepip 预检；失败残留（2026-07-22 E2E 发现） |
 
 ---
