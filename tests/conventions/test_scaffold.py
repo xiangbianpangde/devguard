@@ -478,7 +478,11 @@ def test_gitleaks_config_uses_extend_mode_not_rule_copy():
 
 
 def test_staging_cleaned_on_failure_when_target_empty(tmp_path, monkeypatch):
-    """S-1（红队①/②）：空 target 写入中途失败 → staging 清理、target 零残留。"""
+    """S-1（红队①/②/S1-A4）：空 target 写入中途失败 → staging 清理、target 零残留。
+
+    staging 敏感（红队 S1-A4 哨兵）：断言每次写入都发生在 staging 路径——
+    若实现退化为「直接写 target」，本断言即 FAIL（防止测试 vacuous）。
+    """
     module = load_scaffold()
     target = tmp_path / "fresh"
     assert not target.exists()
@@ -487,6 +491,10 @@ def test_staging_cleaned_on_failure_when_target_empty(tmp_path, monkeypatch):
 
     def fail_after_three_writes(path, payload):
         nonlocal calls
+        # 哨兵：写入必须发生在 staging 目录内（退化为直写 target 时 FAIL）
+        assert ".devguard-staging-" in str(path), (
+            f"写入路径 {path} 不在 staging（S-1 实现退化或测试失效）"
+        )
         calls += 1
         if calls == 3:
             raise OSError("injected staging write failure")
@@ -503,16 +511,60 @@ def test_staging_cleaned_on_failure_when_target_empty(tmp_path, monkeypatch):
     assert list(tmp_path.glob("*.devguard.tmp")) == []
 
 
-def test_staging_atomic_commit_leaves_no_residue(tmp_path):
-    """S-1（红队②/④）：成功路径 staging 提交后无残骸，target 完整。"""
+def test_staging_atomic_commit_leaves_no_residue(tmp_path, monkeypatch):
+    """S-1（红队②/④/S1-A4）：成功路径 staging 提交后无残骸，target 完整。
+
+    staging 敏感哨兵：断言 os.replace(staging, target) 被调用一次——
+    若实现退化（直写 target），os.replace 不会被调用即 FAIL。
+    """
     module = load_scaffold()
     target = tmp_path / "fresh"
+    real_replace = os.replace
+    replace_calls: list[tuple[object, object]] = []
+
+    def recording_replace(src, dst):
+        # 只记录 staging→target 的目录原子提交（文件级原子写不计数）
+        if ".devguard-staging-" in str(src) and str(dst) == str(target):
+            replace_calls.append((src, dst))
+        real_replace(src, dst)
+
+    monkeypatch.setattr(module.os, "replace", recording_replace)
+
     module.setup(target, profile="core", project_name="Fresh")
     assert target.is_dir()
     assert (target / ".devguard.json").exists()
     assert (target / ".devguard-receipt.json").exists()
+    # 哨兵：原子提交必须经 os.replace 完成（且 src 是 staging）
+    assert len(replace_calls) == 1, f"os.replace 调用次数 {len(replace_calls)} != 1"
+    src, dst = replace_calls[0]
+    assert ".devguard-staging-" in str(src)
+    assert str(dst) == str(target)
     # 无 staging/临时残骸
     assert list(tmp_path.glob(".devguard-staging-*")) == []
     assert list(tmp_path.glob("*.devguard.tmp")) == []
     # 校验通过
     assert module.verify(target, profile="core", require_hooks=False) == []
+
+
+def test_staging_failure_with_eacces_cleans_up(tmp_path, monkeypatch):
+    """S-1 矩阵⑥：staging 写入 EACCES（权限错误）→ 清理归零（实现行为验证）。"""
+    module = load_scaffold()
+    target = tmp_path / "fresh"
+    real_atomic_write = module._atomic_write
+    calls = 0
+
+    def eacces_after_two_writes(path, payload):
+        nonlocal calls
+        assert ".devguard-staging-" in str(path), "写入必须在 staging"
+        calls += 1
+        if calls == 2:
+            raise PermissionError(13, "Permission denied")  # EACCES
+        real_atomic_write(path, payload)
+
+    monkeypatch.setattr(module, "_atomic_write", eacces_after_two_writes)
+
+    with pytest.raises(module.ScaffoldError):
+        module.setup(target, profile="core", project_name="Fresh")
+
+    assert not target.exists()
+    assert list(tmp_path.glob(".devguard-staging-*")) == []

@@ -18,9 +18,10 @@ setup_scaffold 当前直接写入 target + 失败时 `_rollback_writes`（回滚
 - `.git` / `.venv` **不进 staging**：rename 成功后原地生成（git init + venv 创建放 rename 之后）
 - payload 小文件（23 个 manifest 文件）走 staging——复制成本可忽略
 
-### c. owner 保护
-- 空 target：payload 全在 staging，任何失败 = 删 staging 归零（**结构性消灭回滚清单**）
-- --force：payload 仍在 staging 构建，owner 既有文件在 rename 前按需备份（仅覆盖场景）
+### c. owner 保护（2026-08-14 实现澄清，消除 a/c 矛盾）
+- 空 target：payload 全在 staging，任何失败 = 删 staging 归零（**结构性消灭回滚清单**）——已实现
+- --force（非空 target）：**不走 staging**（与 a 点一致）——逐文件原子替换 + 回滚清单（previous 备份恢复 owner 文件）——已实现
+- 注：c 点旧稿「--force 亦走 staging + rename 前备份」与实际实现不符（rename 无法原子替换非空目录）；已按实现澄清
 
 ### d. 失败注入验收（红队将以失败注入攻击验收）
 - test_scaffold 新增：ensurepip 预检失败 / staging 写入中途失败 / 校验失败 → target 零残留 + staging 被清理
