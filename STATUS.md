@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-14（第六轮修复批 R5-09~12 + 队友批次 R5-27/28：final-report 12节契约测试同步 + 17规范口径统一为 7核心+9流程+9存在性L1，219 测试；红队累计 41 项响应中）
+> 更新: 2026-08-14（R5-32~34 修复：gitattributes 对齐/提案待拍板强制/决策真实性；红队累计 65 项响应中）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
