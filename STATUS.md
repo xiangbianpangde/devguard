@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-14（赛制第 2 天：第三轮窄修入库 + #8 真源投射闭环销账；等红队 R2 复验）
+> 更新: 2026-08-14（赛制第 2 天：第四轮 3 项修复——真源钉版/SKIP 边界/SHA 硬失败组；等红队复验）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 

@@ -492,8 +492,8 @@ ci:
       runner: ubuntu-latest
       needs: []
       tools:
-        - pip: ruff==0.15.20 pyyaml
-        - pip: import-linter   # V10: 01-architecture L1（分层依赖契约 + 领域层纯净）
+        - pip: ruff==0.15.20 pyyaml==6.0.3
+        - pip: import-linter==2.13   # V10: 01-architecture L1（分层依赖契约 + 领域层纯净）
         - bin: gitleaks
         - bin: markdownlint   # V3.1 启用：markdownlint-cli + npm + Python 包装脚本 lint_markdown.py
         - bin: spectral        # V10: 04-api L1（npx @stoplight/spectral-cli）
