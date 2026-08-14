@@ -1,6 +1,6 @@
 # 设计提案：S-1 临时目录构建 + 原子 rename（setup_scaffold 结构性加固）
 
-> 更新: 2026-08-14 | 状态: ⏳ 方案稿（红队技术反馈已锚定，实现待复验窗口）
+> 更新: 2026-08-14 | 状态: ✅ 已实现（993f450 入库，红队矩阵 7 项验收 + 窄修闭环）
 > 来源: 红队外源情报 S-1（cookiecutter/scbake 模式）；红队 5 点技术反馈（2026-08-14 收）
 
 ## 背景
@@ -48,4 +48,4 @@ scripts/setup_scaffold.py（setup() 主流程）、tests/conventions/test_scaffo
 
 ## Owner 决策
 
-- [ ] 待拍板：S-1 全量 staging 重构（本轮做）vs 降级方案（written 已由 manifest 推导，仅文档化）
+- [x] 2026-08-14：S-1 全量 staging 重构已实现（Owner 事后签认：决策由蓝队依红队建议执行，待 Owner 复核——R5-33/34 追溯）

@@ -104,7 +104,20 @@ def check_proposal(rel: str, content: str) -> tuple[list[str], bool]:
     errors: list[str] = []
     if not DECISION_HEADING.search(content):
         errors.append(f"{rel}: 缺「Owner 决策」节（交流 agent 产出契约：决策点必须呈交人拍板）")
-    return errors, PENDING_MARK in content
+    else:
+        # R5-34（2026-08-14 红队第九轮）：决策节必须含真实决策证据——
+        # 拒绝「蓝队自主产出」类自我授权占位（决策审计只验节存在不验真实性）。
+        decision_section = content.split(DECISION_HEADING.search(content).group(0), 1)[-1]
+        section_head = decision_section[:400]
+        if "蓝队自主产出" in section_head and not re.search(
+            r"Owner|拍板|签核|已采纳|决策：|决定", section_head
+        ):
+            errors.append(
+                f"{rel}: Owner 决策节为自我授权占位（含「蓝队自主产出」且无具体决策/签认证据）"
+            )
+    # R5-33：排除「当前无待拍板项」类说明文字（含待拍板字样但非遗留决策点）
+    has_pending = PENDING_MARK in content and "无待拍板" not in content
+    return errors, has_pending
 
 
 def audit_all() -> int:
@@ -120,8 +133,25 @@ def audit_all() -> int:
             errors.extend(errs)
             if has_pending:
                 pending.append(rel)
+    # R5-33（2026-08-14 红队第九轮）：已执行提案（状态含 ✅/已执行/已实现）带
+    # 「待拍板」→ FAIL——边拍板边开工必须可追溯，不能仅 WARN 提示。
+    pending_fail: list[str] = []
+    if base.exists():
+        for fp in sorted(base.glob("设计提案-*.md")):
+            content = fp.read_text(encoding="utf-8")
+            if (
+                PENDING_MARK in content
+                and "无待拍板" not in content
+                and re.search(r"状态[:：].*(✅|已执行|已实现|已落地)", content)
+            ):
+                pending_fail.append(fp.name)
     for p in pending:
         print(f"WARN {p}: 仍有「待拍板」决策点（开工前须清零）")
+    if pending_fail:
+        errors.append(
+            "以下提案已执行（状态含完成标记）但仍带「待拍板」决策点（边拍板边开工）: "
+            + ", ".join(pending_fail)
+        )
     if errors:
         print(f"FAIL 设计提案审计（{n} 份）：", file=sys.stderr)
         for e in errors:
