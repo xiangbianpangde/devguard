@@ -87,11 +87,14 @@ def existing_report_count() -> int:
 def main() -> int:
     nodes = parse_convergence_nodes()
     if not nodes:
+        # R5-24（2026-08-14 红队第八轮）：解析失败必须 fail-closed——
+        # 原 WARN+rc0 使闸门在表格式损坏时静默失效（已实跑复现）。
         print(
-            "WARN: 未解析到收束节点（检查 STATUS.md「## 收束节点历史」表格式）",
+            "FAIL: 未解析到收束节点（检查 STATUS.md「## 收束节点历史」表格式）——"
+            "解析失败按 fail-closed 拒绝，不得静默通过",
             file=sys.stderr,
         )
-        return 0
+        return 1
 
     adr_count = existing_adr_count()
     report_count = existing_report_count()

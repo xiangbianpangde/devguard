@@ -98,10 +98,20 @@ def _check_receipt_hashes(root: Path) -> list[str]:
     except (OSError, json.JSONDecodeError) as error:
         return [f"初始化回执不可解析：{error}"]
     files = receipt.get("files")
-    if not isinstance(files, dict):
-        return ["回执缺 files 清单"]
+    # R5-16（2026-08-14 红队第七轮 P1）：schema 统一为生产端 list[{path, sha256}]
+    # ——此前消费端误期望 dict，导致强校验模式实际不可用（清洁初始化后 rc=1）。
+    if not isinstance(files, list):
+        return ["回执 files 清单格式非法（期望 list[{path, sha256}]）"]
     errors: list[str] = []
-    for relative, expected in files.items():
+    for entry in files:
+        if not isinstance(entry, dict):
+            errors.append("回执 files 条目格式非法")
+            continue
+        relative = entry.get("path")
+        expected = entry.get("sha256")
+        if not relative or not isinstance(expected, str):
+            errors.append(f"回执 files 条目缺 path/sha256：{entry!r}")
+            continue
         path = root / relative
         if not path.is_file():
             errors.append(f"回执文件缺失：{relative}")
@@ -218,6 +228,47 @@ def validate_commit_message(path: Path) -> list[str]:
     return []
 
 
+def uninstall(root: Path, *, purge: bool = False) -> list[str]:
+    """R5-17（2026-08-14 红队第七轮）：还原路径——卸载 hooks 与隔离环境。
+
+    - 恢复本仓 core.hooksPath 为默认（unset local）
+    - 移除本地 hooks 目录中的 devguard 包装器（pre-commit/commit-msg）
+    - --purge：删除 .venv 与 .devguard* 标记文件（源文件保留）
+    返回错误列表（空 = 成功）。
+    """
+    import shutil  # noqa: PLC0415
+
+    root = root.resolve()
+    errors: list[str] = []
+    if not (root / ".git").is_dir():
+        return ["目标不是 Git 仓库，无需卸载"]
+    subprocess.run(
+        ["git", "config", "--local", "--unset-all", "core.hooksPath"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    hooks = root / ".git" / "hooks"
+    for hook_name in ("pre-commit", "commit-msg", "pre-push"):
+        hook = hooks / hook_name
+        if hook.is_file():
+            try:
+                hook.unlink()
+            except OSError as error:
+                errors.append(f"移除 {hook_name} 失败：{error}")
+    if purge:
+        venv_dir = root / ".venv"
+        if venv_dir.is_dir():
+            shutil.rmtree(venv_dir, ignore_errors=True)
+        for marker in root.glob(".devguard*"):
+            if marker.is_file():
+                try:
+                    marker.unlink()
+                except OSError as error:
+                    errors.append(f"移除 {marker.name} 失败：{error}")
+    return errors
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="DevGuard checks")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -225,6 +276,14 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--root", type=Path, default=Path.cwd())
     verify_parser.add_argument("--require-hooks", action="store_true")
     verify_parser.add_argument("--check-hashes", action="store_true")
+    uninstall_parser = subparsers.add_parser(
+        "uninstall",
+        help="R5-17：还原路径——卸载本项目 hooks 与隔离 venv（保留源文件）",
+    )
+    uninstall_parser.add_argument("--root", type=Path, default=Path.cwd())
+    uninstall_parser.add_argument(
+        "--purge", action="store_true", help="同时删除 .venv 与 .devguard 标记文件"
+    )
     commit_parser = subparsers.add_parser("commit-msg")
     commit_parser.add_argument("message_file", type=Path)
     return parser
@@ -238,6 +297,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             require_hooks=args.require_hooks,
             check_hashes=getattr(args, "check_hashes", False),
         )
+    elif args.command == "uninstall":
+        errors = uninstall(args.root, purge=getattr(args, "purge", False))
     else:
         errors = validate_commit_message(args.message_file)
     if errors:

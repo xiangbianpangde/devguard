@@ -98,6 +98,8 @@ powershell -ExecutionPolicy Bypass -File .\devguard\scripts\install.ps1 -Repo 'C
 
 引导脚本只做三件事：探测 Python ≥3.10（缺失则给出分平台安装指引并退出，不自动安装、不静默降级）→ 定位 devguard 仓 → 将参数原样透传给 `scripts/setup_scaffold.py`。
 
+> **project_name 约束**（R2-13/R5-23）：仅允许字母/数字/空格/下划线/连字符（≤63 字符，ASCII 开头）；特殊字符路径初始化时须显式提供合法 project_name（`--project-name`），否则 fail-closed 拒绝。
+>
 该命令在目标目录生成 Codex/Claude 双入口、canonical DevGuard skill、credential-free 项目 `.codex/config.toml`、根文档、计划、固定依赖、最小 CI 和自检测试，初始化 Git 与隔离 `.venv`，并同时安装 `pre-commit`、`commit-msg` 两类 hook。若机器已配置 ECC/其他全局 `core.hooksPath`，安装器会保留并串联既有 `pre-commit` / `pre-push`；不会修改用户全局 Git 配置。目标非空时默认拒绝；**空目标走 staging 原子提交**（同级 `.devguard-staging-*` 完整构建 → 校验通过 → `os.replace` 一次提交，失败删 staging 归零）；显式 `--force` 覆盖非空目标时使用逐文件原子替换 + 回滚清单（owner 文件可恢复）。
 
 写入前预演（不创建目标目录）：

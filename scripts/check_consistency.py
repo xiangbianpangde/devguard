@@ -179,11 +179,28 @@ def evaluate_spec_contract(root: Path) -> Dimension:
             and spec.name in convention_text
             and convention.name in spec_text
         )
+        # R5-26（2026-08-14 红队第八轮）：BDD 引用规范的章节锚点必须真实存在——
+        # 只验文件名互引可被「引用不存在的 §九」绕过。
+        anchor_ok = True
+        if reciprocal and spec_text:
+            # §一 → 「一、」：与规范章节标题（## 一、红线…）匹配（归一化锚点）
+            anchors = set(re.findall(r"§[一二三四五六七八九十]+", spec_text))
+            for anchor in anchors:
+                normalized = anchor.replace("§", "") + "、"
+                if normalized not in convention_text:
+                    anchor_ok = False
+                    break
         facts.append(
             Fact(
                 convention_id,
-                reciprocal,
-                "规范与 BDD 双向引用一致" if reciprocal else "规范/BDD 缺失、重名或未双向引用",
+                reciprocal and anchor_ok,
+                "规范与 BDD 双向引用一致且章节锚点存在"
+                if reciprocal and anchor_ok
+                else (
+                    "BDD 引用了规范不存在的章节锚点"
+                    if reciprocal
+                    else "规范/BDD 缺失、重名或未双向引用"
+                ),
             )
         )
     return Dimension("规范-BDD契约", tuple(facts))
@@ -453,7 +470,7 @@ def main(argv: list[str] | None = None) -> int:
         for fact in dimension.facts
         if not fact.passed
         and (
-            dimension.name == "CI模板投影"
+            dimension.name in {"CI模板投影", "规范-BDD契约"}
             or "projection" in fact.name
             or "continuity" in fact.name
             or fact.name.endswith("marker")
