@@ -169,7 +169,7 @@ devguard/
 │   └── 历史文件/            # 只读归档（v1.0 旧版流程等）
 ├── src/                    # 可运行示例（按规范维度）
 ├── scripts/                # 治理脚本 + 渲染器 + 安装器
-├── tests/                  # 210 测试（一致性 / 强制力 / 性能基线）
+├── tests/                  # 223 测试（一致性 / 强制力 / 性能基线；以 dashboard L4 实时值为准）
 ├── worklogs/               # 工作日志 + decisions/（ADR）
 ├── meta/FILE_GRAPH.md      # ★文件放置权威（新文件先查决策树）
 ├── CLAUDE.md               # AI 入口（本仓实例）
