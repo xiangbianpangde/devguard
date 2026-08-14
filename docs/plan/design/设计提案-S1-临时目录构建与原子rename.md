@@ -48,4 +48,4 @@ scripts/setup_scaffold.py（setup() 主流程）、tests/conventions/test_scaffo
 
 ## Owner 决策
 
-- [x] 2026-08-14：S-1 全量 staging 重构已实现（Owner 事后签认：决策由蓝队依红队建议执行，待 Owner 复核——R5-33/34 追溯）
+- [x] 2026-08-14：S-1 全量 staging 重构已实现（签认挂账至收束人审计清单：决策由蓝队依红队建议执行，复核挂账——R5-33/34 追溯）

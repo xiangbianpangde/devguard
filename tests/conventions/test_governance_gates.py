@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
+
+import pytest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -67,3 +69,20 @@ class TestCoverageMatrix:
             assert "缺规范行" in r.stderr
         finally:
             matrix.write_text(original, encoding="utf-8")
+
+
+class TestRemainingGateSmokes:
+    """R5-22：其余零测试 check_* 脚本 smoke（无参运行 exit 0 = 闸门在场可执行）。"""
+
+    @pytest.mark.parametrize(
+        "script",
+        [
+            "check_code_understanding.py",
+            "check_convergence_artifacts.py",
+            "check_doc_quality.py",
+            "check_report.py",
+        ],
+    )
+    def test_smoke_exit_zero(self, script):
+        r = _run(script)
+        assert r.returncode == 0, f"{script} smoke 失败:\n{r.stdout}\n{r.stderr}"

@@ -34,6 +34,26 @@ EXPECTED_FILES_AND_KEYWORDS = {
 }
 
 
+def _keyword_section_spread(text: str, keywords: list[str]) -> int:
+    """R5-14（红队第三批）：关键词覆盖的章节数——防「压缩壳」（全词塞一节）。"""
+    sections: list[str] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if line.startswith("## "):
+            if current:
+                sections.append("\n".join(current))
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        sections.append("\n".join(current))
+    covered = 0
+    for section in sections:
+        if any(k in section for k in keywords):
+            covered += 1
+    return covered
+
+
 def main() -> int:
     if not WORKFLOW_DIR.exists():
         print(f"FAIL: {WORKFLOW_DIR} 不存在")
@@ -58,8 +78,14 @@ def main() -> int:
         missing = [k for k in keywords if k not in text]
         if missing:
             errors.append(f"{filename} 全文缺关键词（期望全部命中）: {missing}")
-        elif not any(k in section_one for k in keywords):
+        if not any(k in section_one for k in keywords):
             errors.append(f"{filename} §一 段落无任何主题关键词（疑似空壳）: {keywords}")
+        # 注：高级压缩壳（##一+##二 分散塞全词）与真实文档难以区分——
+        # spread≥2 已拦全词单节变体，此变体记录为已知限制（见测试）
+        elif _keyword_section_spread(text, keywords) < 2:
+            errors.append(
+                f"{filename} 关键词集中在单一章节（疑似压缩壳——全词塞一节）: 覆盖章节数 < 2"
+            )
 
         # §一 标题必须存在（章节级 L1 强制）
         if "## 一" not in text and "## §一" not in text and "## 1." not in text:

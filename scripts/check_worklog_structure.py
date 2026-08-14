@@ -49,11 +49,19 @@ def check_content(relative: str, content: str) -> tuple[list[str], list[str]]:
     # （文件名 2026-08-14_xxx 与正文 `> 日期:` / `> 更新:` 字段必须一致）
     filename_date = relative.split("/")[-1][:10]
     content_date = None
+    # R5-25（红队第三批）：除 metadata（前 12 行）外，首标题（# YYYY-MM-DD 标题）也校验
     for line in content.splitlines()[:12]:
         match = re.match(r"^>\s*(?:日期|更新)[:：]\s*(\d{4}-\d{2}-\d{2})", line.strip())
         if match:
             content_date = match.group(1)
             break
+    if content_date is None:
+        for line in content.splitlines():
+            if line.startswith("# "):
+                match = re.match(r"^#\s*(\d{4}-\d{2}-\d{2})", line.strip())
+                if match:
+                    content_date = match.group(1)
+                break
     date_errors: list[str] = []
     if content_date and content_date != filename_date:
         date_errors.append(
