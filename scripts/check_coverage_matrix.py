@@ -28,7 +28,7 @@ def default_repo_root() -> Path:
 
 def parse_matrix_rows(text: str) -> dict[str, list[str]]:
     """Parse §二 table rows: id → [L1 检测, 钩子拦截, CI 拦截, 人工检查]."""
-    section = text.split("## 二、17 规范 × 强制方式", 1)
+    section = text.split("## 二、17 行强制方式映射（7 核心规范正文 + 1 流程行 + 9 存在性 L1）", 1)
     if len(section) < 2:
         return {}
     rows: dict[str, list[str]] = {}

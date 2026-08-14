@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-14（第六轮修复批：R5-09~12 闸门语义补洞，215 测试；红队累计 41 项响应中）
+> 更新: 2026-08-14（第六轮修复批 R5-09~12 + 队友批次 R5-27/28：final-report 12节契约测试同步 + 17规范口径统一为 7核心+9流程+9存在性L1，219 测试；红队累计 41 项响应中）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
@@ -30,7 +30,7 @@
 - **19 个 pre-commit / commit-msg 钩子**（含 ECC 十域对标硬闸门）
 - **5 阶段 CI**（lint / test / l4-conventions / compliance / build）
 - **210 tests passed（205 基线 + 3 增量：scaffold 三测）**（tests/conventions/）
-- **17 个收束节点**（V0.1-V2.2 全部落盘；本轮机器收束通过）
+- **18 个收束节点**（V0.1-V2.3 全部落盘；本轮机器收束通过）
 - **2 套汇报模板**（markdown 轻量 + final-report-template HTML 高密度）
 - **9 ADR 决策**（worklogs/decisions/，0009=对抗式验证固化）
 - **~50+ commits**（5/26 → 6/8 完整链可追）
