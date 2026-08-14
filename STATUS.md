@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-14（R5-32~34 修复：gitattributes 对齐/提案待拍板强制/决策真实性；红队累计 65 项响应中）
+> 更新: 2026-08-14（R5-32~34 修复 + 队友批次 R5-22/31：4 脚本 smoke 测试 + CLAUDE 55/55 口径；红队累计 65 项响应中）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
