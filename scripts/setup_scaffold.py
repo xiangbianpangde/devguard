@@ -16,6 +16,8 @@ import hashlib
 import json
 import os
 import re
+import secrets
+import shutil
 import dataclasses
 import subprocess
 import sys
@@ -325,9 +327,21 @@ def setup(
     )
     payloads[".devguard-receipt.json"] = _receipt_payload(result, payloads)
 
+    # S-1（2026-08-14 红队建议，方案稿 docs/plan/design/设计提案-S1-临时目录构建与原子rename.md）：
+    # 空 target 走「staging 完整构建 → 校验通过 → os.replace 原子提交」——
+    # 失败 = 删 staging 归零，结构性消灭回滚清单漏项类缺陷（红队 a/c 点）。
+    # 非空 target（--force）保持现有回滚清单路径（owner 既有文件覆盖场景）。
+    empty_target = not target.exists() or not any(target.iterdir())
+    work_root = target
+    staging: Path | None = None
+    if empty_target:
+        staging = target.parent / f".devguard-staging-{secrets.token_hex(4)}"
+        staging.mkdir()
+        work_root = staging
+
     previous: dict[str, bytes | None] = {}
     for relative in payloads:
-        destination = target / relative
+        destination = work_root / relative
         if destination.exists() and not destination.is_file():
             raise ScaffoldError(f"manifest 目标不是普通文件：{destination}")
         previous[relative] = destination.read_bytes() if destination.is_file() else None
@@ -344,22 +358,31 @@ def setup(
     written: list[str] = []
     try:
         for relative, payload in payloads.items():
-            _atomic_write(target / relative, payload)
+            _atomic_write(work_root / relative, payload)
             written.append(relative)
 
-        receipt_errors = _validate_receipt(target, profile=profile, check_hashes=True)
+        receipt_errors = _validate_receipt(work_root, profile=profile, check_hashes=True)
         if receipt_errors:
             raise ScaffoldError("初始化回执校验失败：\n- " + "\n- ".join(receipt_errors))
-        errors = verify(target, profile=profile, require_hooks=False)
+        errors = verify(work_root, profile=profile, require_hooks=False)
         if errors:
             raise ScaffoldError("初始化后校验失败：\n- " + "\n- ".join(errors))
+        if staging is not None:
+            # S-1 原子提交：同文件系统（同级目录）os.replace，空 target 目标不存在
+            os.replace(staging, target)
+            staging = None
     except Exception as error:
-        try:
-            _rollback_writes(target, previous, written)
-        except Exception as rollback_error:
-            raise ScaffoldError(
-                f"初始化事务失败，回滚也失败：{error}; rollback={rollback_error}"
-            ) from error
+        if staging is not None:
+            # S-1：staging 场景删除 staging 即归零（结构性回滚，无需清单）
+            shutil.rmtree(staging, ignore_errors=True)
+        else:
+            # 非空 target（--force）场景：回滚清单恢复 owner 文件
+            try:
+                _rollback_writes(work_root, previous, written)
+            except Exception as rollback_error:
+                raise ScaffoldError(
+                    f"初始化事务失败，回滚也失败：{error}; rollback={rollback_error}"
+                ) from error
         raise ScaffoldError(f"初始化事务失败，已回滚：{error}") from error
     return result
 
