@@ -313,6 +313,13 @@ def setup(
     _validate_sources(entries)
     if not project_name.strip():
         raise ScaffoldError("project name 不能为空")
+    # R2-13（2026-08-14 红队第五轮）：显式白名单校验——
+    # 防 JSON 结构破坏（X"}]},{broken DoS）与 markdown/换行注入 AI 入口
+    # （CLAUDE.md/AGENTS.md 直接拼 project_name）。仅允许字母数字空格下划线连字符。
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _\-]{0,62}", project_name):
+        raise ScaffoldError(
+            "project name 含非法字符：仅允许字母/数字/空格/下划线/连字符（≤63 字符）"
+        )
     if target.exists() and not target.is_dir():
         raise ScaffoldError(f"目标路径不是目录：{target}")
     if target.exists() and any(target.iterdir()) and not force:
@@ -399,8 +406,17 @@ def _read_profile(target: Path) -> str | None:
     return profile if isinstance(profile, str) else None
 
 
-def verify(target: Path, *, profile: str | None, require_hooks: bool) -> list[str]:
-    """Return all verification errors; an empty list is the only success state."""
+def verify(
+    target: Path,
+    *,
+    profile: str | None,
+    require_hooks: bool,
+    check_hashes: bool = False,
+) -> list[str]:
+    """Return all verification errors; an empty list is the only success state.
+
+    R5-01：check_hashes=True 时强校验（按回执 digest 逐文件比对，篡改可发现）。
+    """
     target = target.resolve()
     effective_profile = profile or _read_profile(target)
     errors: list[str] = []
@@ -415,7 +431,7 @@ def verify(target: Path, *, profile: str | None, require_hooks: bool) -> list[st
         if entry.render and TOKEN_PATTERN.search(path.read_text(encoding="utf-8")):
             errors.append(f"仍含模板变量：{entry.destination}")
 
-    errors.extend(_validate_receipt(target, profile=effective_profile, check_hashes=False))
+    errors.extend(_validate_receipt(target, profile=effective_profile, check_hashes=check_hashes))
 
     generated_verifier = target / "scripts" / "devguard.py"
     if generated_verifier.is_file():
@@ -428,6 +444,8 @@ def verify(target: Path, *, profile: str | None, require_hooks: bool) -> list[st
         ]
         if require_hooks:
             command.append("--require-hooks")
+        if check_hashes:
+            command.append("--check-hashes")
         result = subprocess.run(
             command,
             cwd=target,
@@ -538,6 +556,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="校验时同时要求 pre-commit 和 commit-msg 已安装",
     )
+    parser.add_argument(
+        "--check-hashes",
+        action="store_true",
+        help="R5-01：强校验模式——按回执 digest 逐文件比对（篡改可发现）",
+    )
     return parser
 
 
@@ -581,6 +604,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 target,
                 profile=profile,
                 require_hooks=args.require_hooks,
+                check_hashes=args.check_hashes,
             )
             if errors:
                 print("VERIFY FAILED\n- " + "\n- ".join(errors), file=sys.stderr)

@@ -49,10 +49,17 @@ def main() -> int:
 
         text = path.read_text(encoding="utf-8")
 
-        # 必须含 §一 红线关键词（任一即通过）
-        found = [k for k in keywords if k in text]
-        if not found:
-            errors.append(f"{filename} 缺 §一 红线关键词（期望含以下任一关键词: {keywords}）")
+        # R5-14（2026-08-14 红队第七轮 P1）：全文全关键词命中 + §一 段落至少 1 命中——
+        # 原「任一关键词即通过」可被 5 行空壳绕过（空壳含 1 个关键词即过）；
+        # 现要求：全文必须全部关键词命中（防语义缺失），且 §一 节内至少 1 个
+        # 关键词（防 §一 空壳段落——真实文档关键词散落他节属正常，不苛求全在 §一）。
+        section_one = text.split("## ", 1)[-1] if "## " in text else text
+        section_one = section_one.split("## ", 1)[0]
+        missing = [k for k in keywords if k not in text]
+        if missing:
+            errors.append(f"{filename} 全文缺关键词（期望全部命中）: {missing}")
+        elif not any(k in section_one for k in keywords):
+            errors.append(f"{filename} §一 段落无任何主题关键词（疑似空壳）: {keywords}")
 
         # §一 标题必须存在（章节级 L1 强制）
         if "## 一" not in text and "## §一" not in text and "## 1." not in text:

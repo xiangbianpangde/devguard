@@ -110,13 +110,18 @@ FINAL_REPORT_CANONICAL = [
     "docs/templates/devguard/final-report-template/template.html",
     "docs/templates/devguard/final-report-template/demo.html",
     "docs/reports/2026-06-08_devguard_V1.5_V2.0_merged_report.html",
+]
+
+# R5-27（2026-08-14）：07-17 验收报告为 8 节旧骨架存量，已按新契约豁免登记
+# （meta/豁免清单.md §三 [skip-html]）；不再作为 canonical 全量校验对象。
+FINAL_REPORT_EXEMPTED = [
     "docs/reports/2026-07-17_devguard_审查修复_验收报告.html",
 ]
 
 
 def _final_report_html(*, mermaid: int = 2, drop: tuple[str, ...] = ()) -> str:
     anchors = {
-        "hero": '<section class="hero"></section>',
+        "hero": '<section id="hero" class="hero"></section>',
         "kpi-row": '<div class="kpi-row"></div>',
         "toc": '<div class="toc"></div>',
         "verdict": '<div class="verdict"></div>',
@@ -125,6 +130,8 @@ def _final_report_html(*, mermaid: int = 2, drop: tuple[str, ...] = ()) -> str:
         '<!DOCTYPE html><html><head><meta name="doc-template" content="final-report">',
         "<title>t</title></head><body><nav></nav>",
     ]
+    # R5-27：夹具必须携带 12 节骨架（s1-s12），否则任何 final-report 都会被 12 节契约拦下
+    body.extend(f'<section id="s{i}"></section>' for i in range(1, 13))
     body.extend(html for name, html in anchors.items() if name not in drop)
     body.extend(['<div class="mermaid"></div>'] * mermaid)
     body.append("</body></html>")
@@ -153,6 +160,15 @@ class TestFinalReportContract:
                 continue
             errors, _ = mod.check_content(rel, (REPO_ROOT / rel).read_text(encoding="utf-8"))
             assert errors == [], f"{rel} 完整校验失败: {errors}"
+
+    def test_exempted_files_pass_audit_all(self):
+        """R5-27：豁免登记的存量 8 节文件（07-17 验收报告）在 --all 审计中被跳过"""
+        mod = _load()
+        assert mod.exempted_files(REPO_ROOT) == set(FINAL_REPORT_EXEMPTED)
+        rel = FINAL_REPORT_EXEMPTED[0]
+        # 直接校验豁免集合内的文件不再因 12 节契约 FAIL
+        content = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        assert 'section id="s9"' not in content  # 8 节旧骨架的事实
 
     def test_missing_class_anchor_fails(self):
         mod = _load()

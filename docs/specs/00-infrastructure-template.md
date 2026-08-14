@@ -1,6 +1,6 @@
 # BDD 规格: 项目基础设施模板
 
-> 更新: 2026-07-11
+> 更新: 2026-08-14
 > 对应规划中各个基础设施文件的创建与验证标准。
 > 本文档泛化适用于 STATUS.md / CLAUDE.md / dashboard.html / plan / worklog 等文件的创建检查。
 
@@ -86,5 +86,5 @@
 - 操作步骤：检查 `AGENTS.md`、`CLAUDE.md`、`.agents/skills/devguard/SKILL.md` 与 `.codex/config.toml`
 - 预期结果：
   - skill 是 canonical workflow surface，入口文件只做路由
-  - `conventions/README.md` 是规则真源，不生成重复 commands/rules 文案
+  - `conventions/README-规范导航.md` 是规则真源（人类入口；AI 入口为 CLAUDE-规范导航.md），不生成重复 commands/rules 文案
   - Codex 配置为项目本地、无凭据、无默认 MCP 服务，且多代理保持显式 opt-in

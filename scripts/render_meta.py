@@ -311,6 +311,41 @@ def render_target(target: str, meta: dict) -> list[Path] | None:
     return None
 
 
+def _validate_meta_schema(meta: dict) -> list[str]:
+    """R5-20（2026-08-14 红队第七轮）：真源 schema 校验——字段白名单 + 类型检查。
+
+    原 --check 对真源污染静默容错（未知字段/类型篡改 rc=0）；现对关键结构做
+    白名单与类型校验，下游硬失败组兜底类型错误。
+    """
+    errors: list[str] = []
+    toolchain = meta.get("toolchain")
+    if not isinstance(toolchain, dict):
+        return ["toolchain 段缺失或非映射"]
+    allowed_toolchain = {"ruff", "gitleaks", "pytest", "pre-commit", "rev_sha"}
+    unknown = sorted(set(toolchain) - allowed_toolchain)
+    if unknown:
+        errors.append(f"toolchain 未知字段（白名单外）: {unknown}")
+    for field in ("ruff", "gitleaks", "pytest", "pre-commit"):
+        value = toolchain.get(field)
+        if value is not None and not isinstance(value, str):
+            errors.append(f"toolchain.{field} 类型错误（期望 str，实际 {type(value).__name__}）")
+    rev_sha = toolchain.get("rev_sha")
+    if rev_sha is not None:
+        if not isinstance(rev_sha, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in rev_sha.items()
+        ):
+            errors.append("toolchain.rev_sha 类型错误（期望 dict[str, str]）")
+    pre_commit = meta.get("pre_commit")
+    if not isinstance(pre_commit, list) or not all(
+        isinstance(h, dict) and isinstance(h.get("id"), str) for h in pre_commit
+    ):
+        errors.append("pre_commit 段类型错误（期望 list[{id: str, ...}]）")
+    conventions = meta.get("conventions")
+    if not isinstance(conventions, list):
+        errors.append("conventions 段缺失或非 list")
+    return errors
+
+
 def check_target(target: str, meta: dict) -> tuple[bool, str]:
     """校验指定 target 与 _meta.yaml 一致；返回 (ok, msg)"""
     if target == "pre-commit-config":
@@ -395,6 +430,14 @@ def main() -> int:
         meta = load_meta()
     except yaml.YAMLError as e:
         print(f"FAIL: _meta.yaml YAML 解析失败: {e}", file=sys.stderr)
+        return 1
+
+    # R5-20：真源 schema 校验（--check 与 --render 均执行）
+    schema_errors = _validate_meta_schema(meta)
+    if schema_errors:
+        print("FAIL: _meta.yaml schema 校验不通过：", file=sys.stderr)
+        for e in schema_errors:
+            print(f"  - {e}", file=sys.stderr)
         return 1
 
     # 确定要处理的 target 列表
