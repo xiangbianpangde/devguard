@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -78,11 +80,49 @@ def local_hooks_path(root: Path) -> Path | None:
 
 
 def hook_exists(hooks: Path, hook_name: str) -> bool:
-    return (hooks / hook_name).is_file() or (hooks / f"{hook_name}.exe").is_file()
+    """R5-02（2026-08-14）：钩子必须存在且可执行——chmod 0644 的钩子被 git 静默忽略，
+    仅文件存在会给出虚假的「已安装」声称。Windows 下 .exe 存在即可（无执行位语义）。"""
+    if os.name == "nt":
+        return (hooks / hook_name).is_file() or (hooks / f"{hook_name}.exe").is_file()
+    candidate = hooks / hook_name
+    return candidate.is_file() and os.access(candidate, os.X_OK)
 
 
-def verify(root: Path, *, require_hooks: bool = False) -> list[str]:
-    """Return every closure violation; success is represented only by ``[]``."""
+def _check_receipt_hashes(root: Path) -> list[str]:
+    """R5-01：按 receipt digest 逐文件强校验（篡改/伪造可被发现）。"""
+    receipt_path = root / ".devguard-receipt.json"
+    if not receipt_path.is_file():
+        return ["缺少初始化回执：.devguard-receipt.json"]
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"初始化回执不可解析：{error}"]
+    files = receipt.get("files")
+    if not isinstance(files, dict):
+        return ["回执缺 files 清单"]
+    errors: list[str] = []
+    for relative, expected in files.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"回执文件缺失：{relative}")
+            continue
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError as error:
+            errors.append(f"回执文件不可读：{relative}（{error}）")
+            continue
+        if digest != expected:
+            errors.append(f"回执内容不一致（可能被篡改）：{relative}")
+    return errors
+
+
+def verify(root: Path, *, require_hooks: bool = False, check_hashes: bool = False) -> list[str]:
+    """Return every closure violation; success is represented only by ``[]``.
+
+    R5-01（2026-08-14 红队第五轮）：verify 默认弱校验（manifest 结构在场，允许
+    owner 编辑生成文件）；--check-hashes 强校验模式按 receipt digest 逐文件比对，
+    用于完整性审计场景（篡改文件+伪造 digest 可被发现）。
+    """
     root = root.resolve()
     config, errors = load_config(root)
     if config is None:
@@ -143,6 +183,9 @@ def verify(root: Path, *, require_hooks: bool = False) -> list[str]:
             if not re.search(rf"(?m)^{re.escape(package)}==[^\s]+$", declared):
                 errors.append(f"dependency not pinned: {package}")
 
+    if check_hashes:
+        errors.extend(_check_receipt_hashes(root))
+
     if require_hooks:
         if not (root / ".git").is_dir():
             errors.append("Git repository is not initialized")
@@ -181,6 +224,7 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser = subparsers.add_parser("verify")
     verify_parser.add_argument("--root", type=Path, default=Path.cwd())
     verify_parser.add_argument("--require-hooks", action="store_true")
+    verify_parser.add_argument("--check-hashes", action="store_true")
     commit_parser = subparsers.add_parser("commit-msg")
     commit_parser.add_argument("message_file", type=Path)
     return parser
@@ -189,7 +233,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "verify":
-        errors = verify(args.root, require_hooks=args.require_hooks)
+        errors = verify(
+            args.root,
+            require_hooks=args.require_hooks,
+            check_hashes=getattr(args, "check_hashes", False),
+        )
     else:
         errors = validate_commit_message(args.message_file)
     if errors:

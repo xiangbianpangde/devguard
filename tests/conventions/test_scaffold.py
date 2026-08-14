@@ -316,7 +316,9 @@ def test_verify_rejects_hooks_that_git_will_ignore_without_local_hook_path(tmp_p
     subprocess.run(["git", "init", "-q"], cwd=target, check=True)
     hooks = target / ".git" / "hooks"
     for name in ("pre-commit", "commit-msg"):
-        (hooks / name).write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+        hook = hooks / name
+        hook.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+        hook.chmod(0o755)  # R5-02：钩子需可执行位（0644 被 git 静默忽略）
 
     errors = module.verify(target, profile="core", require_hooks=True)
 
@@ -568,3 +570,14 @@ def test_staging_failure_with_eacces_cleans_up(tmp_path, monkeypatch):
 
     assert not target.exists()
     assert list(tmp_path.glob(".devguard-staging-*")) == []
+
+
+def test_project_name_rejects_injection_and_accepts_valid(tmp_path):
+    """R2-13（红队第五轮）：project_name 白名单——JSON 破坏/换行/markdown 注入拦截，合法名通过。"""
+    module = load_scaffold()
+    for bad in ('X"}]},{broken', "a\nb", "<script>alert(1)</script>", "A" * 100):
+        with pytest.raises(module.ScaffoldError, match="非法字符"):
+            module.setup(tmp_path / "t", profile="core", project_name=bad)
+    result = module.setup(tmp_path / "ok", profile="core", project_name="My Project-2026")
+    assert (tmp_path / "ok").is_dir()
+    assert result.profile == "core"
