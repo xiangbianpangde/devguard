@@ -475,3 +475,44 @@ def test_gitleaks_config_uses_extend_mode_not_rule_copy():
         REPO_ROOT / "docs/templates/devguard/scaffold/core/.gitleaks.toml",
     ):
         assert mirror.read_bytes() == root_config.read_bytes(), f"镜像漂移: {mirror}"
+
+
+def test_staging_cleaned_on_failure_when_target_empty(tmp_path, monkeypatch):
+    """S-1（红队①/②）：空 target 写入中途失败 → staging 清理、target 零残留。"""
+    module = load_scaffold()
+    target = tmp_path / "fresh"
+    assert not target.exists()
+    real_atomic_write = module._atomic_write
+    calls = 0
+
+    def fail_after_three_writes(path, payload):
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise OSError("injected staging write failure")
+        real_atomic_write(path, payload)
+
+    monkeypatch.setattr(module, "_atomic_write", fail_after_three_writes)
+
+    with pytest.raises(module.ScaffoldError, match="已回滚"):
+        module.setup(target, profile="core", project_name="Fresh")
+
+    # 结构性归零：target 不存在 + 无 staging 残骸 + 无临时文件
+    assert not target.exists()
+    assert list(tmp_path.glob(".devguard-staging-*")) == []
+    assert list(tmp_path.glob("*.devguard.tmp")) == []
+
+
+def test_staging_atomic_commit_leaves_no_residue(tmp_path):
+    """S-1（红队②/④）：成功路径 staging 提交后无残骸，target 完整。"""
+    module = load_scaffold()
+    target = tmp_path / "fresh"
+    module.setup(target, profile="core", project_name="Fresh")
+    assert target.is_dir()
+    assert (target / ".devguard.json").exists()
+    assert (target / ".devguard-receipt.json").exists()
+    # 无 staging/临时残骸
+    assert list(tmp_path.glob(".devguard-staging-*")) == []
+    assert list(tmp_path.glob("*.devguard.tmp")) == []
+    # 校验通过
+    assert module.verify(target, profile="core", require_hooks=False) == []
