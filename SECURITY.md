@@ -96,3 +96,4 @@ pre-commit 的三个上游仓库（pre-commit-hooks / ruff-pre-commit / gitleaks
 4. **与豁免账的关系**：SKIP 是"运行环境降级"，豁免账是"规则破例"——两者独立；SKIP 不登记豁免账，豁免账不覆盖 SKIP。
 
 > 2026-08-14 使用记录：第三轮窄修（08ee9f9）与 #8 销账（5804090）本地提交 SKIP=gitleaks（golangenv 新 SHA 环境编译网络受限）；CI 7/7 全绿含 gitleaks（release 二进制）。待本地环境编译完成后补跑全量。
+> 关联：`meta/豁免清单.md` §一（[skip-*] 规则破例的登记账；两类机制独立，审计入口互相指向）。
