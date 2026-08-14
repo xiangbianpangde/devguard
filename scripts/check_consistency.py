@@ -243,6 +243,20 @@ def _toolchain_field(root: Path, field: str) -> str | None:
     return version if isinstance(version, str) and version else None
 
 
+def _load_toolchain_rev_sha(root: Path) -> dict[str, str] | None:
+    """toolchain.rev_sha 真源（R2-06 tag→SHA 钉版表）"""
+    text = _read(root, "conventions/_meta.yaml")
+    if text is None:
+        return None
+    try:
+        meta = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+    toolchain = meta.get("toolchain") if isinstance(meta, dict) else None
+    rev_sha = toolchain.get("rev_sha") if isinstance(toolchain, dict) else None
+    return rev_sha if isinstance(rev_sha, dict) else None
+
+
 def _expected_ruff_version(root: Path) -> str | None:
     """ruff 钉版的单一真源：conventions/_meta.yaml 的 toolchain.ruff"""
     return _toolchain_field(root, "ruff")
@@ -284,12 +298,15 @@ def evaluate_ci_projection(root: Path) -> Dimension:
     template_matches = workflow is not None and workflow == template
     version = _expected_ruff_version(root)
     pins = set(re.findall(r"ruff==([0-9][0-9a-z.]*)", workflow or ""))
+    rev_sha_map = _load_toolchain_rev_sha(root) or {}
+    ruff_sha = rev_sha_map.get("ruff-pre-commit", "")
     formatter_matches = bool(
         version
         and workflow
         and pre_commit
         and pins == {version}
-        and f"rev: v{version}" in pre_commit
+        and ruff_sha
+        and f"rev: {ruff_sha}" in pre_commit
         and "ruff format --check . --config src/coding/ruff.toml" in workflow
     )
     pytest_version = _toolchain_field(root, "pytest")
@@ -415,14 +432,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     report = evaluate_repository(args.repo_root)
     print(format_report(report, args.threshold))
-    # 红队第三轮 R-02 终修：关键真源投影（CI 模板一致性 / ruff / pytest /
-    # pre-commit）任一不一致必须硬失败，不受聚合阈值豁免（杜绝 96%≥95 假绿）。
+    # R-02/R2-09 硬失败组：任何「结构性同步/投影」事实失败必须 rc=1，
+    # 不受聚合阈值豁免——杜绝「CI 全绿」与「有事实 FAIL」并存的声称漂移土壤。
+    # 范围：CI模板投影维度全部 + 任意维度中名字含 projection/continuity/marker 的事实。
     critical_failures = [
         fact.name
         for dimension in report.dimensions
-        if dimension.name == "CI模板投影"
         for fact in dimension.facts
         if not fact.passed
+        and (
+            dimension.name == "CI模板投影"
+            or "projection" in fact.name
+            or "continuity" in fact.name
+            or fact.name.endswith("marker")
+        )
     ]
     if critical_failures:
         print(

@@ -104,7 +104,7 @@ def load_meta() -> dict:
     return meta
 
 
-def render_pre_commit_config(meta: dict) -> str:
+def render_pre_commit_config(meta: dict) -> str:  # noqa: PLR0915
     """从 meta['pre_commit'] 渲染 .pre-commit-config.yaml 内容"""
     # 按 source 分组
     repos: dict[str, dict] = {}
@@ -121,7 +121,12 @@ def render_pre_commit_config(meta: dict) -> str:
                 if "rev" not in hook:
                     raise ValueError(f"pre_commit 钩子 {hook['id']} 缺 rev 字段")
                 repo_entry["repo"] = f"https://github.com/{repo_key}"
-                repo_entry["rev"] = hook["rev"]
+                # R2-06：rev 渲染为 commit SHA（toolchain.rev_sha 真源），防 movable tag
+                rev_sha_table = (meta.get("toolchain") or {}).get("rev_sha") or {}
+                rev_sha = rev_sha_table.get(repo_key) or rev_sha_table.get(
+                    repo_key.split("/")[-1], ""
+                )
+                repo_entry["rev"] = rev_sha or hook["rev"]
             repos[repo_key] = repo_entry
         hook_def: dict = {"id": hook["id"]}
         for k in (

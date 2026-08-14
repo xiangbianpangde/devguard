@@ -54,7 +54,9 @@ def test_ci_pins_and_enforces_the_same_ruff_formatter_as_precommit():
 
     assert f"pip install ruff=={version} pyyaml" in workflow
     assert "ruff format --check . --config src/coding/ruff.toml" in workflow
-    assert f"rev: v{version}" in pre_commit
+    rev_sha = (REPO_ROOT / "conventions/_meta.yaml").read_text(encoding="utf-8")
+    assert "ruff-pre-commit: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56" in rev_sha
+    assert "rev: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56" in pre_commit
     assert "id: ruff-format\n        args: ['--config=src/coding/ruff.toml']" in pre_commit
 
 
