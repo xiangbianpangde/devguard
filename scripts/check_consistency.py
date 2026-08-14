@@ -243,6 +243,20 @@ def _toolchain_field(root: Path, field: str) -> str | None:
     return version if isinstance(version, str) and version else None
 
 
+def _load_toolchain_rev_sha(root: Path) -> dict[str, str] | None:
+    """toolchain.rev_sha 真源（R2-06 tag→SHA 钉版表）"""
+    text = _read(root, "conventions/_meta.yaml")
+    if text is None:
+        return None
+    try:
+        meta = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+    toolchain = meta.get("toolchain") if isinstance(meta, dict) else None
+    rev_sha = toolchain.get("rev_sha") if isinstance(toolchain, dict) else None
+    return rev_sha if isinstance(rev_sha, dict) else None
+
+
 def _expected_ruff_version(root: Path) -> str | None:
     """ruff 钉版的单一真源：conventions/_meta.yaml 的 toolchain.ruff"""
     return _toolchain_field(root, "ruff")
@@ -284,12 +298,15 @@ def evaluate_ci_projection(root: Path) -> Dimension:
     template_matches = workflow is not None and workflow == template
     version = _expected_ruff_version(root)
     pins = set(re.findall(r"ruff==([0-9][0-9a-z.]*)", workflow or ""))
+    rev_sha_map = _load_toolchain_rev_sha(root) or {}
+    ruff_sha = rev_sha_map.get("ruff-pre-commit", "")
     formatter_matches = bool(
         version
         and workflow
         and pre_commit
         and pins == {version}
-        and f"rev: v{version}" in pre_commit
+        and ruff_sha
+        and f"rev: {ruff_sha}" in pre_commit
         and "ruff format --check . --config src/coding/ruff.toml" in workflow
     )
     pytest_version = _toolchain_field(root, "pytest")

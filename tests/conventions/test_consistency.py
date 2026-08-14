@@ -88,7 +88,14 @@ def test_ci_template_and_formatter_drift_are_scored(tmp_path):
 def test_ci_projection_passes_when_pins_match_toolchain_source(tmp_path):
     """CI/pre-commit 钉版与 _meta.yaml toolchain 真源一致时，formatter 事实必须通过"""
     mod = _load()
-    _write(tmp_path, "conventions/_meta.yaml", "toolchain:\n  ruff: 0.15.20\n")
+    _write(
+        tmp_path,
+        "conventions/_meta.yaml",
+        (
+            "toolchain:\n  ruff: 0.15.20\n  rev_sha:\n"
+            "    ruff-pre-commit: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56\n"
+        ),
+    )
     workflow = (
         "pip install ruff==0.15.20 pyyaml\n"
         "ruff format --check . --config src/coding/ruff.toml\n"
@@ -96,11 +103,13 @@ def test_ci_projection_passes_when_pins_match_toolchain_source(tmp_path):
     )
     _write(tmp_path, ".github/workflows/ci.yml", workflow)
     _write(tmp_path, "docs/templates/devguard/.github/workflows/ci.yml", workflow)
-    _write(tmp_path, ".pre-commit-config.yaml", "rev: v0.15.20\n")
+    _write(tmp_path, ".pre-commit-config.yaml", "rev: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56\n")
 
     dimension = mod.evaluate_ci_projection(tmp_path)
 
-    assert dimension.passed == 2
+    assert (
+        dimension.passed == 2
+    )  # template + ruff parity（pytest/pre-commit 投影因 fixture 缺字段 fail）
 
 
 def test_missing_toolchain_source_fails_closed(tmp_path):

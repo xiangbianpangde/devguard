@@ -33,6 +33,10 @@ toolchain:
   gitleaks: 8.24.3   # 密钥扫描版本真源：pre-commit rev 经 render_meta 渲染；ci.yml 手动下载步按此同步
   pytest: 9.1.1      # 2026-08-13 R-02：测试框架版本真源（requirements/CI 钉版同步）
   pre-commit: 4.6.0  # 2026-08-13 R-02：钩子框架版本真源
+  rev_sha:           # 2026-08-13 R2-06：pre-commit 上游仓库 tag→commit 钉版（防 movable tag 攻击）
+    pre-commit-hooks: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b  # v5.0.0
+    ruff-pre-commit: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56   # v0.15.20
+    gitleaks: 107a41827bb6698dbbff756b2300537774a1d84c         # v8.24.3
 
 # ============================================================
 # 1. 规范分级（每篇的红线/警告/推荐 数量 + 描述）
@@ -499,7 +503,7 @@ ci:
       runner: ubuntu-latest
       needs: []
       tools:
-        - pip: pytest pyyaml
+        - pip: pytest==9.1.1 pyyaml==6.0.3 ruff==0.15.20
       cmd: python scripts/render_meta.py --check && pytest -q
 
     - id: l4-conventions

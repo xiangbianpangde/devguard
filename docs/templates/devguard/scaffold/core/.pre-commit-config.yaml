@@ -2,7 +2,7 @@ default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b
     hooks:
       - id: check-added-large-files
         args: [--maxkb=10000]
@@ -12,13 +12,13 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56
     hooks:
       - id: ruff
       - id: ruff-format
 
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.24.3
+    rev: 107a41827bb6698dbbff756b2300537774a1d84c
     hooks:
       - id: gitleaks
 

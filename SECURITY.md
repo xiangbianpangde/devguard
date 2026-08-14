@@ -18,7 +18,7 @@
 
 > V1.1.2 新建
 > 维护者: 袁 (xiangbianpangde) | 创建: 2026-06-07
-> 更新: 2026-08-13
+> 更新: 2026-08-14
 
 ## Supported Versions
 
@@ -36,7 +36,7 @@ devguard 项目本身（开发规范模板）不发布生产版本——它是�
 | # | 防护项 | 期望状态 | 验证方式 | 与仓库机制的关系 |
 |---|--------|---------|---------|-----------------|
 | 1 | Branch protection（master） | 待 Owner 核对：禁直推 + required checks（红队 API 实测恰 5 个 required contexts，跨平台 job 未直接列入——与本文档 #2 声明有差异，须以平台实际为准） | GitHub Settings → Branches | 本地 `--no-verify` 绕过的兜底真闸门 |
-| 2 | Required status checks | lint/test/l4/compliance/build + 跨平台 | PR checks 列表 | CI 5 阶段 + test-cross-platform |
+| 2 | Required status checks | **待 Owner 核对**：红队 API 实测恰 5 个 required contexts（跨平台 job 未直接列入 required 列表）；本文档不声称跨平台为 Required | PR checks 列表 | CI 5 阶段 + test-cross-platform（非阻断性并行 job） |
 | 3 | Secret scanning push protection | **未验证**（无 token 不可 API 查询；请勿视为已启用——待 Owner 携 admin token 核对） | Settings → Code security | 与 gitleaks（本地+CI）双链路；push 被拦时走 bypass 豁免审计对齐豁免账 |
 | 4 | Dependabot alerts | **未验证**（待 Owner 核对） | Settings → Code security | 依赖漏洞（pip/npm audit 的远端兜底） |
 | 5 | 默认分支合并方式 | PR 合并（禁 rebase-force） | Settings → Branches | 03-git 规范 main 禁直推 |
