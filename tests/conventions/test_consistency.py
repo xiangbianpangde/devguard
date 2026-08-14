@@ -81,7 +81,9 @@ def test_ci_template_and_formatter_drift_are_scored(tmp_path):
 
     dimension = mod.evaluate_ci_projection(tmp_path)
 
-    assert dimension.total == 4  # template + ruff parity + pytest + pre-commit projections
+    assert (
+        dimension.total == 5
+    )  # template + ruff parity + pytest + pre-commit + rev-sha projections
     assert dimension.passed == 0
 
 
@@ -108,8 +110,8 @@ def test_ci_projection_passes_when_pins_match_toolchain_source(tmp_path):
     dimension = mod.evaluate_ci_projection(tmp_path)
 
     assert (
-        dimension.passed == 2
-    )  # template + ruff parity（pytest/pre-commit 投影因 fixture 缺字段 fail）
+        dimension.passed == 3
+    )  # template + ruff parity + rev-sha（pytest/pre-commit 投影因 fixture 缺字段 fail）
 
 
 def test_missing_toolchain_source_fails_closed(tmp_path):

@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新: 2026-08-14
+> 更新: 2026-08-14（赛制第 2 天：第四轮 3 项 + 测试期望同步入库，CI 验证中）
 <!-- devguard-progress: completed=55 total=55 -->
 <!-- convergence-gate: nodes=31,35,46,49,52,55,58 last_converged_fp=55 -->
 
@@ -90,7 +90,7 @@
 | 11 | 钩子按 staged 文件类型裁剪（红队 S-3 观察） | 观察 | easy-vibe husky 模式；需论证不破坏 C2（19 钩子在场）完整性——裁剪后须保持全量可跑 |
 | 12 | 子目录级 CLAUDE.md（红队 S-4 观察） | 观察 | Anthropic 官方建议；conventions/ 已有双导航近似覆盖，增量价值待评估 |
 | 10 | requirements-dev.txt hash 锁定（供应链加固） | 待立项 | 评估：dev 依赖（非生产运行时）风险低；pip hash 锁定后每次升级需重生成 hashes，与 55/55 稳定态冲突；建议维持钉版现状 |
-| 8 | 钩子注册单一真源（_meta.yaml hooks 段 → render_meta 投射） | 📋 已立项（设计提案-技术债8 落盘，实现待 Owner 拍板） | 事后检测已具备（check_template_drift rev 校验 + check_consistency 投影）；真源投射待实现 |
+| 8 | ~~钩子注册单一真源~~ **已实现**（2026-08-14：rev_sha 真源表 → render_meta 投射 + --check 校验；变异 rev_sha → FAIL 验证） | ✅ 关闭 | 原：三处手同步靠纪律（红队 R2-06 推动 SHA 钉版时顺带完成） |
 | 9 | ~~钩子失败文案标准化~~ **已落地**（2026-08-13 architecture.md §4.6 失败恢复指引——四步姿势 + 高频拦截说明） | ✅ 关闭 | 原：蓝队实战多次踩坑 pre-commit restore staged |
 | 7 | ~~install.sh 健壮性~~ **已根治**（2026-08-13 大类三：ensurepip 预检 install.sh/install.ps1/setup_scaffold + install() 失败清理） | ✅ 关闭 | 原：缺 ensurepip 预检；失败残留（2026-07-22 E2E 发现） |
 

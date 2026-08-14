@@ -309,6 +309,11 @@ def evaluate_ci_projection(root: Path) -> Dimension:
         and f"rev: {ruff_sha}" in pre_commit
         and "ruff format --check . --config src/coding/ruff.toml" in workflow
     )
+    rev_sha_map = _load_toolchain_rev_sha(root) or {}
+    pre_commit_text = pre_commit or ""
+    sha_projection = bool(rev_sha_map) and all(
+        f"rev: {sha}" in pre_commit_text for sha in rev_sha_map.values()
+    )
     pytest_version = _toolchain_field(root, "pytest")
     pytest_pins = set(re.findall(r"pytest==([0-9][0-9a-z.]*)", workflow or ""))
     requirements = _read(root, "requirements-dev.txt") or ""
@@ -350,6 +355,13 @@ def evaluate_ci_projection(root: Path) -> Dimension:
                 ),
             ),
             _precommit_projection_fact(root),
+            Fact(
+                "rev-sha projection",
+                sha_projection,
+                "pre-commit 三仓库 rev 均按 toolchain.rev_sha 真源钉版"
+                if sha_projection
+                else "pre-commit rev 与 toolchain.rev_sha 真源表不一致（movable tag 风险）",
+            ),
         ),
     )
 

@@ -85,3 +85,14 @@ pre-commit 的三个上游仓库（pre-commit-hooks / ruff-pre-commit / gitleaks
 - 理由：pre-commit 框架本地缓存 tag 解析结果；check_consistency 对 ruff rev 与 toolchain 真源做一致性校验；SHA 钉版破坏版本可读性与渲染链
 - Owner 确认位：⏳ 待 Owner 签认（不同意则切换 SHA 钉版方案）
 - 触发条件：红队/任何人提供「上游 tag 被移动」可执行复现 → 蓝队 1 个工作日内改为 commit SHA 钉版并回传复验
+
+## SKIP 环境变量使用边界（2026-08-14 红队 R2-10 回应）
+
+`SKIP=<hook-id>`（pre-commit 环境变量）**不属于豁免账机制**（豁免账只登记 `[skip-*]` commit 标记）。边界规则：
+
+1. **允许场景**：本地钩子环境未就绪（如 golangenv 首次编译受网络限制）时，`SKIP=gitleaks` 用于**本地临时提交**；CI 的 release 二进制 gitleaks 是密钥拦截主兜底（L1 lint job 必跑）。
+2. **禁止场景**：SKIP 不得用于绕过 CI（CI 不读 SKIP）；不得在提交 message 中使用（message 级豁免只能走豁免账）。
+3. **审计**：SKIP 使用记录在 worklog「遇到的问题」段（如 2026-08-14 第三轮窄修提交）；环境就绪后必须补跑被跳过的钩子（`pre-commit run gitleaks --all-files`）。
+4. **与豁免账的关系**：SKIP 是"运行环境降级"，豁免账是"规则破例"——两者独立；SKIP 不登记豁免账，豁免账不覆盖 SKIP。
+
+> 2026-08-14 使用记录：第三轮窄修（08ee9f9）与 #8 销账（5804090）本地提交 SKIP=gitleaks（golangenv 新 SHA 环境编译网络受限）；CI 7/7 全绿含 gitleaks（release 二进制）。待本地环境编译完成后补跑全量。
