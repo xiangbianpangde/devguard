@@ -229,10 +229,9 @@ def validate_commit_message(path: Path) -> list[str]:
 
 
 def uninstall(root: Path, *, purge: bool = False) -> list[str]:
-    """R5-17（2026-08-14 红队第七轮）：还原路径——卸载 hooks 与隔离环境。
+    """R5-17（2026-08-14 红队）：还原路径——卸载 hooks 与隔离环境。
 
-    - 恢复本仓 core.hooksPath 为默认（unset local）
-    - 移除本地 hooks 目录中的 devguard 包装器（pre-commit/commit-msg）
+    - hooks 卸载委托 install_hooks.py --uninstall（对称于 install，统一路径）
     - --purge：删除 .venv 与 .devguard* 标记文件（源文件保留）
     返回错误列表（空 = 成功）。
     """
@@ -242,20 +241,35 @@ def uninstall(root: Path, *, purge: bool = False) -> list[str]:
     errors: list[str] = []
     if not (root / ".git").is_dir():
         return ["目标不是 Git 仓库，无需卸载"]
-    subprocess.run(
-        ["git", "config", "--local", "--unset-all", "core.hooksPath"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-    )
-    hooks = root / ".git" / "hooks"
-    for hook_name in ("pre-commit", "commit-msg", "pre-push"):
-        hook = hooks / hook_name
-        if hook.is_file():
-            try:
-                hook.unlink()
-            except OSError as error:
-                errors.append(f"移除 {hook_name} 失败：{error}")
+    installer = root / "scripts" / "install_hooks.py"
+    if installer.is_file():
+        result = subprocess.run(
+            [sys.executable, str(installer), "--root", str(root), "--uninstall"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if result.returncode != 0:
+            errors.append(f"hooks 卸载失败：{(result.stdout + result.stderr).strip()}")
+    else:
+        # 兜底（缺 install_hooks 时直接清理）
+        subprocess.run(
+            ["git", "config", "--local", "--unset-all", "core.hooksPath"],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        )
+        hooks = root / ".git" / "hooks"
+        for hook_name in ("pre-commit", "commit-msg", "pre-push"):
+            hook = hooks / hook_name
+            if hook.is_file():
+                try:
+                    hook.unlink()
+                except OSError as error:
+                    errors.append(f"移除 {hook_name} 失败：{error}")
     if purge:
         venv_dir = root / ".venv"
         if venv_dir.is_dir():

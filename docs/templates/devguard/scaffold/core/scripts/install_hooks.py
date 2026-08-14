@@ -180,20 +180,52 @@ def install_hooks(root: Path) -> Path:
     return local_hooks
 
 
+def uninstall_hooks(root: Path) -> None:
+    """R5-17（红队第四批）：对称卸载——移除本地 hooks 包装器并恢复 hooksPath 默认。
+
+    与 install_hooks 对称：unset local core.hooksPath + 删除本地 .git/hooks 中
+    pre-commit 框架生成的包装器（pre-commit/commit-msg），保留 ECC 等外部钩子
+    目录原样（全局配置不动）。
+    """
+    root = root.resolve()
+    if not (root / ".git").is_dir():
+        raise HookInstallError(f"Git repository is not initialized: {root}")
+    _unset_local_hooks_path(root)
+    hooks = (root / ".git" / "hooks").resolve()
+    for hook_name in ("pre-commit", "commit-msg", "pre-push"):
+        hook = hooks / hook_name
+        if hook.is_file():
+            try:
+                hook.unlink()
+            except OSError as error:
+                raise HookInstallError(f"remove {hook_name} failed: {error}") from error
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="R5-17：卸载本仓 hooks（对称于 install：unset hooksPath + 移除包装器）",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        hooks = install_hooks(args.root)
+        if args.uninstall:
+            uninstall_hooks(args.root)
+        else:
+            hooks = install_hooks(args.root)
     except HookInstallError as error:
         print(f"HOOK INSTALL FAILED: {error}", file=sys.stderr)
         return 1
-    print(f"HOOK INSTALL OK: {hooks}")
+    if not args.uninstall:
+        print(f"HOOK INSTALL OK: {hooks}")
+    else:
+        print("HOOK UNINSTALL OK")
     return 0
 
 

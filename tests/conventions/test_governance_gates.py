@@ -25,6 +25,10 @@ def _run(script: str, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _load(script: str):
+    # check_doc_quality 等 import 同级 check_* 模块——确保 scripts/ 在 sys.path
+    scripts_dir = REPO_ROOT / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
     spec = importlib.util.spec_from_file_location(
         script.removesuffix(".py"), REPO_ROOT / "scripts" / script
     )
@@ -86,3 +90,36 @@ class TestRemainingGateSmokes:
     def test_smoke_exit_zero(self, script):
         r = _run(script)
         assert r.returncode == 0, f"{script} smoke 失败:\n{r.stdout}\n{r.stderr}"
+
+
+class TestRemainingGateBehavior:
+    """R5-22 补强（红队第四批）：4 脚本行为断言——变异检查对象必须 FAIL（非仅 exit 0）。"""
+
+    def test_code_understanding_fails_on_missing_src(self, tmp_path, monkeypatch):
+        mod = _load("check_code_understanding.py")
+        monkeypatch.setattr(mod, "CU_DIR", tmp_path / "no-such-dir")
+        assert mod.main() != 0
+
+    def test_convergence_artifacts_fails_on_broken_status(self, tmp_path, monkeypatch):
+        """R5-24 fail-closed 行为：STATUS 无收束节点 → FAIL。"""
+        mod = _load("check_convergence_artifacts.py")
+        status = tmp_path / "STATUS.md"
+        status.write_text("# 无节点表\n", encoding="utf-8")
+        monkeypatch.setattr(mod, "STATUS", status)
+        assert mod.main() != 0
+
+    def test_doc_quality_fails_on_broken_report(self, tmp_path, monkeypatch):
+        """变异收束报告（缺必需节）→ check_doc_quality FAIL。"""
+        mod = _load("check_doc_quality.py")
+        broken = tmp_path / "收束报告-v9.9.md"
+        broken.write_text("# 空壳\n", encoding="utf-8")
+        monkeypatch.setattr(mod, "REPORTS_DIR", tmp_path)
+        assert mod.main() != 0
+
+    def test_report_fails_on_broken_report(self, tmp_path, monkeypatch):
+        """变异收束报告（缺必需节）→ check_report FAIL（非仅 exit 0）。"""
+        mod = _load("check_report.py")
+        broken = tmp_path / "收束报告-v9.9.md"
+        broken.write_text("# 空壳\n", encoding="utf-8")
+        monkeypatch.setattr(mod, "REPORTS_DIR", tmp_path)
+        assert mod.main() != 0
