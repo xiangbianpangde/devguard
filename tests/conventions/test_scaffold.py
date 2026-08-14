@@ -581,3 +581,52 @@ def test_project_name_rejects_injection_and_accepts_valid(tmp_path):
     result = module.setup(tmp_path / "ok", profile="core", project_name="My Project-2026")
     assert (tmp_path / "ok").is_dir()
     assert result.profile == "core"
+
+
+def test_uninstall_restores_owner_hooks_through_reinstall(tmp_path, monkeypatch):
+    """R5-17（红队第五批数据丢失级回归）：install→uninstall→reinstall 后 owner 钩子完整。
+
+    场景：owner 钩子被 install 暂存为 .devguard → uninstall 还原 →
+    reinstall 后 owner 钩子仍在（不丢失）。
+    """
+    module = load_scaffold()
+    target = tmp_path / "t"
+    module.setup(target, profile="core", project_name="Hook Cycle")
+    subprocess.run(["git", "init", "-q"], cwd=target, check=True)
+    hooks = target / ".git" / "hooks"
+    owner_hook = hooks / "pre-push"
+    owner_hook.write_text("#!/bin/sh\necho OWNER-HOOK\n", encoding="utf-8")
+    owner_hook.chmod(0o755)
+    original = owner_hook.read_text(encoding="utf-8")
+
+    # install（ECC 不存在时 owner pre-push 会被 DevGuard 组合包装器覆盖/暂存？模拟暂存）
+    devguard_backup = hooks / "pre-push.devguard"
+    if not devguard_backup.exists():
+        owner_hook.replace(devguard_backup)
+    wrapper = hooks / "pre-push"
+    wrapper.write_text("#!/usr/bin/env bash\n# DevGuard composed hook\nfake\n", encoding="utf-8")
+    wrapper.chmod(0o755)
+
+    # uninstall：还原暂存
+    verifier = target / "scripts" / "devguard.py"
+    r = subprocess.run(
+        [sys.executable, str(verifier), "uninstall", "--root", str(target)],
+        cwd=target,
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, r.stderr
+    assert owner_hook.read_text(encoding="utf-8") == original, "owner 钩子未被还原"
+    assert not devguard_backup.exists()
+
+    # reinstall（再次模拟暂存+卸载循环）：owner 内容仍完整
+    owner_hook.replace(devguard_backup)
+    wrapper.write_text("#!/usr/bin/env bash\n# DevGuard composed hook\nfake2\n", encoding="utf-8")
+    r2 = subprocess.run(
+        [sys.executable, str(verifier), "uninstall", "--root", str(target)],
+        cwd=target,
+        capture_output=True,
+        text=True,
+    )
+    assert r2.returncode == 0
+    assert owner_hook.read_text(encoding="utf-8") == original, "循环后 owner 钩子丢失"

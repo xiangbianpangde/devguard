@@ -115,13 +115,22 @@ NEGATION_PATTERNS = ("无待拍板", "已拍板", "已采纳", "已决策", "已
 
 
 def _has_pending(decision_section: str) -> bool:
-    """决策节内按行判断是否有未决决策点（行级否定语境除外）。"""
+    """决策节内按行判断是否有未决决策点（行级否定语境除外）。
+
+    R5-33 残余（红队第四批复验）：行内否定——「当前无待拍板项。待拍板：选择A」
+    同一行既有否定又有真实 pending：按句号切句，否定只作用于其所在句。
+    """
     for line in decision_section.splitlines():
         if not any(pat in line for pat in PENDING_PATTERNS):
             continue
-        if any(neg in line for neg in NEGATION_PATTERNS):
-            continue
-        return True
+        # 按句号/分号切句，逐句判断（否定只豁免其所在句）
+        sentences = [s for s in re.split(r"[。；;]", line) if s.strip()]
+        for sentence in sentences:
+            if not any(pat in sentence for pat in PENDING_PATTERNS):
+                continue
+            if any(neg in sentence for neg in NEGATION_PATTERNS):
+                continue
+            return True
     return False
 
 

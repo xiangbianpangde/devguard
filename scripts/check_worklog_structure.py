@@ -55,13 +55,21 @@ def check_content(relative: str, content: str) -> tuple[list[str], list[str]]:
         if match:
             content_date = match.group(1)
             break
+    # R5-25 残余（红队第四批复验）：首标题日期**恒校验**（无论 metadata 是否存在）——
+    # 此前仅 metadata 缺失时才查标题，标题恒错可被「metadata 恰好存在」掩盖。
+    title_date = None
+    for line in content.splitlines():
+        if line.startswith("# "):
+            match = re.match(r"^#\s*(\d{4}-\d{2}-\d{2})", line.strip())
+            if match:
+                title_date = match.group(1)
+            break
+    if title_date is not None and title_date != filename_date:
+        date_errors.append(
+            f"{relative}: 首标题日期 {title_date} 与文件名日期 {filename_date} 不一致"
+        )
     if content_date is None:
-        for line in content.splitlines():
-            if line.startswith("# "):
-                match = re.match(r"^#\s*(\d{4}-\d{2}-\d{2})", line.strip())
-                if match:
-                    content_date = match.group(1)
-                break
+        content_date = title_date
     date_errors: list[str] = []
     if content_date and content_date != filename_date:
         date_errors.append(
