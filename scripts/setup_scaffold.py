@@ -607,6 +607,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.uninstall:
             verifier = target / "scripts" / "devguard.py"
             if not verifier.is_file():
+                # R5-17（红队第四批）：错误路径必须 rc=1（此前 rc=0 属 fail-open 声称失实）
                 print("ERROR: 目标项目缺 scripts/devguard.py（无法卸载）", file=sys.stderr)
                 return 1
             result = subprocess.run(
