@@ -561,6 +561,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="R5-01：强校验模式——按回执 digest 逐文件比对（篡改可发现）",
     )
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="R5-17：卸载目标项目的 hooks 与隔离环境（委托目标 devguard.py uninstall）",
+    )
     return parser
 
 
@@ -599,6 +604,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             for entry in entries:
                 print(f"- {entry.destination}")
             return 0
+        if args.uninstall:
+            verifier = target / "scripts" / "devguard.py"
+            if not verifier.is_file():
+                print("ERROR: 目标项目缺 scripts/devguard.py（无法卸载）", file=sys.stderr)
+                return 1
+            result = subprocess.run(
+                [sys.executable, str(verifier), "uninstall", "--root", str(target)],
+                cwd=target,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+            )
+            print((result.stdout or result.stderr).strip())
+            return result.returncode
         if args.verify:
             errors = verify(
                 target,

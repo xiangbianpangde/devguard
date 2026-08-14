@@ -343,6 +343,46 @@ def _validate_meta_schema(meta: dict) -> list[str]:
     conventions = meta.get("conventions")
     if not isinstance(conventions, list):
         errors.append("conventions 段缺失或非 list")
+    else:
+        # R5-20（红队第三批）：conventions 条目字段白名单 + 类型
+        allowed_conv_fields = {
+            "id",
+            "title",
+            "file",
+            "grade",
+            "l1_check",
+            "l1_check_path",
+            "l1_check_doc",
+            "l3_route",
+        }
+        for i, conv in enumerate(conventions):
+            if not isinstance(conv, dict):
+                errors.append(f"conventions[{i}] 非映射")
+                continue
+            unknown = sorted(set(conv) - allowed_conv_fields)
+            if unknown:
+                errors.append(f"conventions[{i}] 未知字段: {unknown}")
+            if not isinstance(conv.get("id"), str):
+                errors.append(f"conventions[{i}] id 非 str")
+            grade = conv.get("grade")
+            if grade is not None and not isinstance(grade, dict):
+                errors.append(f"conventions[{i}] grade 非映射")
+    # 顶层白名单（防未知顶层字段污染）
+    allowed_top = {
+        "version",
+        "project",
+        "toolchain",
+        "conventions",
+        "pre_commit",
+        "ci",
+        "excluded_preferences",
+        "l4_tests",
+        "preferences_integration",
+        "render",
+    }
+    unknown_top = sorted(set(meta) - allowed_top)
+    if unknown_top:
+        errors.append(f"顶层未知字段（白名单外）: {unknown_top}")
     return errors
 
 
